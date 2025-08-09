@@ -210,18 +210,62 @@
                         password: this.password,
                         createdAt: new Date().toISOString(),
                         level: 1,
-                        credits: 1000,
-                        experience: 0
+                        credits: 1000000000,
+                        experience: 0,
+                        starterShip: {
+                            id: "scout_explorer_01",
+                            name: "Starling Explorer",
+                            customName: `${this.username}'s Explorer`,
+                            instanceId: 'starter_' + Date.now(),
+                            purchaseDate: new Date().toISOString(),
+                            isPrimaryShip: true
+                        }
                     };
                     
                     players.push(newPlayer);
                     localStorage.setItem('players', JSON.stringify(players));
                     localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
                     
+                    // Initialize the starter ship in the ship management system
+                    this.initializeStarterShip(newPlayer);
+                    
                     this.showToast('Welcome to the fleet, Commander!', 'success');
                     setTimeout(() => {
                         window.location.href = 'game.html';
                     }, 1500);
+                },
+                
+                initializeStarterShip(player) {
+                    // Initialize ship data storage for new player
+                    const shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
+                    
+                    // Add player to playerShips map
+                    const playerShipsMap = new Map(shipData.playerShips);
+                    playerShipsMap.set(player.username, [player.starterShip.instanceId]);
+                    
+                    // Add ship instance
+                    const shipInstancesMap = new Map(shipData.shipInstances);
+                    shipInstancesMap.set(player.starterShip.instanceId, {
+                        instanceId: player.starterShip.instanceId,
+                        shipId: "scout_explorer_01",
+                        playerId: player.username,
+                        customName: player.starterShip.customName,
+                        purchaseDate: player.starterShip.purchaseDate,
+                        currentCondition: 100,
+                        upgrades: [],
+                        modifications: {},
+                        operatingHours: 0,
+                        maintenanceLog: [],
+                        location: { x: 0, y: 0, z: 0 },
+                        isPrimaryShip: true
+                    });
+                    
+                    // Save updated ship data
+                    const updatedShipData = {
+                        playerShips: Array.from(playerShipsMap.entries()),
+                        shipInstances: Array.from(shipInstancesMap.entries())
+                    };
+                    localStorage.setItem('ship_data', JSON.stringify(updatedShipData));
                 },
                 
                 showToast(message, type) {

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Update Player Credits</title>
+</head>
+<body>
+    <h1>Update Player Credits</h1>
+    <button onclick="updateCredits()">Grant 1 Billion Credits to Player 'slight'</button>
+    <div id="result"></div>
+
+    <script>
+        function updateCredits() {
+            try {
+                // Get current players
+                const players = JSON.parse(localStorage.getItem('players') || '[]');
+                console.log('Current players:', players);
+                
+                // Find player 'slight'
+                const playerIndex = players.findIndex(p => p.username === 'slight');
+                
+                if (playerIndex !== -1) {
+                    // Update credits
+                    players[playerIndex].credits = 1000000000;
+                    
+                    // Save back to localStorage
+                    localStorage.setItem('players', JSON.stringify(players));
+                    
+                    // Update current player if it's the same
+                    const currentPlayer = JSON.parse(localStorage.getItem('currentPlayer') || '{}');
+                    if (currentPlayer.username === 'slight') {
+                        currentPlayer.credits = 1000000000;
+                        localStorage.setItem('currentPlayer', JSON.stringify(currentPlayer));
+                    }
+                    
+                    document.getElementById('result').innerHTML = `<p style="color: green;">Successfully updated player 'slight' credits to 1,000,000,000!</p>`;
+                    console.log('Updated player credits:', players[playerIndex]);
+                } else {
+                    document.getElementById('result').innerHTML = `<p style="color: orange;">Player 'slight' not found. Credits will be set to 1 billion when new account is created.</p>`;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+                console.error('Error updating credits:', error);
+            }
+        }
+    </script>
+</body>
+</html>

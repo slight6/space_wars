@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="ship-manager.js"></script>
+    <script src="ship-status-bar.js"></script>
+    <script src="unified-header.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         .game-bg {
@@ -29,10 +32,6 @@
                 <h1 class="text-2xl font-bold">🚀 Nexus Station - <span x-text="player.currentLocation || 'Main Deck'"></span></h1>
             </div>
             <div class="flex items-center space-x-6">
-                <div class="text-right">
-                    <div class="text-sm text-gray-400">Credits:</div>
-                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
-                </div>
                 <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
                     Logout
                 </button>
@@ -40,33 +39,49 @@
         </div>
     </header>
 
-    <!-- Status Bar -->
+    <!-- Unified Status Bar -->
     <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
-        <div class="flex flex-wrap items-center justify-between gap-4 text-sm">
-            <div class="flex flex-wrap items-center gap-6">
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Pilot:</span>
-                    <span class="text-blue-400 font-semibold" x-text="player.username"></span>
+        <div class="container mx-auto">
+            <div class="flex items-center justify-between">
+                <!-- Left Side: Ship and Pilot Information -->
+                <div class="flex items-center space-x-6">
+                    <!-- Ship Icon and Name -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">🚀</span>
+                        </div>
+                        <div>
+                            <div class="text-white font-semibold text-sm" x-text="statusBar.getPilotInfo()"></div>
+                            <div class="text-blue-400 font-medium text-sm" x-text="statusBar.getCurrentShipLabel()"></div>
+                            <div class="text-gray-400 text-xs" x-text="'Location: ' + statusBar.getCurrentLocation()"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ship Status Indicators -->
+                    <div class="hidden md:flex items-center space-x-4 text-sm">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Hull:</span>
+                            <span class="text-cyan-400 font-semibold" x-text="statusBar.getHullIntegrity() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Shields:</span>
+                            <span class="text-purple-400 font-semibold" x-text="statusBar.getShieldStrength() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Fuel:</span>
+                            <span class="text-orange-400 font-semibold" x-text="statusBar.getFuelLevel() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Power:</span>
+                            <span class="text-red-400 font-semibold" x-text="statusBar.getPowerLevel() + '%'"></span>
+                        </div>
+                    </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Ship:</span>
-                    <span class="text-green-400" x-text="player.currentShip || 'Standard Explorer'"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Hull:</span>
-                    <span class="text-cyan-400" x-text="`${player.hullIntegrity || 100}%`"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Shields:</span>
-                    <span class="text-purple-400" x-text="`${player.shieldStrength || 100}%`"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Fuel:</span>
-                    <span class="text-orange-400" x-text="`${player.fuel || 67}%`"></span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-gray-400">Power:</span>
-                    <span class="text-red-400" x-text="`${player.powerLevel || 89}%`"></span>
+                
+                <!-- Right Side: Status and Credits -->
+                <div class="text-right">
+                    <div class="text-sm font-semibold" :class="statusBar.getSystemStatus().color" x-text="statusBar.getSystemStatus().status"></div>
+                    <div class="text-yellow-400 font-mono text-sm" x-text="'Credits: ' + statusBar.getCredits().toLocaleString()"></div>
                 </div>
             </div>
         </div>
@@ -243,17 +258,36 @@
                     this.initializeLicenses();
                     this.savePlayer();
                     
+                    // Initialize unified status bar
+                    initializeStatusBar(this);
+                    
                     // Store global reference for onclick handlers
                     window.stationAppInstance = this;
                 },
 
                 initializePlayerDefaults() {
-                    if (!this.player.currentShip) this.player.currentShip = 'Standard Explorer';
+                    // Set ship name from starter ship if available, otherwise use default
+                    if (!this.player.currentShip) {
+                        if (this.player.starterShip && this.player.starterShip.customName) {
+                            this.player.currentShip = this.player.starterShip.customName;
+                        } else {
+                            this.player.currentShip = 'Standard Explorer';
+                        }
+                    }
+                    
                     if (!this.player.hullIntegrity) this.player.hullIntegrity = 100;
                     if (!this.player.shieldStrength) this.player.shieldStrength = 100;
                     if (!this.player.fuel) this.player.fuel = 67;
                     if (!this.player.powerLevel) this.player.powerLevel = 89;
                     if (!this.player.currentLocation) this.player.currentLocation = 'Main Deck';
+                },
+
+                initializeLicenses() {
+                    if (!this.player.licenses) this.player.licenses = {};
+                    if (!this.player.licenseProgress) this.player.licenseProgress = {};
+                    if (!this.player.violations) this.player.violations = 0;
+                    if (!this.player.legalStanding) this.player.legalStanding = 'Good';
+                    if (!this.player.experience) this.player.experience = {};
                 },
 
                 toggleDropdown(dropdown) {

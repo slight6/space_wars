@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Explorer - Shipyard</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Space Explorer - Shipyard v2.1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="ship-manager.js"></script>
+    <script src="ship-status-bar.js"></script>
+    <script src="unified-header.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
         .game-bg {
@@ -22,7 +27,7 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
         .modal {
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(3px);
         }
     </style>
 </head>
@@ -37,16 +42,60 @@
                 <h1 class="text-2xl font-bold">🏭 Nexus Station Shipyard</h1>
             </div>
             <div class="flex items-center space-x-6">
-                <div class="text-right">
-                    <div class="text-sm text-gray-400">Credits:</div>
-                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits ? player.credits.toLocaleString() : '0'"></div>
-                </div>
                 <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
                     Logout
                 </button>
             </div>
         </div>
     </header>
+
+    <!-- Unified Status Bar -->
+    <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
+        <div class="container mx-auto">
+            <div class="flex items-center justify-between">
+                <!-- Left Side: Ship and Pilot Information -->
+                <div class="flex items-center space-x-6">
+                    <!-- Ship Icon and Name -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">🚀</span>
+                        </div>
+                        <div>
+                            <div class="text-white font-semibold text-sm" x-text="statusBar.getPilotInfo()"></div>
+                            <div class="text-blue-400 font-medium text-sm" x-text="statusBar.getCurrentShipLabel()"></div>
+                            <div class="text-gray-400 text-xs" x-text="'Location: ' + statusBar.getCurrentLocation()"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ship Status Indicators -->
+                    <div class="hidden md:flex items-center space-x-4 text-sm">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Hull:</span>
+                            <span class="text-cyan-400 font-semibold" x-text="statusBar.getHullIntegrity() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Shields:</span>
+                            <span class="text-purple-400 font-semibold" x-text="statusBar.getShieldStrength() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Fuel:</span>
+                            <span class="text-orange-400 font-semibold" x-text="statusBar.getFuelLevel() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Power:</span>
+                            <span class="text-red-400 font-semibold" x-text="statusBar.getPowerLevel() + '%'"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Side: Status and Credits -->
+                <div class="text-right">
+                    <div class="text-sm font-semibold" :class="statusBar.getSystemStatus().color" x-text="statusBar.getSystemStatus().status"></div>
+                    <div class="text-yellow-400 font-mono text-sm" x-text="'Credits: ' + statusBar.getCredits().toLocaleString()"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Main Content -->
     <main class="container mx-auto px-6 py-8">
@@ -155,24 +204,22 @@
                     </div>
                     
                     <!-- Ship Grid -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                         <template x-for="ship in filteredShips" :key="ship.id">
-                            <div class="ship-card bg-gray-800 rounded-lg p-4 border border-gray-600 hover:border-blue-500">
+                            <div class="ship-card bg-gray-800 rounded-lg p-3 border border-gray-600 hover:border-blue-500">
                                 <!-- Ship Header -->
-                                <div class="flex justify-between items-start mb-3">
-                                    <div>
-                                        <h3 class="font-bold text-blue-400" x-text="ship.name"></h3>
-                                        <div class="text-sm text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="font-bold text-blue-400 text-sm truncate" x-text="ship.name"></h3>
+                                        <div class="text-xs text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
                                     </div>
-                                    <div class="text-right">
-                                        <div class="text-yellow-400 font-mono font-bold" x-text="`${ship.base_price.toLocaleString()} CR`"></div>
-                                        <div class="text-xs" :class="canAffordShip(ship) ? 'text-green-400' : 'text-red-400'" 
-                                             x-text="canAffordShip(ship) ? 'Affordable' : 'Too Expensive'"></div>
+                                    <div class="text-right ml-2">
+                                        <div class="font-mono font-bold text-sm" :class="getPriceColor(ship)" x-text="`${ship.base_price.toLocaleString()} CR`"></div>
                                     </div>
                                 </div>
                                 
                                 <!-- Ship Stats -->
-                                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                                <div class="grid grid-cols-3 gap-1 text-xs mb-2">
                                     <div class="flex justify-between">
                                         <span class="text-gray-400">Speed:</span>
                                         <span x-text="ship.speed"></span>
@@ -200,19 +247,19 @@
                                 </div>
                                 
                                 <!-- Special Bonus -->
-                                <div class="text-xs text-purple-400 mb-3 min-h-[2rem]" x-text="ship.special_bonus"></div>
+                                <div class="text-xs text-purple-400 mb-2 h-8 overflow-hidden leading-tight" x-text="ship.special_bonus"></div>
                                 
                                 <!-- Requirements -->
-                                <div class="text-xs text-gray-500 mb-3 min-h-[1.5rem]">
+                                <div class="text-xs text-gray-500 mb-2 h-4 overflow-hidden">
                                     <span x-show="ship.requirements && ship.requirements.licenses && ship.requirements.licenses.length > 0">
-                                        Requires: <span x-text="ship.requirements.licenses.join(', ')"></span>
+                                        Req: <span x-text="ship.requirements.licenses.join(', ')"></span>
                                     </span>
                                 </div>
                                 
                                 <!-- Action Buttons -->
-                                <div class="flex gap-2">
+                                <div class="flex gap-1">
                                     <button @click="viewShipDetails(ship)" 
-                                            class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors">
+                                            class="flex-1 bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs transition-colors">
                                         Details
                                     </button>
                                     <button @click="purchaseShip(ship)" 
@@ -220,7 +267,7 @@
                                             :class="canPurchaseShip(ship) ? 
                                                 'bg-green-600 hover:bg-green-700' : 
                                                 'bg-gray-600 cursor-not-allowed'"
-                                            class="flex-1 px-3 py-2 rounded text-sm transition-colors">
+                                            class="flex-1 px-2 py-1 rounded text-xs transition-colors">
                                         <span x-text="canPurchaseShip(ship) ? 'Purchase' : 'Unavailable'"></span>
                                     </button>
                                 </div>
@@ -240,121 +287,167 @@
     </main>
 
     <!-- Ship Details Modal -->
-    <div x-show="showDetails" @click.away="closeDetails()" 
+    <div x-show="showDetails" 
          class="fixed inset-0 bg-black bg-opacity-50 modal flex items-center justify-center z-50"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100">
         
-        <div @click.stop class="bg-gray-900 rounded-lg border border-gray-600 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <!-- Backdrop - clicking here closes modal -->
+        <div class="absolute inset-0" @click="closeDetails()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative bg-gray-900 rounded-lg border border-gray-600 p-6 max-w-6xl w-full mx-4 max-h-[100vh] overflow-hidden z-10">
             <template x-if="selectedShip">
                 <div>
                     <!-- Header -->
-                    <div class="flex justify-between items-start mb-6">
+                    <div class="flex justify-between items-start mb-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-blue-400" x-text="selectedShip.name"></h2>
-                            <div class="text-gray-400" x-text="`${selectedShip.class} - ${selectedShip.role}`"></div>
-                            <div class="text-yellow-400 font-mono text-xl mt-2" x-text="`${selectedShip.base_price.toLocaleString()} CR`"></div>
+                            <h2 class="text-xl font-bold text-blue-400" x-text="selectedShip.name"></h2>
+                            <div class="text-sm text-gray-400" x-text="`${selectedShip.class} - ${selectedShip.role}`"></div>
+                            <div class="font-mono text-lg mt-1" :class="getPriceColor(selectedShip)" x-text="`${selectedShip.base_price.toLocaleString()} CR`"></div>
                         </div>
-                        <button @click="closeDetails()" class="text-gray-400 hover:text-white text-2xl">×</button>
+                        <button @click="closeDetails()" class="text-gray-400 hover:text-white text-xl">×</button>
                     </div>
 
-                    <!-- Description -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-2 text-purple-400">Description</h3>
-                        <p class="text-gray-300" x-text="selectedShip.description"></p>
-                    </div>
-
-                    <!-- Technical Specifications -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-3 text-cyan-400">Technical Specifications</h3>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Power Output</div>
-                                <div class="text-blue-400 font-semibold" x-text="selectedShip.power_output"></div>
-                            </div>
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Speed</div>
-                                <div class="text-green-400 font-semibold" x-text="selectedShip.speed"></div>
-                            </div>
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Defense</div>
-                                <div class="text-red-400 font-semibold" x-text="selectedShip.defense"></div>
-                            </div>
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Range</div>
-                                <div class="text-purple-400 font-semibold" x-text="selectedShip.range"></div>
-                            </div>
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Cargo Capacity</div>
-                                <div class="text-yellow-400 font-semibold" x-text="selectedShip.cargo_capacity"></div>
-                            </div>
-                            <div class="bg-gray-800 p-3 rounded">
-                                <div class="text-sm text-gray-400">Crew Capacity</div>
-                                <div class="text-orange-400 font-semibold" x-text="selectedShip.crew_capacity"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Special Features -->
-                    <div class="mb-6">
-                        <h3 class="text-lg font-semibold mb-2 text-green-400">Special Features</h3>
-                        <div class="bg-gray-800 p-3 rounded">
-                            <p class="text-purple-400" x-text="selectedShip.special_bonus"></p>
-                        </div>
-                    </div>
-
-                    <!-- Requirements & Costs -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <!-- Requirements -->
+                    <!-- Main Content Grid -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                        <!-- Top Left: Technical Specifications & Special Features -->
                         <div>
-                            <h3 class="text-lg font-semibold mb-3 text-red-400">Requirements</h3>
-                            <div class="space-y-2">
+                            <h3 class="text-base font-semibold mb-2 text-cyan-400">Technical Specifications & Features</h3>
+                            <div class="bg-gray-800 p-4 rounded h-48 space-y-3">
+                                <!-- Stats Grid -->
+                                <div class="grid grid-cols-2 gap-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Power:</span>
+                                        <span class="text-blue-400 font-semibold" x-text="selectedShip.power_output"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Speed:</span>
+                                        <span class="text-green-400 font-semibold" x-text="selectedShip.speed"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Defense:</span>
+                                        <span class="text-red-400 font-semibold" x-text="selectedShip.defense"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Range:</span>
+                                        <span class="text-purple-400 font-semibold" x-text="selectedShip.range"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Cargo:</span>
+                                        <span class="text-yellow-400 font-semibold" x-text="selectedShip.cargo_capacity"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Crew:</span>
+                                        <span class="text-orange-400 font-semibold" x-text="selectedShip.crew_capacity"></span>
+                                    </div>
+                                </div>
+                                <!-- Special Features -->
+                                <div class="border-t border-gray-700 pt-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Special Features:</span>
+                                        <span class="text-purple-400" x-text="selectedShip.special_bonus"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Top Right: Requirements -->
+                        <div>
+                            <h3 class="text-base font-semibold mb-2 text-red-400">Requirements</h3>
+                            <div class="bg-gray-800 p-4 rounded h-48 space-y-2">
                                 <template x-if="selectedShip.requirements && selectedShip.requirements.licenses && selectedShip.requirements.licenses.length > 0">
-                                    <div class="bg-gray-800 p-3 rounded">
-                                        <div class="text-sm text-gray-400">Licenses Required:</div>
-                                        <div class="text-yellow-400" x-text="selectedShip.requirements.licenses.join(', ')"></div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Licenses:</span>
+                                        <span class="text-yellow-400" x-text="selectedShip.requirements.licenses.join(', ')"></span>
                                     </div>
                                 </template>
-                                <template x-if="selectedShip.requirements && selectedShip.requirements.reputation && Object.keys(selectedShip.requirements.reputation).length > 0">
-                                    <div class="bg-gray-800 p-3 rounded">
-                                        <div class="text-sm text-gray-400">Reputation Required:</div>
-                                        <template x-for="(value, faction) in selectedShip.requirements.reputation">
-                                            <div class="text-green-400" x-text="`${faction}: ${value}`"></div>
-                                        </template>
+                                <template x-if="selectedShip.requirements && selectedShip.requirements.reputation">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Reputation:</span>
+                                        <span class="text-green-400" x-text="selectedShip.requirements.reputation"></span>
                                     </div>
+                                </template>
+                                <template x-if="selectedShip.requirements && selectedShip.requirements.corporate_ceo">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Special:</span>
+                                        <span class="text-orange-400">Corporate CEO Status</span>
+                                    </div>
+                                </template>
+                                <template x-if="selectedShip.requirements && selectedShip.requirements.government_clearance">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Clearance:</span>
+                                        <span class="text-red-400" x-text="selectedShip.requirements.government_clearance"></span>
+                                    </div>
+                                </template>
+                                <template x-if="selectedShip.requirements && selectedShip.requirements.military_rank">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Military Rank:</span>
+                                        <span class="text-blue-400" x-text="selectedShip.requirements.military_rank"></span>
+                                    </div>
+                                </template>
+                                <template x-if="!selectedShip.requirements || (!selectedShip.requirements.licenses && !selectedShip.requirements.reputation && !selectedShip.requirements.corporate_ceo && !selectedShip.requirements.government_clearance && !selectedShip.requirements.military_rank)">
+                                    <div class="text-sm text-green-400">No special requirements</div>
                                 </template>
                             </div>
                         </div>
 
-                        <!-- Operating Costs -->
+                        <!-- Bottom Left: Operating Costs -->
                         <div>
-                            <h3 class="text-lg font-semibold mb-3 text-orange-400">Operating Costs</h3>
-                            <div class="space-y-2">
+                            <h3 class="text-base font-semibold mb-2 text-orange-400">Operating Costs</h3>
+                            <div class="bg-gray-800 p-4 rounded h-48 space-y-2">
+                                <!-- Operating Costs -->
                                 <template x-if="selectedShip.operating_costs">
-                                    <div>
-                                        <div class="bg-gray-800 p-3 rounded">
-                                            <div class="text-sm text-gray-400">Daily Fuel Cost:</div>
-                                            <div class="text-yellow-400" x-text="`${selectedShip.operating_costs.daily_fuel} CR/day`"></div>
+                                    <div class="space-y-2">
+                                        <div class="text-sm text-gray-400">Daily Operating Costs:</div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-400">Fuel:</span>
+                                            <span class="text-yellow-400" x-text="`${selectedShip.operating_costs.fuel_consumption || 'N/A'}/day`"></span>
                                         </div>
-                                        <div class="bg-gray-800 p-3 rounded">
-                                            <div class="text-sm text-gray-400">Maintenance Cost:</div>
-                                            <div class="text-yellow-400" x-text="`${selectedShip.operating_costs.maintenance} CR/day`"></div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-400">Maintenance:</span>
+                                            <span class="text-yellow-400" x-text="`${selectedShip.operating_costs.maintenance_cost || 'N/A'} CR/day`"></span>
                                         </div>
-                                        <div class="bg-gray-800 p-3 rounded">
-                                            <div class="text-sm text-gray-400">Crew Wages:</div>
-                                            <div class="text-yellow-400" x-text="`${selectedShip.operating_costs.crew_wages} CR/day`"></div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-400">Crew Wages:</span>
+                                            <span class="text-yellow-400" x-text="`${selectedShip.operating_costs.crew_wages || 'N/A'} CR/day`"></span>
                                         </div>
                                     </div>
                                 </template>
+                                <template x-if="!selectedShip.operating_costs">
+                                    <div class="text-sm text-green-400">No operating cost data available</div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Bottom Right: Additional Info -->
+                        <div>
+                            <h3 class="text-base font-semibold mb-2 text-cyan-400">Additional Information</h3>
+                            <div class="bg-gray-800 p-4 rounded h-48 space-y-2">
+                                <div class="space-y-2">
+                                    <div class="text-sm text-gray-400">Ship Details:</div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Availability:</span>
+                                        <span class="text-blue-400 capitalize" x-text="selectedShip.availability"></span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Propulsion:</span>
+                                        <span class="text-green-400" x-text="selectedShip.propulsion"></span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-400">Life Support:</span>
+                                        <span class="text-purple-400" x-text="selectedShip.life_support"></span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="flex gap-4">
+                    <div class="flex gap-3">
                         <button @click="closeDetails()" 
-                                class="flex-1 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+                                class="flex-1 bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm transition-colors">
                             Close
                         </button>
                         <button @click="purchaseShip(selectedShip); closeDetails()" 
@@ -362,7 +455,7 @@
                                 :class="canPurchaseShip(selectedShip) ? 
                                     'bg-green-600 hover:bg-green-700' : 
                                     'bg-gray-600 cursor-not-allowed'"
-                                class="flex-1 px-4 py-2 rounded transition-colors">
+                                class="flex-1 px-3 py-2 rounded text-sm transition-colors">
                             <span x-text="canPurchaseShip(selectedShip) ? 'Purchase Ship' : 'Cannot Purchase'"></span>
                         </button>
                     </div>
@@ -378,6 +471,7 @@
                 availableShips: [],
                 filteredShips: [],
                 playerShips: [],
+                primaryShip: null,
                 filters: {
                     class: '',
                     role: '',
@@ -400,25 +494,116 @@
                     
                     this.player = JSON.parse(currentPlayer);
                     
+                    // Initialize unified status bar
+                    initializeStatusBar(this);
+                    
                     // Initialize inventory if it doesn't exist
                     if (!this.player.inventory) {
                         this.player.inventory = [];
                     }
                     
                     // Ensure player has credits
-                    if (!this.player.credits) {
-                        this.player.credits = 100000; // Starting credits for testing
+                    if (!this.player.credits || this.player.credits < 1000000000) {
+                        this.player.credits = 1000000000; // Force 1 billion credits
+                        // Also update localStorage
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    }
+                    
+                    // Handle starter ship for new players
+                    if (this.player.starterShip && !this.hasExistingShips()) {
+                        await this.ensureStarterShip();
                     }
                     
                     // Initialize ship system
                     if (window.ShipManager) {
                         await this.loadShips();
+                        this.loadPrimaryShip();
                     } else {
                         console.error('ShipManager not loaded');
                         setTimeout(() => this.init(), 1000); // Retry after 1 second
                     }
                     
                     this.savePlayer();
+                },
+                
+                hasExistingShips() {
+                    const shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
+                    const playerShipsMap = new Map(shipData.playerShips);
+                    const playerShips = playerShipsMap.get(this.player.username) || [];
+                    return playerShips.length > 0;
+                },
+                
+                async ensureStarterShip() {
+                    try {
+                        if (!this.player.starterShip) return;
+                        
+                        // Initialize ship data storage if it doesn't exist
+                        let shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
+                        
+                        // Create maps from the stored data
+                        const playerShipsMap = new Map(shipData.playerShips);
+                        const shipInstancesMap = new Map(shipData.shipInstances);
+                        
+                        // Check if starter ship already exists
+                        if (!shipInstancesMap.has(this.player.starterShip.instanceId)) {
+                            // Add player to playerShips map
+                            if (!playerShipsMap.has(this.player.username)) {
+                                playerShipsMap.set(this.player.username, []);
+                            }
+                            playerShipsMap.get(this.player.username).push(this.player.starterShip.instanceId);
+                            
+                            // Add ship instance
+                            shipInstancesMap.set(this.player.starterShip.instanceId, {
+                                instanceId: this.player.starterShip.instanceId,
+                                shipId: "scout_explorer_01",
+                                playerId: this.player.username,
+                                customName: this.player.starterShip.customName,
+                                purchaseDate: this.player.starterShip.purchaseDate,
+                                currentCondition: 100,
+                                upgrades: [],
+                                modifications: {},
+                                operatingHours: 0,
+                                maintenanceLog: [],
+                                location: { x: 0, y: 0, z: 0 },
+                                isPrimaryShip: true
+                            });
+                            
+                            // Save updated ship data
+                            const updatedShipData = {
+                                playerShips: Array.from(playerShipsMap.entries()),
+                                shipInstances: Array.from(shipInstancesMap.entries())
+                            };
+                            localStorage.setItem('ship_data', JSON.stringify(updatedShipData));
+                            
+                            console.log('Starter ship initialized for player:', this.player.username);
+                        }
+                    } catch (error) {
+                        console.error('Error ensuring starter ship:', error);
+                    }
+                },
+                
+                loadPrimaryShip() {
+                    try {
+                        // Find the player's primary ship (marked as isPrimaryShip or first ship)
+                        if (this.playerShips.length > 0) {
+                            // Look for a ship marked as primary
+                            let primary = this.playerShips.find(ship => ship.instance && ship.instance.isPrimaryShip);
+                            
+                            // If no primary ship found, use the first ship
+                            if (!primary) {
+                                primary = this.playerShips[0];
+                            }
+                            
+                            this.primaryShip = primary;
+                            console.log('Primary ship loaded:', this.primaryShip);
+                        } else {
+                            this.primaryShip = null;
+                            console.log('No ships found for player');
+                        }
+                    } catch (error) {
+                        console.error('Error loading primary ship:', error);
+                        this.primaryShip = null;
+                    }
                 },
                 
                 async loadShips() {
@@ -438,6 +623,9 @@
                         this.playerShips = window.ShipManager.getPlayerShips(this.player.username).map(instance => 
                             window.ShipManager.getFullShipData(instance.instanceId)
                         );
+                        
+                        // Load primary ship after loading all ships
+                        this.loadPrimaryShip();
                         
                         // Apply current filters to the newly loaded ships
                         this.applyFilters();
@@ -503,6 +691,51 @@
                     return this.player.credits >= ship.base_price;
                 },
                 
+                getPriceColor(ship) {
+                    // Ensure we have player data
+                    if (!this.player || !this.player.credits) {
+                        return 'text-gray-400';
+                    }
+                    
+                    // Red: Too expensive
+                    if (this.player.credits < ship.base_price) {
+                        return 'text-red-400';
+                    }
+                    
+                    // Check if ship requires government approval or special licensing
+                    const req = ship.requirements;
+                    
+                    if (req) {
+                        // Check for special clearances/approvals
+                        if (req.government_clearance || 
+                            req.military_service || 
+                            req.corporate_ceo ||
+                            req.faction_membership ||
+                            req.military_rank) {
+                            return 'text-yellow-400';
+                        }
+                        
+                        // Check for special licenses
+                        if (req.licenses && Array.isArray(req.licenses)) {
+                            for (const license of req.licenses) {
+                                if (typeof license === 'string' && (
+                                    license.includes('combat') || 
+                                    license.includes('military') || 
+                                    license.includes('government') ||
+                                    license.includes('pilot_a') ||
+                                    license.includes('pilot_b') ||
+                                    license.includes('flagship') ||
+                                    license.includes('combat_officer'))) {
+                                    return 'text-yellow-400';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Green: Can be bought (basic requirements only)
+                    return 'text-green-400';
+                },
+                
                 canPurchaseShip(ship) {
                     // In admin mode, allow purchase of any ship regardless of requirements
                     if (this.filters.adminMode) {
@@ -538,6 +771,9 @@
                         this.playerShips = window.ShipManager.getPlayerShips(this.player.username).map(instance => 
                             window.ShipManager.getFullShipData(instance.instanceId)
                         );
+                        
+                        // Reload primary ship
+                        this.loadPrimaryShip();
                         
                         this.showNotification(`Successfully purchased ${customName}!`, 'success');
                         

@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Space Explorer - Shipyard</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Space Explorer - Shipyard v2.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
@@ -22,7 +25,7 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
         .modal {
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(0.5px);
         }
     </style>
 </head>
@@ -40,6 +43,7 @@
                 <div class="text-right">
                     <div class="text-sm text-gray-400">Credits:</div>
                     <div class="text-yellow-400 font-mono text-lg" x-text="player.credits ? player.credits.toLocaleString() : '0'"></div>
+                    <div class="text-xs text-gray-400" x-text="`Debug: ${player.credits || 0} credits`"></div>
                 </div>
                 <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
                     Logout
@@ -157,9 +161,7 @@
                                         <div class="text-sm text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
                                     </div>
                                     <div class="text-right">
-                                        <div class="text-yellow-400 font-mono font-bold" x-text="`${ship.base_price.toLocaleString()} CR`"></div>
-                                        <div class="text-xs" :class="canAffordShip(ship) ? 'text-green-400' : 'text-red-400'" 
-                                             x-text="canAffordShip(ship) ? 'Affordable' : 'Too Expensive'"></div>
+                                        <div class="font-mono font-bold" :class="getPriceColor(ship)" x-text="`${ship.base_price.toLocaleString()} CR`"></div>
                                     </div>
                                 </div>
                                 
@@ -232,13 +234,17 @@
     </main>
 
     <!-- Ship Details Modal -->
-    <div x-show="showDetails" @click.away="closeDetails()" 
+    <div x-show="showDetails" 
          class="fixed inset-0 bg-black bg-opacity-50 modal flex items-center justify-center z-50"
          x-transition:enter="transition ease-out duration-300"
          x-transition:enter-start="opacity-0"
          x-transition:enter-end="opacity-100">
         
-        <div @click.stop class="bg-gray-900 rounded-lg border border-gray-600 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <!-- Backdrop - clicking here closes modal -->
+        <div class="absolute inset-0" @click="closeDetails()"></div>
+        
+        <!-- Modal Content -->
+        <div class="relative bg-gray-900 rounded-lg border border-gray-600 p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto z-10">
             <template x-if="selectedShip">
                 <div>
                     <!-- Header -->
@@ -246,7 +252,7 @@
                         <div>
                             <h2 class="text-2xl font-bold text-blue-400" x-text="selectedShip.name"></h2>
                             <div class="text-gray-400" x-text="`${selectedShip.class} - ${selectedShip.role}`"></div>
-                            <div class="text-yellow-400 font-mono text-xl mt-2" x-text="`${selectedShip.base_price.toLocaleString()} CR`"></div>
+                            <div class="font-mono text-xl mt-2" :class="getPriceColor(selectedShip)" x-text="`${selectedShip.base_price.toLocaleString()} CR`"></div>
                         </div>
                         <button @click="closeDetails()" class="text-gray-400 hover:text-white text-2xl">×</button>
                     </div>
@@ -396,8 +402,10 @@
                     }
                     
                     // Ensure player has credits
-                    if (!this.player.credits) {
-                        this.player.credits = 100000; // Starting credits for testing
+                    if (!this.player.credits || this.player.credits < 1000000000) {
+                        this.player.credits = 1000000000; // Force 1 billion credits
+                        // Also update localStorage
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
                     }
                     
                     // Initialize ship system
@@ -476,6 +484,59 @@
                 
                 canAffordShip(ship) {
                     return this.player.credits >= ship.base_price;
+                },
+                
+                getPriceColor(ship) {
+                    // Debug logging
+                    console.log('Getting color for ship:', ship.name, 'Player credits:', this.player?.credits, 'Ship price:', ship.base_price);
+                    
+                    // Ensure we have player data
+                    if (!this.player || !this.player.credits) {
+                        console.log('No player data, returning gray');
+                        return 'text-gray-400';
+                    }
+                    
+                    // Red: Too expensive
+                    if (this.player.credits < ship.base_price) {
+                        console.log('Returning RED - too expensive');
+                        return 'text-red-400';
+                    }
+                    
+                    // Check if ship requires government approval or special licensing
+                    const req = ship.requirements;
+                    
+                    if (req) {
+                        // Check for special clearances/approvals
+                        if (req.government_clearance || 
+                            req.military_service || 
+                            req.corporate_ceo ||
+                            req.faction_membership ||
+                            req.military_rank) {
+                            console.log('Returning YELLOW - special clearance needed');
+                            return 'text-yellow-400';
+                        }
+                        
+                        // Check for special licenses
+                        if (req.licenses && Array.isArray(req.licenses)) {
+                            for (const license of req.licenses) {
+                                if (typeof license === 'string' && (
+                                    license.includes('combat') || 
+                                    license.includes('military') || 
+                                    license.includes('government') ||
+                                    license.includes('pilot_a') ||
+                                    license.includes('pilot_b') ||
+                                    license.includes('flagship') ||
+                                    license.includes('combat_officer'))) {
+                                    console.log('Returning YELLOW - special license needed:', license);
+                                    return 'text-yellow-400';
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Green: Can be bought (basic requirements only)
+                    console.log('Returning GREEN - basic ship');
+                    return 'text-green-400';
                 },
                 
                 canPurchaseShip(ship) {
