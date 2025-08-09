@@ -1,0 +1,702 @@
+[
+  {
+    "id": "scout_explorer_01",
+    "name": "Starling Explorer",
+    "class": "Scout",
+    "role": "Explorer",
+    "speed": 8,
+    "defense": 3,
+    "cargo_capacity": 20,
+    "crew_capacity": 5,
+    "range": 15,
+    "power_output": 100,
+    "life_support": "Basic",
+    "propulsion": "Ion Drive",
+    "special_bonus": "Enhanced sensor range",
+    "base_price": 50000,
+    "availability": "common",
+    "acquisition_method": "purchase",
+    "requirements": {
+      "licenses": ["pilot_e"],
+      "reputation": 0,
+      "credits": 50000
+    },
+    "operating_costs": {
+      "fuel_consumption": 3,
+      "maintenance_cost": 500,
+      "crew_wages": 250
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 1,
+      "utility_modules": 2,
+      "engine_modifications": 1
+    },
+    "torpedo_systems": {
+      "capacity": 1,
+      "launch_types": ["planetary"],
+      "formation_speed_bonus": 0.05
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": false,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "scout_miner_01",
+    "name": "Prospector Scout",
+    "class": "Scout",
+    "role": "Miner",
+    "speed": 6,
+    "defense": 4,
+    "cargo_capacity": 40,
+    "crew_capacity": 6,
+    "range": 12,
+    "power_output": 110,
+    "life_support": "Basic",
+    "propulsion": "Ion Drive",
+    "special_bonus": "Mining laser efficiency +10%",
+    "base_price": 75000,
+    "availability": "common",
+    "acquisition_method": "purchase",
+    "requirements": {
+      "licenses": ["pilot_e", "mining_surface"],
+      "reputation": 100,
+      "credits": 75000
+    },
+    "operating_costs": {
+      "fuel_consumption": 4,
+      "maintenance_cost": 750,
+      "crew_wages": 300
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 1,
+      "utility_modules": 3,
+      "engine_modifications": 1
+    },
+    "torpedo_systems": {
+      "capacity": 1,
+      "launch_types": ["planetary", "mining"],
+      "formation_speed_bonus": 0.0
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": false,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "scout_combat_01",
+    "name": "Swiftblade Scout",
+    "class": "Scout",
+    "role": "Combat",
+    "speed": 9,
+    "defense": 5,
+    "cargo_capacity": 15,
+    "crew_capacity": 4,
+    "range": 10,
+    "power_output": 120,
+    "life_support": "Basic",
+    "propulsion": "Ion Drive",
+    "special_bonus": "Weapon cooldown -5%",
+    "base_price": 85000,
+    "availability": "uncommon",
+    "acquisition_method": "purchase_with_license",
+    "requirements": {
+      "licenses": ["pilot_d", "combat_government"],
+      "reputation": 250,
+      "credits": 85000
+    },
+    "operating_costs": {
+      "fuel_consumption": 5,
+      "maintenance_cost": 900,
+      "crew_wages": 400
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 2,
+      "utility_modules": 2,
+      "engine_modifications": 1
+    },
+    "torpedo_systems": {
+      "capacity": 1,
+      "launch_types": ["planetary", "defense"],
+      "formation_speed_bonus": 0.0
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "scout_colonizer_01",
+    "name": "Pioneer Scout",
+    "class": "Scout",
+    "role": "Colonizer",
+    "speed": 6,
+    "defense": 3,
+    "cargo_capacity": 35,
+    "crew_capacity": 10,
+    "range": 14,
+    "power_output": 105,
+    "life_support": "Basic",
+    "propulsion": "Ion Drive",
+    "special_bonus": "Colony supply efficiency +10%",
+    "base_price": 95000,
+    "availability": "uncommon",
+    "acquisition_method": "purchase",
+    "requirements": {
+      "licenses": ["pilot_e"],
+      "reputation": 500,
+      "credits": 95000
+    },
+    "operating_costs": {
+      "fuel_consumption": 4,
+      "maintenance_cost": 800,
+      "crew_wages": 500
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 1,
+      "utility_modules": 4,
+      "engine_modifications": 1
+    },
+    "torpedo_systems": {
+      "capacity": 2,
+      "launch_types": ["planetary", "communications"],
+      "formation_speed_bonus": 0.1
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "attack_explorer_01",
+    "name": "Falcon Recon",
+    "class": "Attack",
+    "role": "Explorer",
+    "speed": 8,
+    "defense": 6,
+    "cargo_capacity": 25,
+    "crew_capacity": 6,
+    "range": 18,
+    "power_output": 130,
+    "life_support": "Basic",
+    "propulsion": "Fusion Drive",
+    "special_bonus": "Stealth systems for long-range scouting",
+    "base_price": 150000,
+    "availability": "rare",
+    "acquisition_method": "reputation_unlock",
+    "requirements": {
+      "licenses": ["pilot_c"],
+      "reputation": 1000,
+      "credits": 150000
+    },
+    "operating_costs": {
+      "fuel_consumption": 6,
+      "maintenance_cost": 1200,
+      "crew_wages": 600
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 2,
+      "utility_modules": 3,
+      "engine_modifications": 2
+    },
+    "torpedo_systems": {
+      "capacity": 2,
+      "launch_types": ["planetary", "probe", "surveillance"],
+      "formation_speed_bonus": 0.15
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "attack_miner_01",
+    "name": "Hammerstrike",
+    "class": "Attack",
+    "role": "Miner",
+    "speed": 7,
+    "defense": 7,
+    "cargo_capacity": 50,
+    "crew_capacity": 8,
+    "range": 14,
+    "power_output": 140,
+    "life_support": "Basic",
+    "propulsion": "Fusion Drive",
+    "special_bonus": "Self-defense turrets for mining ops",
+    "base_price": 175000,
+    "availability": "rare",
+    "acquisition_method": "reputation_unlock",
+    "requirements": {
+      "licenses": ["pilot_c", "mining_deep"],
+      "reputation": 1200,
+      "credits": 175000
+    },
+    "operating_costs": {
+      "fuel_consumption": 7,
+      "maintenance_cost": 1400,
+      "crew_wages": 800
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 3,
+      "utility_modules": 4,
+      "engine_modifications": 2
+    },
+    "torpedo_systems": {
+      "capacity": 2,
+      "launch_types": ["planetary", "mining", "defense"],
+      "formation_speed_bonus": 0.05
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "attack_combat_01",
+    "name": "Raptor Gunship",
+    "class": "Attack",
+    "role": "Combat",
+    "speed": 9,
+    "defense": 8,
+    "cargo_capacity": 20,
+    "crew_capacity": 6,
+    "range": 12,
+    "power_output": 150,
+    "life_support": "Basic",
+    "propulsion": "Fusion Drive",
+    "special_bonus": "Damage output +15%",
+    "base_price": 200000,
+    "availability": "rare",
+    "acquisition_method": "military_service",
+    "requirements": {
+      "licenses": ["pilot_c", "combat_faction"],
+      "reputation": 1500,
+      "credits": 200000,
+      "military_service": true
+    },
+    "operating_costs": {
+      "fuel_consumption": 8,
+      "maintenance_cost": 1600,
+      "crew_wages": 900
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 4,
+      "utility_modules": 2,
+      "engine_modifications": 2
+    },
+    "torpedo_systems": {
+      "capacity": 3,
+      "launch_types": ["planetary", "defense", "surveillance"],
+      "formation_speed_bonus": 0.0
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "attack_colonizer_01",
+    "name": "Ironseed",
+    "class": "Attack",
+    "role": "Colonizer",
+    "speed": 6,
+    "defense": 7,
+    "cargo_capacity": 45,
+    "crew_capacity": 12,
+    "range": 16,
+    "power_output": 135,
+    "life_support": "Basic",
+    "propulsion": "Fusion Drive",
+    "special_bonus": "Extra armor for colony protection",
+    "base_price": 180000,
+    "availability": "rare",
+    "acquisition_method": "faction_membership",
+    "requirements": {
+      "licenses": ["pilot_c"],
+      "reputation": 1800,
+      "credits": 180000,
+      "faction_membership": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 6,
+      "maintenance_cost": 1300,
+      "crew_wages": 1200
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 2,
+      "utility_modules": 5,
+      "engine_modifications": 2
+    },
+    "torpedo_systems": {
+      "capacity": 4,
+      "launch_types": ["planetary", "communications", "defense"],
+      "formation_speed_bonus": 0.2
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "gov_explorer_01",
+    "name": "Surveyor General",
+    "class": "Government",
+    "role": "Explorer",
+    "speed": 7,
+    "defense": 7,
+    "cargo_capacity": 30,
+    "crew_capacity": 8,
+    "range": 20,
+    "power_output": 145,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Government mapping protocols",
+    "base_price": 350000,
+    "availability": "exclusive",
+    "acquisition_method": "government_commission",
+    "requirements": {
+      "licenses": ["pilot_b", "government_security"],
+      "reputation": 2500,
+      "credits": 350000,
+      "government_clearance": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 8,
+      "maintenance_cost": 2000,
+      "crew_wages": 1600
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 3,
+      "utility_modules": 4,
+      "engine_modifications": 3
+    },
+    "torpedo_systems": {
+      "capacity": 5,
+      "launch_types": ["planetary", "probe", "surveillance", "communications"],
+      "formation_speed_bonus": 0.25
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "gov_miner_01",
+    "name": "Regal Extractor",
+    "class": "Government",
+    "role": "Miner",
+    "speed": 6,
+    "defense": 8,
+    "cargo_capacity": 55,
+    "crew_capacity": 10,
+    "range": 15,
+    "power_output": 155,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Tax-free mineral rights",
+    "base_price": 375000,
+    "availability": "exclusive",
+    "acquisition_method": "government_commission",
+    "requirements": {
+      "licenses": ["pilot_b", "mining_industrial", "government_security"],
+      "reputation": 3000,
+      "credits": 375000,
+      "government_clearance": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 9,
+      "maintenance_cost": 2200,
+      "crew_wages": 2000
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 2,
+      "utility_modules": 5,
+      "engine_modifications": 3
+    },
+    "torpedo_systems": {
+      "capacity": 4,
+      "launch_types": ["planetary", "mining", "defense"],
+      "formation_speed_bonus": 0.15
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "gov_combat_01",
+    "name": "Sentinel Frigate",
+    "class": "Government",
+    "role": "Combat",
+    "speed": 8,
+    "defense": 9,
+    "cargo_capacity": 25,
+    "crew_capacity": 8,
+    "range": 14,
+    "power_output": 165,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Government-grade shield generators",
+    "base_price": 450000,
+    "availability": "exclusive",
+    "acquisition_method": "military_commission",
+    "requirements": {
+      "licenses": ["pilot_b", "combat_government"],
+      "reputation": 3500,
+      "credits": 450000,
+      "military_service": true,
+      "government_clearance": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 10,
+      "maintenance_cost": 2500,
+      "crew_wages": 1600
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 5,
+      "utility_modules": 3,
+      "engine_modifications": 3
+    },
+    "torpedo_systems": {
+      "capacity": 6,
+      "launch_types": ["planetary", "defense", "surveillance"],
+      "formation_speed_bonus": 0.1
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "gov_colonizer_01",
+    "name": "Founders Vessel",
+    "class": "Government",
+    "role": "Colonizer",
+    "speed": 5,
+    "defense": 9,
+    "cargo_capacity": 60,
+    "crew_capacity": 15,
+    "range": 18,
+    "power_output": 160,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Official chartered colonization rights",
+    "base_price": 400000,
+    "availability": "exclusive",
+    "acquisition_method": "government_commission",
+    "requirements": {
+      "licenses": ["pilot_b", "government_security"],
+      "reputation": 4000,
+      "credits": 400000,
+      "government_clearance": "required",
+      "colonization_permit": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 8,
+      "maintenance_cost": 2300,
+      "crew_wages": 3000
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 2,
+      "utility_modules": 6,
+      "engine_modifications": 3
+    },
+    "torpedo_systems": {
+      "capacity": 8,
+      "launch_types": ["planetary", "communications", "defense"],
+      "formation_speed_bonus": 0.3
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "corp_flagship_01",
+    "name": "Echelon Prime",
+    "class": "Corporate Flagship",
+    "role": "Flagship",
+    "speed": 7,
+    "defense": 10,
+    "cargo_capacity": 70,
+    "crew_capacity": 20,
+    "range": 22,
+    "power_output": 180,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Trade deal bonus +15%",
+    "base_price": 750000,
+    "availability": "legendary",
+    "acquisition_method": "corporate_leadership",
+    "requirements": {
+      "licenses": ["pilot_a"],
+      "reputation": 5000,
+      "credits": 750000,
+      "corporate_ceo": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 12,
+      "maintenance_cost": 4000,
+      "crew_wages": 4000
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 4,
+      "utility_modules": 6,
+      "engine_modifications": 4
+    },
+    "torpedo_systems": {
+      "capacity": 10,
+      "launch_types": ["planetary", "large_planetary", "communications", "defense"],
+      "formation_speed_bonus": 0.4
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "faction_flagship_01",
+    "name": "Unity's Might",
+    "class": "Faction Flagship",
+    "role": "Flagship",
+    "speed": 7,
+    "defense": 10,
+    "cargo_capacity": 65,
+    "crew_capacity": 18,
+    "range": 20,
+    "power_output": 175,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Faction influence gain +20%",
+    "base_price": 650000,
+    "availability": "legendary",
+    "acquisition_method": "faction_leadership",
+    "requirements": {
+      "licenses": ["pilot_a"],
+      "reputation": 4500,
+      "credits": 650000,
+      "faction_leader": "required"
+    },
+    "operating_costs": {
+      "fuel_consumption": 11,
+      "maintenance_cost": 3500,
+      "crew_wages": 3600
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 4,
+      "utility_modules": 5,
+      "engine_modifications": 4
+    },
+    "torpedo_systems": {
+      "capacity": 8,
+      "launch_types": ["planetary", "large_planetary", "communications", "defense"],
+      "formation_speed_bonus": 0.35
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": true
+    }
+  },
+  {
+    "id": "heavy_hauler_01",
+    "name": "Colossus Freight",
+    "class": "Heavy Hauler",
+    "role": "Cargo",
+    "speed": 5,
+    "defense": 8,
+    "cargo_capacity": 120,
+    "crew_capacity": 12,
+    "range": 16,
+    "power_output": 150,
+    "life_support": "Basic",
+    "propulsion": "Fusion Drive",
+    "special_bonus": "Fuel efficiency +10%",
+    "base_price": 250000,
+    "availability": "rare",
+    "acquisition_method": "commercial_license",
+    "requirements": {
+      "licenses": ["pilot_c", "commercial_transport"],
+      "reputation": 2000,
+      "credits": 250000
+    },
+    "operating_costs": {
+      "fuel_consumption": 6,
+      "maintenance_cost": 1800,
+      "crew_wages": 2400
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 1,
+      "utility_modules": 6,
+      "engine_modifications": 2
+    },
+    "torpedo_systems": {
+      "capacity": 3,
+      "launch_types": ["planetary", "communications"],
+      "formation_speed_bonus": 0.05
+    },
+    "access_restrictions": {
+      "civilian_areas": true,
+      "government_zones": true,
+      "military_zones": false
+    }
+  },
+  {
+    "id": "gov_destroyer_01",
+    "name": "Justice's Wrath",
+    "class": "Government Warship",
+    "role": "Combat",
+    "speed": 6,
+    "defense": 12,
+    "cargo_capacity": 40,
+    "crew_capacity": 25,
+    "range": 18,
+    "power_output": 200,
+    "life_support": "Basic",
+    "propulsion": "Quantum Drive",
+    "special_bonus": "Heavy torpedo systems",
+    "base_price": 1000000,
+    "availability": "legendary",
+    "acquisition_method": "military_command",
+    "requirements": {
+      "licenses": ["pilot_a", "combat_officer"],
+      "reputation": 7500,
+      "credits": 1000000,
+      "military_rank": "commander",
+      "government_clearance": "top_secret"
+    },
+    "operating_costs": {
+      "fuel_consumption": 15,
+      "maintenance_cost": 6000,
+      "crew_wages": 5000
+    },
+    "upgrade_slots": {
+      "weapon_hardpoints": 8,
+      "utility_modules": 4,
+      "engine_modifications": 4
+    },
+    "torpedo_systems": {
+      "capacity": 15,
+      "launch_types": ["planetary", "large_planetary", "solar_system", "defense", "surveillance"],
+      "formation_speed_bonus": 0.5
+    },
+    "access_restrictions": {
+      "civilian_areas": false,
+      "government_zones": true,
+      "military_zones": true
+    }
+  }
+]

@@ -102,14 +102,6 @@
                         </label>
                     </div>
                     
-                    <!-- Admin Filter -->
-                    <div class="mb-4">
-                        <label class="flex items-center text-sm font-medium">
-                            <input type="checkbox" x-model="filters.adminMode" @change="applyFilters()" class="mr-2">
-                            <span class="text-red-400">🔒 Admin Mode (Show All Ships)</span>
-                        </label>
-                    </div>
-                    
                     <!-- Sort Options -->
                     <div class="mb-4">
                         <label class="block text-sm font-medium mb-2">Sort by:</label>
@@ -382,13 +374,11 @@
                     class: '',
                     role: '',
                     maxPrice: 1000000,
-                    availableOnly: false,
-                    adminMode: false
+                    availableOnly: false
                 },
                 sortBy: 'power_output',
                 selectedShip: null,
                 showDetails: false,
-                lastAdminMode: false,
                 
                 async init() {
                     // Check if user is logged in
@@ -426,21 +416,14 @@
                         // Wait for ship data to load
                         await window.ShipManager.loadShipData();
                         
-                        // Get available ships for this player (or all ships in admin mode)
-                        if (this.filters.adminMode) {
-                            // In admin mode, show all ships regardless of requirements
-                            this.availableShips = window.ShipManager.getAllShips();
-                        } else {
-                            this.availableShips = window.ShipManager.getAvailableShips(this.player);
-                        }
+                        // Get available ships for this player
+                        this.availableShips = window.ShipManager.getAvailableShips(this.player);
+                        this.filteredShips = [...this.availableShips];
                         
                         // Load player's ships
                         this.playerShips = window.ShipManager.getPlayerShips(this.player.username).map(instance => 
                             window.ShipManager.getFullShipData(instance.instanceId)
                         );
-                        
-                        // Apply current filters to the newly loaded ships
-                        this.applyFilters();
                         
                         console.log(`Loaded ${this.availableShips.length} available ships`);
                         console.log(`Player owns ${this.playerShips.length} ships`);
@@ -450,13 +433,6 @@
                 },
                 
                 applyFilters() {
-                    // If admin mode changed, reload ships first
-                    if (this.filters.adminMode !== this.lastAdminMode) {
-                        this.lastAdminMode = this.filters.adminMode;
-                        this.loadShips();
-                        return; // loadShips will call applyFilters again
-                    }
-                    
                     let filtered = [...this.availableShips];
                     
                     // Class filter
@@ -474,8 +450,8 @@
                         filtered = filtered.filter(ship => ship.base_price <= this.filters.maxPrice);
                     }
                     
-                    // Available only filter (only apply if not in admin mode)
-                    if (this.filters.availableOnly && !this.filters.adminMode) {
+                    // Available only filter
+                    if (this.filters.availableOnly) {
                         filtered = filtered.filter(ship => this.canPurchaseShip(ship));
                     }
                     
@@ -493,8 +469,7 @@
                         class: '',
                         role: '',
                         maxPrice: 1000000,
-                        availableOnly: false,
-                        adminMode: false
+                        availableOnly: false
                     };
                     this.applyFilters();
                 },
@@ -504,10 +479,6 @@
                 },
                 
                 canPurchaseShip(ship) {
-                    // In admin mode, allow purchase of any ship regardless of requirements
-                    if (this.filters.adminMode) {
-                        return this.canAffordShip(ship);
-                    }
                     return window.ShipManager.canPlayerAccessShip(this.player, ship);
                 },
                 
@@ -526,8 +497,7 @@
                         const shipInstance = window.ShipManager.purchaseShip(
                             this.player.username, 
                             ship.id, 
-                            customName,
-                            this.filters.adminMode
+                            customName
                         );
                         
                         // Update player data

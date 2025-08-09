@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Shipyard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="ship-manager.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .ship-card {
+            transition: all 0.3s ease;
+        }
+        .ship-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="shipyardApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">🏭 Nexus Station Shipyard</h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Ship Filter Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
+                    <h3 class="text-lg font-bold mb-4 text-purple-400">🔍 Ship Filters</h3>
+                    
+                    <!-- Class Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Ship Class:</label>
+                        <select x-model="filters.class" @change="applyFilters()" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white">
+                            <option value="">All Classes</option>
+                            <option value="Scout">Scout</option>
+                            <option value="Attack">Attack</option>
+                            <option value="Government">Government</option>
+                            <option value="Corporate Flagship">Corporate Flagship</option>
+                            <option value="Faction Flagship">Faction Flagship</option>
+                            <option value="Heavy Hauler">Heavy Hauler</option>
+                            <option value="Government Warship">Government Warship</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Role Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Role:</label>
+                        <select x-model="filters.role" @change="applyFilters()" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white">
+                            <option value="">All Roles</option>
+                            <option value="Explorer">Explorer</option>
+                            <option value="Miner">Miner</option>
+                            <option value="Combat">Combat</option>
+                            <option value="Colonizer">Colonizer</option>
+                            <option value="Flagship">Flagship</option>
+                            <option value="Cargo">Cargo</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Price Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Max Price:</label>
+                        <input type="range" x-model="filters.maxPrice" @input="applyFilters()" 
+                               min="0" max="1000000" step="50000" 
+                               class="w-full">
+                        <div class="text-xs text-gray-400 mt-1" x-text="`${filters.maxPrice.toLocaleString()} CR`"></div>
+                    </div>
+                    
+                    <!-- Availability Filter -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Show Available Only:</label>
+                        <input type="checkbox" x-model="filters.availableOnly" @change="applyFilters()" class="mr-2">
+                        <span class="text-sm">Hide ships you can't afford</span>
+                    </div>
+                    
+                    <!-- Sort Options -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Sort by:</label>
+                        <select x-model="sortBy" @change="applySorting()" class="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white">
+                            <option value="power_output">Power Output</option>
+                            <option value="base_price">Price</option>
+                            <option value="speed">Speed</option>
+                            <option value="defense">Defense</option>
+                            <option value="cargo_capacity">Cargo Capacity</option>
+                            <option value="range">Range</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Your Ships Panel -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-green-400">🚀 Your Fleet</h3>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        <template x-for="ship in playerShips" :key="ship.instance.instanceId">
+                            <div class="bg-gray-800 p-3 rounded-md">
+                                <div class="font-semibold text-blue-400" x-text="ship.instance.customName"></div>
+                                <div class="text-xs text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
+                                <div class="text-xs text-green-400" x-text="`Power: ${ship.power_output}`"></div>
+                            </div>
+                        </template>
+                        <div x-show="playerShips.length === 0" class="text-gray-400 text-center py-4">
+                            No ships owned
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ship Catalog -->
+            <div class="lg:col-span-3">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-xl font-bold text-blue-400">🛒 Available Ships</h2>
+                        <div class="text-sm text-gray-400" x-text="`${filteredShips.length} ships available`"></div>
+                    </div>
+                    
+                    <!-- Ship Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <template x-for="ship in filteredShips" :key="ship.id">
+                            <div class="ship-card bg-gray-800 rounded-lg p-4 border border-gray-600 hover:border-blue-500">
+                                <!-- Ship Header -->
+                                <div class="flex justify-between items-start mb-3">
+                                    <div>
+                                        <h3 class="font-bold text-blue-400" x-text="ship.name"></h3>
+                                        <div class="text-sm text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-yellow-400 font-mono font-bold" x-text="`${ship.base_price.toLocaleString()} CR`"></div>
+                                        <div class="text-xs" :class="canAffordShip(ship) ? 'text-green-400' : 'text-red-400'" 
+                                             x-text="canAffordShip(ship) ? 'Affordable' : 'Too Expensive'"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Ship Stats -->
+                                <div class="grid grid-cols-2 gap-2 text-xs mb-3">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Speed:</span>
+                                        <span x-text="ship.speed"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Defense:</span>
+                                        <span x-text="ship.defense"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Cargo:</span>
+                                        <span x-text="ship.cargo_capacity"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Range:</span>
+                                        <span x-text="ship.range"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Power:</span>
+                                        <span class="text-blue-400 font-semibold" x-text="ship.power_output"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-400">Crew:</span>
+                                        <span x-text="ship.crew_capacity"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Special Bonus -->
+                                <div class="text-xs text-purple-400 mb-3 min-h-[2rem]" x-text="ship.special_bonus"></div>
+                                
+                                <!-- Requirements -->
+                                <div class="text-xs text-gray-500 mb-3 min-h-[1.5rem]">
+                                    <span x-show="ship.requirements.licenses && ship.requirements.licenses.length > 0">
+                                        Requires: <span x-text="ship.requirements.licenses.join(', ')"></span>
+                                    </span>
+                                </div>
+                                
+                                <!-- Action Buttons -->
+                                <div class="flex gap-2">
+                                    <button @click="viewShipDetails(ship)" 
+                                            class="flex-1 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors">
+                                        Details
+                                    </button>
+                                    <button @click="purchaseShip(ship)" 
+                                            :disabled="!canPurchaseShip(ship)"
+                                            :class="canPurchaseShip(ship) ? 
+                                                'bg-green-600 hover:bg-green-700' : 
+                                                'bg-gray-600 cursor-not-allowed'"
+                                            class="flex-1 px-3 py-2 rounded text-sm transition-colors">
+                                        <span x-text="canPurchaseShip(ship) ? 'Purchase' : 'Unavailable'"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div x-show="filteredShips.length === 0" class="text-center py-12">
+                        <div class="text-gray-400 text-lg">No ships match your current filters</div>
+                        <button @click="clearFilters()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
+                            Clear Filters
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+                    
+                    <!-- Equipment Section -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 text-purple-400">⚔️ Weapons & Equipment</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="item in shopItems.equipment" :key="item.id">
+                                <div class="bg-gray-800 p-4 rounded-md border border-gray-600">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-semibold text-white" x-text="item.name"></h4>
+                                        <div class="text-yellow-400 font-mono" x-text="`${item.price.toLocaleString()} CR`"></div>
+                                    </div>
+                                    <p class="text-sm text-gray-300 mb-3" x-text="item.description"></p>
+                                    <div class="flex justify-between items-center">
+                                        <div class="text-xs text-gray-400" x-text="`Stock: ${item.stock}`"></div>
+                                        <button 
+                                            @click="buyItem(item)"
+                                            :disabled="player.credits < item.price || item.stock <= 0"
+                                            class="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-3 py-1 rounded text-sm transition-colors">
+                                            Buy
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Ship Upgrades Section -->
+                    <div class="mb-6">
+                        <h3 class="text-lg font-semibold mb-3 text-cyan-400">🔧 Ship Upgrades</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="item in shopItems.upgrades" :key="item.id">
+                                <div class="bg-gray-800 p-4 rounded-md border border-gray-600">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-semibold text-white" x-text="item.name"></h4>
+                                        <div class="text-yellow-400 font-mono" x-text="`${item.price.toLocaleString()} CR`"></div>
+                                    </div>
+                                    <p class="text-sm text-gray-300 mb-3" x-text="item.description"></p>
+                                    <div class="flex justify-between items-center">
+                                        <div class="text-xs text-gray-400" x-text="`Stock: ${item.stock}`"></div>
+                                        <button 
+                                            @click="buyItem(item)"
+                                            :disabled="player.credits < item.price || item.stock <= 0"
+                                            class="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-3 py-1 rounded text-sm transition-colors">
+                                            Buy
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Repairs Section -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-orange-400">🔨 Ship Repairs</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <template x-for="service in shopItems.repairs" :key="service.id">
+                                <div class="bg-gray-800 p-4 rounded-md border border-gray-600">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-semibold text-white" x-text="service.name"></h4>
+                                        <div class="text-yellow-400 font-mono" x-text="`${service.price.toLocaleString()} CR`"></div>
+                                    </div>
+                                    <p class="text-sm text-gray-300 mb-3" x-text="service.description"></p>
+                                    <button 
+                                        @click="buyRepair(service)"
+                                        :disabled="player.credits < service.price"
+                                        class="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-3 py-2 rounded text-sm transition-colors">
+                                        Purchase
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function shipyardApp() {
+            return {
+                player: {},
+                shopItems: {
+                    equipment: [
+                        {
+                            id: 'genisys_torpedo',
+                            name: 'Genisys Torpedo',
+                            description: 'Solar Dynamics supercompressed particle torpedo. Creates celestial bodies with unpredictable outcomes. Contains particles needed to forge worlds, moons, and entire systems. 2-7 hour formation period required.',
+                            price: 15000,
+                            stock: 3
+                        },
+                        {
+                            id: 'pulse_cannon',
+                            name: 'Pulse Cannon',
+                            description: 'High-energy pulse weapon with rapid fire capability.',
+                            price: 8500,
+                            stock: 5
+                        },
+                        {
+                            id: 'shield_matrix',
+                            name: 'Shield Matrix',
+                            description: 'Advanced shielding system that provides superior protection.',
+                            price: 12000,
+                            stock: 2
+                        }
+                    ],
+                    upgrades: [
+                        {
+                            id: 'cargo_expansion',
+                            name: 'Cargo Bay Expansion',
+                            description: 'Increases cargo capacity by 50 units.',
+                            price: 25000,
+                            stock: 1
+                        },
+                        {
+                            id: 'engine_boost',
+                            name: 'Engine Boost Module',
+                            description: 'Improves ship speed and fuel efficiency.',
+                            price: 18000,
+                            stock: 2
+                        }
+                    ],
+                    repairs: [
+                        {
+                            id: 'hull_repair',
+                            name: 'Hull Repair',
+                            description: 'Restore hull integrity to 100%',
+                            price: 5000
+                        },
+                        {
+                            id: 'system_tune',
+                            name: 'System Tune-up',
+                            description: 'Optimize all ship systems',
+                            price: 3000
+                        },
+                        {
+                            id: 'full_service',
+                            name: 'Full Service',
+                            description: 'Complete ship overhaul and repair',
+                            price: 10000
+                        }
+                    ]
+                },
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize inventory if it doesn't exist
+                    if (!this.player.inventory) {
+                        this.player.inventory = [];
+                    }
+                    
+                    // Ensure player has credits
+                    if (!this.player.credits) {
+                        this.player.credits = 50000; // Starting credits for testing
+                    }
+                    
+                    this.savePlayer();
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                buyItem(item) {
+                    if (this.player.credits < item.price) {
+                        this.showNotification('Insufficient credits!', 'error');
+                        return;
+                    }
+                    
+                    if (item.stock <= 0) {
+                        this.showNotification('Item out of stock!', 'error');
+                        return;
+                    }
+                    
+                    // Deduct credits
+                    this.player.credits -= item.price;
+                    
+                    // Reduce stock
+                    item.stock -= 1;
+                    
+                    // Add to inventory
+                    const existingItem = this.player.inventory.find(invItem => invItem.id === item.id);
+                    if (existingItem) {
+                        existingItem.quantity += 1;
+                    } else {
+                        this.player.inventory.push({
+                            id: item.id,
+                            name: item.name,
+                            description: item.description,
+                            quantity: 1,
+                            sellPrice: Math.floor(item.price * 0.7) // 70% of purchase price
+                        });
+                    }
+                    
+                    this.savePlayer();
+                    this.showNotification(`Purchased ${item.name}!`, 'success');
+                },
+                
+                sellItem(item) {
+                    // Add credits (70% of original price)
+                    this.player.credits += item.sellPrice;
+                    
+                    // Remove from inventory
+                    if (item.quantity > 1) {
+                        item.quantity -= 1;
+                    } else {
+                        const index = this.player.inventory.findIndex(invItem => invItem.id === item.id);
+                        this.player.inventory.splice(index, 1);
+                    }
+                    
+                    // Restore stock in shop
+                    const shopItem = this.findShopItem(item.id);
+                    if (shopItem) {
+                        shopItem.stock += 1;
+                    }
+                    
+                    this.savePlayer();
+                    this.showNotification(`Sold ${item.name} for ${item.sellPrice.toLocaleString()} CR`, 'success');
+                },
+                
+                buyRepair(service) {
+                    if (this.player.credits < service.price) {
+                        this.showNotification('Insufficient credits!', 'error');
+                        return;
+                    }
+                    
+                    this.player.credits -= service.price;
+                    this.savePlayer();
+                    this.showNotification(`${service.name} completed!`, 'success');
+                },
+                
+                findShopItem(itemId) {
+                    return [...this.shopItems.equipment, ...this.shopItems.upgrades]
+                        .find(item => item.id === itemId);
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
