@@ -1,0 +1,379 @@
+{
+  "specialists": {
+    "overview": {
+      "totalCount": 12,
+      "employer": "The State",
+      "purpose": "missions_quests_guidance",
+      "accessLevel": "player_training_and_progression",
+      "availability": "distributed_across_locations"
+    },
+    "definitions": [
+      {
+        "id": "spec_001",
+        "name": "Commander Voss",
+        "title": "Operations Coordinator",
+        "location": "nexus_station",
+        "department": "central_command",
+        "specialization": "mission_coordination_and_system_orientation",
+        "description": "First point of contact for new arrivals. Provides system overview, basic training assignments, and coordinates with other specialists.",
+        "missions": [
+          "system_orientation",
+          "basic_navigation_training",
+          "specialist_introductions",
+          "initial_resource_allocation"
+        ],
+        "requirements": {
+          "reputation_min": 0,
+          "prerequisites": []
+        },
+        "dialogue_style": "authoritative_but_helpful",
+        "availability": "always_available"
+      },
+      {
+        "id": "spec_002",
+        "name": "Dr. Elena Morse",
+        "title": "Research Director",
+        "location": "edison_moon",
+        "department": "research_and_development",
+        "specialization": "advanced_research_methodologies",
+        "description": "Leads research initiatives on Edison. Teaches players advanced research techniques, laboratory management, and scientific equipment operation.",
+        "missions": [
+          "research_methodology_training",
+          "laboratory_equipment_certification",
+          "experimental_design_projects",
+          "data_analysis_techniques"
+        ],
+        "requirements": {
+          "reputation_min": 50,
+          "prerequisites": ["basic_navigation_training"]
+        },
+        "dialogue_style": "academic_and_precise",
+        "availability": "business_hours_edison"
+      },
+      {
+        "id": "spec_003",
+        "name": "Chief Engineer Yamamoto",
+        "title": "Industrial Operations Chief",
+        "location": "edison_moon",
+        "department": "industrial_engineering",
+        "specialization": "manufacturing_and_precision_engineering",
+        "description": "Oversees industrial operations on Edison. Trains players in manufacturing processes, quality control, and precision engineering techniques.",
+        "missions": [
+          "manufacturing_process_training",
+          "quality_control_certification",
+          "precision_engineering_projects",
+          "industrial_safety_protocols"
+        ],
+        "requirements": {
+          "reputation_min": 75,
+          "prerequisites": ["research_methodology_training"]
+        },
+        "dialogue_style": "technical_and_methodical",
+        "availability": "shift_based_edison"
+      },
+      {
+        "id": "spec_004",
+        "name": "Agricultural Coordinator Chen",
+        "title": "Biosphere Manager",
+        "location": "mccormick_moon",
+        "department": "agricultural_sciences",
+        "specialization": "sustainable_agriculture_and_biosystems",
+        "description": "Manages McCormick's agricultural operations. Teaches sustainable farming, hydroponics, genetic optimization, and ecosystem management.",
+        "missions": [
+          "sustainable_farming_techniques",
+          "hydroponics_system_management",
+          "crop_genetic_optimization",
+          "ecosystem_balance_projects"
+        ],
+        "requirements": {
+          "reputation_min": 50,
+          "prerequisites": ["basic_navigation_training"]
+        },
+        "dialogue_style": "nurturing_and_patient",
+        "availability": "seasonal_schedule_mccormick"
+      },
+      {
+        "id": "spec_005",
+        "name": "Nutritionist Dr. Patel",
+        "title": "Food Systems Specialist",
+        "location": "mccormick_moon",
+        "department": "food_science",
+        "specialization": "nutritional_science_and_food_processing",
+        "description": "Specializes in nutritional optimization and food processing. Trains players in food science, preservation techniques, and dietary planning for space missions.",
+        "missions": [
+          "nutritional_analysis_training",
+          "food_preservation_techniques",
+          "dietary_optimization_projects",
+          "emergency_ration_development"
+        ],
+        "requirements": {
+          "reputation_min": 75,
+          "prerequisites": ["sustainable_farming_techniques"]
+        },
+        "dialogue_style": "health_focused_and_caring",
+        "availability": "standard_hours_mccormick"
+      },
+      {
+        "id": "spec_006",
+        "name": "Mining Foreman Rodriguez",
+        "title": "Deep Core Operations Chief",
+        "location": "hoover_moon",
+        "department": "mining_operations",
+        "specialization": "deep_mining_and_resource_extraction",
+        "description": "Leads deep core mining operations on Hoover. Teaches advanced mining techniques, geological assessment, and heavy equipment operation.",
+        "missions": [
+          "deep_mining_certification",
+          "geological_survey_training",
+          "heavy_equipment_operation",
+          "safety_protocol_advancement"
+        ],
+        "requirements": {
+          "reputation_min": 50,
+          "prerequisites": ["basic_navigation_training"]
+        },
+        "dialogue_style": "gruff_but_experienced",
+        "availability": "round_the_clock_hoover"
+      },
+      {
+        "id": "spec_007",
+        "name": "Metallurgist Dr. Kim",
+        "title": "Materials Processing Director",
+        "location": "hoover_moon",
+        "department": "materials_engineering",
+        "specialization": "advanced_metallurgy_and_material_science",
+        "description": "Directs materials processing on Hoover. Trains players in metallurgy, alloy development, and advanced material properties.",
+        "missions": [
+          "metallurgy_fundamentals",
+          "alloy_development_projects",
+          "material_property_analysis",
+          "advanced_processing_techniques"
+        ],
+        "requirements": {
+          "reputation_min": 100,
+          "prerequisites": ["deep_mining_certification", "geological_survey_training"]
+        },
+        "dialogue_style": "scientific_and_detailed",
+        "availability": "laboratory_schedule_hoover"
+      },
+      {
+        "id": "spec_008",
+        "name": "Navigator Captain Singh",
+        "title": "Stellar Navigation Chief",
+        "location": "nexus_station",
+        "department": "navigation_and_exploration",
+        "specialization": "advanced_navigation_and_exploration_planning",
+        "description": "Expert in stellar navigation and exploration planning. Teaches advanced navigation techniques, route optimization, and exploration protocols.",
+        "missions": [
+          "advanced_navigation_training",
+          "stellar_cartography_projects",
+          "exploration_route_planning",
+          "emergency_navigation_protocols"
+        ],
+        "requirements": {
+          "reputation_min": 125,
+          "prerequisites": ["system_orientation", "basic_navigation_training"]
+        },
+        "dialogue_style": "adventurous_and_precise",
+        "availability": "bridge_duty_nexus"
+      },
+      {
+        "id": "spec_009",
+        "name": "Trade Commissioner Walsh",
+        "title": "Economic Development Officer",
+        "location": "nexus_station",
+        "department": "economic_development",
+        "specialization": "trade_economics_and_market_analysis",
+        "description": "Oversees economic development and trade relationships. Teaches market analysis, trade negotiations, and economic planning.",
+        "missions": [
+          "market_analysis_training",
+          "trade_negotiation_certification",
+          "economic_planning_projects",
+          "financial_transparency_protocols"
+        ],
+        "requirements": {
+          "reputation_min": 100,
+          "prerequisites": ["system_orientation"]
+        },
+        "dialogue_style": "business_focused_and_diplomatic",
+        "availability": "market_hours_nexus"
+      },
+      {
+        "id": "spec_010",
+        "name": "Security Chief Martinez",
+        "title": "System Security Coordinator",
+        "location": "nexus_station",
+        "department": "security_and_law_enforcement",
+        "specialization": "security_protocols_and_law_enforcement",
+        "description": "Manages system security and law enforcement. Teaches security protocols, conflict resolution, and law enforcement procedures.",
+        "missions": [
+          "security_protocol_training",
+          "conflict_resolution_certification",
+          "law_enforcement_procedures",
+          "emergency_response_coordination"
+        ],
+        "requirements": {
+          "reputation_min": 150,
+          "prerequisites": ["system_orientation", "basic_navigation_training"]
+        },
+        "dialogue_style": "professional_and_stern",
+        "availability": "security_rotation_nexus"
+      },
+      {
+        "id": "spec_011",
+        "name": "Diplomatic Attaché Reynolds",
+        "title": "Inter-Faction Relations Specialist",
+        "location": "nexus_station",
+        "department": "diplomatic_relations",
+        "specialization": "faction_relations_and_diplomatic_protocols",
+        "description": "Handles inter-faction relations and diplomatic protocols. Teaches diplomacy, faction politics, and conflict mediation.",
+        "missions": [
+          "diplomatic_protocol_training",
+          "faction_politics_education",
+          "conflict_mediation_certification",
+          "inter_system_relations_projects"
+        ],
+        "requirements": {
+          "reputation_min": 175,
+          "prerequisites": ["trade_negotiation_certification", "conflict_resolution_certification"]
+        },
+        "dialogue_style": "diplomatic_and_eloquent",
+        "availability": "appointment_based_nexus"
+      },
+      {
+        "id": "spec_012",
+        "name": "Archive Keeper Morrison",
+        "title": "Historical Research Specialist",
+        "location": "research_satellite_archimedes",
+        "department": "historical_research",
+        "specialization": "historical_analysis_and_cultural_preservation",
+        "description": "Maintains historical records and cultural archives. Teaches historical research, cultural analysis, and knowledge preservation techniques.",
+        "missions": [
+          "historical_research_methodology",
+          "cultural_analysis_projects",
+          "archive_management_training",
+          "knowledge_preservation_protocols"
+        ],
+        "requirements": {
+          "reputation_min": 200,
+          "prerequisites": ["research_methodology_training", "data_analysis_techniques"]
+        },
+        "dialogue_style": "scholarly_and_reflective",
+        "availability": "research_schedule_archimedes"
+      }
+    ]
+  },
+  "progression": {
+    "skill_trees": {
+      "research_track": {
+        "specialization": "scientific_research_and_development",
+        "primary_location": "edison_moon",
+        "specialists": ["spec_002", "spec_003"],
+        "prerequisites": ["system_orientation"],
+        "skills": [
+          "research_methodology",
+          "data_analysis",
+          "laboratory_management",
+          "experimental_design",
+          "manufacturing_processes",
+          "quality_control",
+          "precision_engineering"
+        ]
+      },
+      "agricultural_track": {
+        "specialization": "sustainable_agriculture_and_food_systems",
+        "primary_location": "mccormick_moon",
+        "specialists": ["spec_004", "spec_005"],
+        "prerequisites": ["system_orientation"],
+        "skills": [
+          "sustainable_farming",
+          "hydroponics_management",
+          "genetic_optimization",
+          "ecosystem_management",
+          "nutritional_science",
+          "food_processing",
+          "preservation_techniques"
+        ]
+      },
+      "mining_track": {
+        "specialization": "resource_extraction_and_materials_processing",
+        "primary_location": "hoover_moon",
+        "specialists": ["spec_006", "spec_007"],
+        "prerequisites": ["system_orientation"],
+        "skills": [
+          "deep_mining_techniques",
+          "geological_assessment",
+          "heavy_equipment_operation",
+          "safety_protocols",
+          "metallurgy",
+          "alloy_development",
+          "material_analysis"
+        ]
+      },
+      "navigation_track": {
+        "specialization": "exploration_and_stellar_navigation",
+        "primary_location": "nexus_station",
+        "specialists": ["spec_008"],
+        "prerequisites": ["system_orientation", "basic_navigation_training"],
+        "skills": [
+          "stellar_navigation",
+          "route_optimization",
+          "exploration_planning",
+          "stellar_cartography",
+          "emergency_navigation"
+        ]
+      },
+      "economic_track": {
+        "specialization": "trade_and_economic_development",
+        "primary_location": "nexus_station",
+        "specialists": ["spec_009"],
+        "prerequisites": ["system_orientation"],
+        "skills": [
+          "market_analysis",
+          "trade_negotiations",
+          "economic_planning",
+          "financial_protocols",
+          "resource_valuation"
+        ]
+      },
+      "security_track": {
+        "specialization": "security_and_law_enforcement",
+        "primary_location": "nexus_station",
+        "specialists": ["spec_010"],
+        "prerequisites": ["system_orientation", "reputation_150"],
+        "skills": [
+          "security_protocols",
+          "conflict_resolution",
+          "law_enforcement",
+          "emergency_response",
+          "threat_assessment"
+        ]
+      },
+      "diplomatic_track": {
+        "specialization": "inter_faction_relations_and_diplomacy",
+        "primary_location": "nexus_station",
+        "specialists": ["spec_011"],
+        "prerequisites": ["trade_negotiations", "conflict_resolution", "reputation_175"],
+        "skills": [
+          "diplomatic_protocols",
+          "faction_politics",
+          "conflict_mediation",
+          "inter_system_relations",
+          "cultural_sensitivity"
+        ]
+      },
+      "historical_track": {
+        "specialization": "historical_research_and_cultural_preservation",
+        "primary_location": "research_satellite_archimedes",
+        "specialists": ["spec_012"],
+        "prerequisites": ["research_methodology", "data_analysis", "reputation_200"],
+        "skills": [
+          "historical_methodology",
+          "cultural_analysis",
+          "archive_management",
+          "knowledge_preservation",
+          "temporal_analysis"
+        ]
+      }
+    }
+  }
+}

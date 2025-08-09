@@ -1,0 +1,88 @@
+I. Player (Individual) Information (15)
+Player Name / Callsign – The player’s chosen identity, displayed prominently.
+
+Faction / Allegiance – Government, corporation, pirate band, independent, etc.
+
+Rank / Reputation Level – Status within faction or across the galaxy (affects trade, diplomacy, NPC reactions).
+
+Credits / Currency – Total money available for trade, crafting, hiring, etc.
+
+Skill Levels – Breakdown of relevant skills (e.g., Piloting, Engineering, Mining, Combat, Bartering).
+
+XP / Level Progression – Current level, XP points, and progress to next level.
+
+Health / Suit Integrity – Physical health or life support status for EVA missions.
+
+Personal Inventory – Carried items, tools, mining gear, crafting supplies (separate from ship cargo).
+
+Active Missions / Contracts – List of current exploration or trade objectives.
+
+Communication Log – Messages from other players, NPC factions, or in-game events.
+
+License / Permits – Mining licenses, restricted system access passes, bounty hunting permits.
+
+Bounties / Wanted Status – Whether the player has active bounties (or is being hunted).
+
+Crafting Recipes / Blueprints Known – Schematics available for personal use.
+
+Current Location (Personal) – The planet, station, or coordinates where the player is physically located.
+
+Player Stats Summary – Quick reference (Kills, Successful Trades, Distance Traveled, Planets Explored).
+
+II. Ship Information (15)
+Ship Name & Class – Identifier and vessel type (Scout, Hauler, Frigate, etc.).
+
+Hull Integrity / Armor – Health of the ship; critical for survival in hazardous zones.
+
+Shields / Defense Status – Energy shielding levels and recharge rates.
+
+Fuel / Energy Reserves – Remaining jump fuel or power for propulsion and onboard systems.
+
+Cargo Hold Capacity – Current load vs. max space available for mined materials or goods.
+
+Ship Inventory / Cargo Manifest – Detailed breakdown of items stored on the ship.
+
+Mining Equipment Status – Functionality and efficiency of onboard mining lasers or drones.
+
+Installed Modules / Upgrades – Engines, scanners, warp drives, defensive systems.
+
+Navigation Data – Current system, destination, plotted course, and ETA (turns remaining).
+
+Sensor Scan Results – Nearby planets, asteroids, ships, stations, anomalies.
+
+Crew Members / Assignments – Names, skills, and roles of any AI or NPC crew onboard.
+
+Crafting Bay Status – Current queued builds, ship repairs, or processing of mined ore.
+
+Ship Condition Alerts – Any malfunctions, damaged modules, or pending maintenance.
+
+Market Data Access – Real-time commodity prices for nearby stations or systems.
+
+Docking / Station Interaction Status – Whether docked, in orbit, or en route to a hub.
+
+Bonus (Optional but Immersive):
+Galactic News Feed – Player-driven economy and events affecting trade routes or warzones.
+
+Player Ledger / Trade History – A record of past trades and profit margins.
+
+Exploration Map – A personal map marking discovered planets, anomalies, and trade hubs.
+
+Would you like me to create a "Tiered Priority Dashboard Layout" (Critical, Useful, Flavor) for these 30+ items, optimized for a text-based UI (so you know what to show at-a-glance vs. expandable menus)?
+
+
+
+
+
+
+
+
+
+Ask ChatGPT
+
+
+
+Tools
+
+
+
+ChatGPT can make mi

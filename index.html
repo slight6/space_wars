@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            z-index: -1;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            animation: rotate 20s linear infinite;
+        }
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <!-- Animated background -->
+    <div class="star-field" id="starField"></div>
+    
+    <!-- Main container -->
+    <div x-data="authApp()" class="relative z-10 w-full max-w-md">
+        <!-- Login/Register Form -->
+        <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg shadow-2xl p-8 border border-gray-700">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-white mb-2">🚀 Space Explorer</h1>
+                <p class="text-gray-300">Begin your cosmic adventure</p>
+            </div>
+            
+            <!-- Toggle between Login/Register -->
+            <div class="flex mb-6">
+                <button 
+                    @click="isLogin = true" 
+                    :class="isLogin ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'"
+                    class="flex-1 py-2 px-4 rounded-l-lg transition-colors duration-200">
+                    Login
+                </button>
+                <button 
+                    @click="isLogin = false" 
+                    :class="!isLogin ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300'"
+                    class="flex-1 py-2 px-4 rounded-r-lg transition-colors duration-200">
+                    Register
+                </button>
+            </div>
+            
+            <!-- Form -->
+            <form @submit.prevent="handleSubmit" class="space-y-4">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+                    <input 
+                        type="text" 
+                        id="username"
+                        x-model="username"
+                        required
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your username">
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                    <input 
+                        type="password" 
+                        id="password"
+                        x-model="password"
+                        required
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter your password">
+                </div>
+                
+                <div x-show="!isLogin">
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword"
+                        x-model="confirmPassword"
+                        :required="!isLogin"
+                        class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Confirm your password">
+                </div>
+                
+                <button 
+                    type="submit"
+                    :disabled="loading"
+                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md transition-colors duration-200 flex items-center justify-center">
+                    <span x-show="!loading" x-text="isLogin ? 'Launch Mission' : 'Join Fleet'"></span>
+                    <span x-show="loading" class="flex items-center">
+                        <svg class="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                    </span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Create animated stars
+        function createStars() {
+            const starField = document.getElementById('starField');
+            const numStars = 100;
+            
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starField.appendChild(star);
+            }
+            
+            // Add a few planets
+            for (let i = 0; i < 3; i++) {
+                const planet = document.createElement('div');
+                planet.className = 'planet';
+                planet.style.left = Math.random() * 80 + '%';
+                planet.style.top = Math.random() * 80 + '%';
+                const size = Math.random() * 50 + 20;
+                planet.style.width = size + 'px';
+                planet.style.height = size + 'px';
+                planet.style.opacity = '0.3';
+                starField.appendChild(planet);
+            }
+        }
+        
+        // Alpine.js component
+        function authApp() {
+            return {
+                isLogin: true,
+                username: '',
+                password: '',
+                confirmPassword: '',
+                loading: false,
+                
+                handleSubmit() {
+                    if (!this.isLogin && this.password !== this.confirmPassword) {
+                        this.showToast('Passwords do not match!', 'error');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    
+                    // Simulate API delay
+                    setTimeout(() => {
+                        if (this.isLogin) {
+                            this.login();
+                        } else {
+                            this.register();
+                        }
+                        this.loading = false;
+                    }, 1000);
+                },
+                
+                login() {
+                    const players = JSON.parse(localStorage.getItem('players') || '[]');
+                    const player = players.find(p => p.username === this.username && p.password === this.password);
+                    
+                    if (player) {
+                        localStorage.setItem('currentPlayer', JSON.stringify(player));
+                        this.showToast('Welcome back, Commander!', 'success');
+                        setTimeout(() => {
+                            window.location.href = 'game.html';
+                        }, 1500);
+                    } else {
+                        this.showToast('Invalid credentials. Try again, space cadet!', 'error');
+                    }
+                },
+                
+                register() {
+                    const players = JSON.parse(localStorage.getItem('players') || '[]');
+                    
+                    if (players.find(p => p.username === this.username)) {
+                        this.showToast('Commander name already taken!', 'error');
+                        return;
+                    }
+                    
+                    const newPlayer = {
+                        id: Date.now(),
+                        username: this.username,
+                        password: this.password,
+                        createdAt: new Date().toISOString(),
+                        level: 1,
+                        credits: 1000,
+                        experience: 0
+                    };
+                    
+                    players.push(newPlayer);
+                    localStorage.setItem('players', JSON.stringify(players));
+                    localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
+                    
+                    this.showToast('Welcome to the fleet, Commander!', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'game.html';
+                    }, 1500);
+                },
+                
+                showToast(message, type) {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                        stopOnFocus: true
+                    }).showToast();
+                }
+            }
+        }
+        
+        // Initialize stars when page loads
+        document.addEventListener('DOMContentLoaded', createStars);
+    </script>
+</body>
+</html>

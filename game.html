@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Nexus Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        /* Alpine.js handles show/hide with x-show directive */
+        .scanner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="stationApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold">🚀 Nexus Station - <span x-text="player.currentLocation || 'Main Deck'"></span></h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <div class="flex flex-wrap items-center gap-6">
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Pilot:</span>
+                    <span class="text-blue-400 font-semibold" x-text="player.username"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Ship:</span>
+                    <span class="text-green-400" x-text="player.currentShip || 'Standard Explorer'"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Hull:</span>
+                    <span class="text-cyan-400" x-text="`${player.hullIntegrity || 100}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Shields:</span>
+                    <span class="text-purple-400" x-text="`${player.shieldStrength || 100}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Fuel:</span>
+                    <span class="text-orange-400" x-text="`${player.fuel || 67}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Power:</span>
+                    <span class="text-red-400" x-text="`${player.powerLevel || 89}%`"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel - Navigation Dropdowns -->
+            <div class="lg:col-span-1 space-y-4">
+                
+                <!-- Ship Information Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipInfo')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-blue-400">🚀 Ship Information</span>
+                            <span x-text="dropdowns.shipInfo ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipInfo" class="dropdown-menu border-t border-gray-700">
+                            <a href="#" @click.prevent="showCargoManifest()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Manifest</a>
+                            <a href="#" @click.prevent="showCrewInfo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 Crew Information</a>
+                            <a href="#" @click.prevent="showUpgrades()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ List Upgrades</a>
+                            <a href="#" @click.prevent="showShipLogs()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Ship Logs</a>
+                            <a href="inventory.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Complete Ship Status</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship Options Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipOptions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-cyan-400">⚙️ Ship Options</span>
+                            <span x-text="dropdowns.shipOptions ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipOptions" class="dropdown-menu border-t border-gray-700">
+                            <a href="#" @click.prevent="configureWeapons()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Weapons Systems</a>
+                            <a href="#" @click.prevent="configureCargo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Options</a>
+                            <a href="#" @click.prevent="configureShields()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛡️ Shields & Defense</a>
+                            <a href="#" @click.prevent="configureCommunications()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Communications</a>
+                            <a href="#" @click.prevent="configureLifeSupport()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Life Support</a>
+                            <a href="#" @click.prevent="configureCloaking()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👻 Cloaking Device</a>
+                            <a href="#" @click.prevent="configureNanobots()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔧 Auto-Repair Nanobots</a>
+                            <a href="#" @click.prevent="configureGravity()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌍 Gravity Generator</a>
+                            <a href="#" @click.prevent="configureSensors()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Sensor Range</a>
+                            <a href="#" @click.prevent="configureBlackMarket()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🕳️ Hidden Compartment</a>
+                            <div class="border-t border-gray-600 mt-2 pt-2">
+                                <a href="#" @click.prevent="manageLoadouts()" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-yellow-400">⚡ Manage Loadouts</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship Actions Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipActions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-green-400">🎯 Ship Actions</span>
+                            <span x-text="dropdowns.shipActions ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipActions" class="dropdown-menu border-t border-gray-700">
+                            <div class="px-4 py-2 text-xs text-gray-400 font-semibold">SCANNER OPTIONS</div>
+                            <a href="#" @click.prevent="useSpatialScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌌 Spatial Scanners</a>
+                            <a href="#" @click.prevent="useSurfaceScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏔️ Surface Scanners</a>
+                            <a href="#" @click.prevent="useProspectingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Prospecting Scanners</a>
+                            <a href="#" @click.prevent="useSkimmingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Skimming Scanners</a>
+                            <a href="#" @click.prevent="useShipScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Ship Scanners</a>
+                            <div class="border-t border-gray-600 mt-2 pt-2">
+                                <div class="px-4 py-2 text-xs text-gray-400 font-semibold">OPERATIONS</div>
+                                <a href="#" @click.prevent="manageMovement()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Movement Options</a>
+                                <a href="#" @click.prevent="manageFuelPower()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ Fuel & Power</a>
+                                <a href="#" @click.prevent="manageMining()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Mining Operations</a>
+                                <a href="torpedo-launch.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🚀 Torpedo Launch</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Station Locations Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('stationLocations')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-purple-400">🏢 Station Locations</span>
+                            <span x-text="dropdowns.stationLocations ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.stationLocations" class="dropdown-menu border-t border-gray-700">
+                            <a href="shipyard.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Shipyard</a>
+                            <a href="#" @click.prevent="visitEquipmentCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Equipment Center</a>
+                            <a href="marketplace.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Marketplace</a>
+                            <a href="trade-center.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏦 Trading Zone</a>
+                            <a href="#" @click.prevent="visitTavern()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🍺 Tavern</a>
+                            <a href="#" @click.prevent="visitGovernment()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Government Services</a>
+                            <a href="specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 State Specialists</a>
+                            <a href="system-map.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🗺️ Local Maps</a>
+                            <a href="#" @click.prevent="checkNews()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📰 Local News</a>
+                            <a href="mission-log.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Mission Log</a>
+                            <a href="#" @click.prevent="visitManufacturing()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Manufacturing</a>
+                            <a href="#" @click.prevent="visitResearch()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔬 Research Lab</a>
+                            <a href="#" @click.prevent="visitAgriculture()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌱 Agricultural Center</a>
+                            <a href="#" @click.prevent="visitMuseum()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Museum</a>
+                            <a href="#" @click.prevent="visitTemple()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛪ Temple of the Dog</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="lg:col-span-3">
+                <!-- Current View Display -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
+                    <h2 class="text-xl font-bold mb-4" x-text="currentView.title"></h2>
+                    <div x-html="currentView.content"></div>
+                </div>
+
+                <!-- Scanner Results (when applicable) -->
+                <div x-show="scannerResults.visible" class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-cyan-400">📡 Scanner Results</h3>
+                    <div x-html="scannerResults.data"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function stationApp() {
+            return {
+                player: {},
+                dropdowns: {
+                    shipInfo: false,
+                    shipOptions: false,
+                    shipActions: false,
+                    stationLocations: false
+                },
+                currentView: {
+                    title: 'Welcome to Nexus Station',
+                    content: `
+                        <div class="space-y-4">
+                            <p class="text-gray-300">Welcome aboard Nexus Station, the central hub of the Keldar system. Use the navigation panel on the left to access different areas of your ship and the station.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🚀 Ship Status</h4>
+                                    <p class="text-sm text-gray-300">Your ship is docked and ready for operations. All systems are nominal.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">📡 Station Services</h4>
+                                    <p class="text-sm text-gray-300">Full station services are available including trading, repairs, and research.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">🌍 Local Area</h4>
+                                    <p class="text-sm text-gray-300">Keldar system - Prime star system with multiple explorable locations.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚡ Quick Actions</h4>
+                                    <p class="text-sm text-gray-300">Access scanners, configure ship systems, or visit station locations.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                scannerResults: {
+                    visible: false,
+                    data: ''
+                },
+
+                init() {
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    this.initializePlayerDefaults();
+                    this.initializeLicenses();
+                    this.savePlayer();
+                    
+                    // Store global reference for onclick handlers
+                    window.stationAppInstance = this;
+                },
+
+                initializePlayerDefaults() {
+                    if (!this.player.currentShip) this.player.currentShip = 'Standard Explorer';
+                    if (!this.player.hullIntegrity) this.player.hullIntegrity = 100;
+                    if (!this.player.shieldStrength) this.player.shieldStrength = 100;
+                    if (!this.player.fuel) this.player.fuel = 67;
+                    if (!this.player.powerLevel) this.player.powerLevel = 89;
+                    if (!this.player.currentLocation) this.player.currentLocation = 'Main Deck';
+                },
+
+                toggleDropdown(dropdown) {
+                    this.dropdowns[dropdown] = !this.dropdowns[dropdown];
+                },
+
+                // Ship Information Functions
+                showCargoManifest() {
+                    this.currentView = {
+                        title: '📦 Cargo Manifest',
+                        content: this.generateCargoManifest()
+                    };
+                },
+
+                showCrewInfo() {
+                    this.currentView = {
+                        title: '👥 Crew Information',
+                        content: this.generateCrewInfo()
+                    };
+                },
+
+                showUpgrades() {
+                    this.currentView = {
+                        title: '⚡ Ship Upgrades',
+                        content: this.generateUpgradesList()
+                    };
+                },
+
+                showShipLogs() {
+                    this.currentView = {
+                        title: '📋 Ship Logs',
+                        content: this.generateShipLogs()
+                    };
+                },
+
+                // Scanner Functions
+                useSpatialScanner() {
+                    this.currentView = {
+                        title: '🌌 Spatial Scanner Active',
+                        content: '<p class="text-gray-300">Initializing spatial scanner array...</p>'
+                    };
+                    this.performSpatialScan();
+                },
+
+                useSurfaceScanner() {
+                    this.currentView = {
+                        title: '🏔️ Surface Scanner Active',
+                        content: '<p class="text-gray-300">Surface scanning requires proximity to a planetary body.</p>'
+                    };
+                },
+
+                useProspectingScanner() {
+                    this.currentView = {
+                        title: '⛏️ Prospecting Scanner Active',
+                        content: '<p class="text-gray-300">Prospecting scanner ready. Target a mineral-rich location.</p>'
+                    };
+                },
+
+                useSkimmingScanner() {
+                    this.currentView = {
+                        title: '💨 Skimming Scanner Active',
+                        content: '<p class="text-gray-300">Atmospheric skimming scanner online. Detecting gaseous resources.</p>'
+                    };
+                },
+
+                useShipScanner() {
+                    this.currentView = {
+                        title: '🚀 Ship Scanner Active',
+                        content: '<p class="text-gray-300">No other ships detected in immediate vicinity.</p>'
+                    };
+                },
+
+                performSpatialScan() {
+                    setTimeout(() => {
+                        this.scannerResults = {
+                            visible: true,
+                            data: `
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-blue-400 mb-2">🌟 Prime (Main Star)</h4>
+                                            <p class="text-sm text-gray-300">G2V-class star, stable fusion reactions detected</p>
+                                            <p class="text-xs text-gray-400">Distance: 0.8 AU</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-green-400 mb-2">🌍 Keldar (Primary Planet)</h4>
+                                            <p class="text-sm text-gray-300">Large terrestrial world, breathable atmosphere</p>
+                                            <p class="text-xs text-gray-400">3 moons detected</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-purple-400 mb-2">🛰️ Orbital Platforms</h4>
+                                            <p class="text-sm text-gray-300">Multiple artificial satellites and stations</p>
+                                            <p class="text-xs text-gray-400">Including current location: Nexus Station</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-orange-400 mb-2">⚡ Energy Signatures</h4>
+                                            <p class="text-sm text-gray-300">Industrial activity detected planetside</p>
+                                            <p class="text-xs text-gray-400">Multiple power sources identified</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        };
+                    }, 2000);
+                },
+
+                // Content Generation Functions
+                generateCargoManifest() {
+                    const inventory = this.player.inventory || [];
+                    if (inventory.length === 0) {
+                        return '<p class="text-gray-400">Cargo bay is empty.</p>';
+                    }
+                    
+                    let manifest = '<div class="space-y-2">';
+                    inventory.forEach(item => {
+                        manifest += `
+                            <div class="bg-gray-800 p-3 rounded flex justify-between items-center">
+                                <div>
+                                    <span class="font-semibold">${item.name}</span>
+                                    <span class="text-sm text-gray-400 ml-2">Qty: ${item.quantity}</span>
+                                </div>
+                                <div class="text-xs text-gray-400">${item.description || 'No description'}</div>
+                            </div>
+                        `;
+                    });
+                    manifest += '</div>';
+                    return manifest;
+                },
+
+                generateCrewInfo() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-400 mb-2">👨‍✈️ Captain</h4>
+                                <p class="text-sm text-gray-300">${this.player.username} (You)</p>
+                                <p class="text-xs text-gray-400">Ship Command, Navigation, Combat</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">🔧 Engineering</h4>
+                                <p class="text-sm text-gray-300">Currently hiring - Visit Station Personnel</p>
+                                <p class="text-xs text-gray-400">Ship Maintenance, Power Management</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-purple-400 mb-2">📡 Communications</h4>
+                                <p class="text-sm text-gray-300">AI Assistant Online</p>
+                                <p class="text-xs text-gray-400">Scanner Operations, Data Analysis</p>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateUpgradesList() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">✅ Installed Upgrades</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Basic Life Support System</li>
+                                    <li>• Standard Navigation Computer</li>
+                                    <li>• Emergency Backup Power</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Available Slots</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Weapon Hardpoint (2 available)</li>
+                                    <li>• Utility Module (3 available)</li>
+                                    <li>• Engine Enhancement (1 available)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateShipLogs() {
+                    return `
+                        <div class="space-y-2">
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-green-400">[${new Date().toLocaleString()}]</span>
+                                <span class="text-gray-300"> - Docked at Nexus Station</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-blue-400">[Previous Session]</span>
+                                <span class="text-gray-300"> - All systems checked, ready for operations</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-purple-400">[System Boot]</span>
+                                <span class="text-gray-300"> - Ship AI initialized successfully</span>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                // Utility Functions
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                    }).showToast();
+                },
+
+                // Ship Configuration Functions
+                configureWeapons() {
+                    this.currentView = {
+                        title: '⚔️ Weapons Systems Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-2">🔫 Primary Weapons</h4>
+                                    <p class="text-sm text-gray-300">No weapons currently installed</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Configure Targeting</button>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">🎯 Targeting Systems</h4>
+                                    <p class="text-sm text-gray-300">Basic targeting computer online</p>
+                                    <p class="text-xs text-gray-400">Accuracy: 85% | Range: 5km</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCargo() {
+                    this.currentView = {
+                        title: '📦 Cargo Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">📊 Capacity Management</h4>
+                                    <p class="text-sm text-gray-300">Current: 25/100 cubic meters</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                                        <div class="bg-green-400 h-2 rounded-full" style="width: 25%"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🔒 Security Options</h4>
+                                    <p class="text-sm text-gray-300">Standard locking mechanisms active</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Upgrade Security</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureShields() {
+                    this.currentView = {
+                        title: '🛡️ Shield Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">⚡ Power Allocation</h4>
+                                    <p class="text-sm text-gray-300">Shield Strength: ${this.player.shieldStrength}%</p>
+                                    <input type="range" min="0" max="100" value="${this.player.shieldStrength}" class="w-full mt-2">
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-2">📻 Frequency Tuning</h4>
+                                    <p class="text-sm text-gray-300">Standard defensive frequency active</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Cycle Frequencies</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCommunications() {
+                    this.currentView = {
+                        title: '📡 Communications Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">📶 Range Settings</h4>
+                                    <p class="text-sm text-gray-300">Current Range: 50,000 km</p>
+                                    <p class="text-xs text-gray-400">Local system coverage active</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">🔐 Encryption</h4>
+                                    <p class="text-sm text-gray-300">Standard encryption enabled</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Upgrade Encryption</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureLifeSupport() {
+                    this.currentView = {
+                        title: '💨 Life Support Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">🌬️ Atmosphere</h4>
+                                    <p class="text-sm text-gray-300">Oxygen: 21% | Pressure: 1 ATM</p>
+                                    <p class="text-xs text-gray-400">All levels nominal</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">⚡ Power Management</h4>
+                                    <p class="text-sm text-gray-300">Power allocation: 15% of reactor output</p>
+                                    <input type="range" min="10" max="30" value="15" class="w-full mt-2">
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCloaking() {
+                    this.currentView = {
+                        title: '👻 Cloaking Device Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ Device Status</h4>
+                                    <p class="text-sm text-gray-300">Cloaking device: OFFLINE</p>
+                                    <p class="text-xs text-gray-400">Requires military-grade license</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">⚡ Power Requirements</h4>
+                                    <p class="text-sm text-gray-300">Would require 45% reactor output</p>
+                                    <p class="text-xs text-gray-400">Current reactor insufficient</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureNanobots() {
+                    this.currentView = {
+                        title: '🔧 Auto-Repair Nanobots',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-2">🤖 Nanobot Status</h4>
+                                    <p class="text-sm text-gray-300">Basic repair nanobots: ACTIVE</p>
+                                    <p class="text-xs text-gray-400">Efficiency: 78%</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">📦 Resource Consumption</h4>
+                                    <p class="text-sm text-gray-300">Raw materials: 2.3 kg/hour</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Optimize Efficiency</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureGravity() {
+                    this.currentView = {
+                        title: '🌍 Gravity Field Generator',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🌍 Gravity Level</h4>
+                                    <p class="text-sm text-gray-300">Current: 0.85 G (Earth Standard)</p>
+                                    <input type="range" min="0" max="200" value="85" class="w-full mt-2">
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">⚡ Power Usage</h4>
+                                    <p class="text-sm text-gray-300">12% of reactor output</p>
+                                    <p class="text-xs text-gray-400">Stable field maintained</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureSensors() {
+                    this.currentView = {
+                        title: '📡 Sensor Range Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">📊 Detection Range</h4>
+                                    <p class="text-sm text-gray-300">Current: 75,000 km effective range</p>
+                                    <p class="text-xs text-gray-400">Standard civilian sensors</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-2">🎯 Detection Capabilities</h4>
+                                    <p class="text-sm text-gray-300">Ships, large objects, energy signatures</p>
+                                    <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Boost Range</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureBlackMarket() {
+                    this.currentView = {
+                        title: '🕳️ Hidden Compartment',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-red-500">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ WARNING</h4>
+                                    <p class="text-sm text-gray-300">Hidden compartments are illegal in most systems</p>
+                                    <p class="text-xs text-gray-400">Installation requires black market contacts</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">📦 Capacity</h4>
+                                    <p class="text-sm text-gray-300">No hidden compartment installed</p>
+                                    <p class="text-xs text-gray-400">Would add 5m³ undetectable storage</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageLoadouts() {
+                    this.currentView = {
+                        title: '⚡ Ship Loadout Management',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg border border-blue-500">
+                                        <h4 class="font-semibold text-blue-400 mb-2">🔷 Standard Loadout</h4>
+                                        <p class="text-xs text-gray-400 mb-2">Balanced configuration</p>
+                                        <ul class="text-xs text-gray-300 space-y-1">
+                                            <li>• Shields: 100%</li>
+                                            <li>• Weapons: Basic</li>
+                                            <li>• Sensors: Standard</li>
+                                            <li>• Cargo: Full capacity</li>
+                                        </ul>
+                                        <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs w-full">Activate</button>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg border border-red-500">
+                                        <h4 class="font-semibold text-red-400 mb-2">⚔️ Combat Loadout</h4>
+                                        <p class="text-xs text-gray-400 mb-2">Maximum firepower</p>
+                                        <ul class="text-xs text-gray-300 space-y-1">
+                                            <li>• Shields: Reinforced</li>
+                                            <li>• Weapons: Enhanced</li>
+                                            <li>• Sensors: Combat mode</li>
+                                            <li>• Cargo: Reduced</li>
+                                        </ul>
+                                        <button class="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs w-full">Activate</button>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg border border-purple-500">
+                                        <h4 class="font-semibold text-purple-400 mb-2">👤 Stealth Loadout</h4>
+                                        <p class="text-xs text-gray-400 mb-2">Minimal signature</p>
+                                        <ul class="text-xs text-gray-300 space-y-1">
+                                            <li>• Shields: Minimal</li>
+                                            <li>• Weapons: Concealed</li>
+                                            <li>• Sensors: Passive</li>
+                                            <li>• Cargo: Specialized</li>
+                                        </ul>
+                                        <button class="mt-2 bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-xs w-full">Activate</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Station Location Functions
+                visitEquipmentCenter() {
+                    this.currentView = {
+                        title: '⚔️ Equipment Center',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Browse and purchase ship equipment, weapons, and upgrades.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-red-400 mb-2">🔫 Weapons</h4>
+                                        <p class="text-sm text-gray-300">Combat systems and armaments</p>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-400 mb-2">🛠️ Tools</h4>
+                                        <p class="text-sm text-gray-300">Mining and utility equipment</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitTavern() {
+                    this.currentView = {
+                        title: '🍺 The Stellar Cantina',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">A popular gathering place for traders, miners, and spacers.</p>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">💬 Conversations</h4>
+                                    <p class="text-sm text-gray-300">"Did you hear about the new mining operation near the asteroid belt?"</p>
+                                    <p class="text-sm text-gray-300">"The government's been asking questions about unlicensed torpedo launches..."</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitGovernment() {
+                    this.currentView = {
+                        title: '🏛️ Government Services',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Official government services, permits, and legal matters.</p>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700" onclick="window.stationAppInstance.showLicensingSystem()">
+                                        <h4 class="font-semibold text-blue-400 mb-2">📋 Licensing System</h4>
+                                        <p class="text-sm text-gray-300">Apply for professional licenses</p>
+                                        <p class="text-xs text-gray-400 mt-1">Click to browse available licenses</p>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700" onclick="window.stationAppInstance.showMyLicenses()">
+                                        <h4 class="font-semibold text-green-400 mb-2">✅ My Licenses</h4>
+                                        <p class="text-sm text-gray-300">View your current licenses</p>
+                                        <p class="text-xs text-gray-400 mt-1">Status: ${this.player.licenses ? Object.keys(this.player.licenses).length : 0} active</p>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700" onclick="window.stationAppInstance.showLegalStatus()">
+                                        <h4 class="font-semibold text-red-400 mb-2">⚖️ Legal Status</h4>
+                                        <p class="text-sm text-gray-300">Violations: ${this.player.violations || 0}</p>
+                                        <p class="text-xs text-gray-400 mt-1">Standing: ${this.player.legalStanding || 'Good'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                checkNews() {
+                    this.currentView = {
+                        title: '📰 Local News Feed',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">📈 Market Report</h4>
+                                    <p class="text-sm text-gray-300">Rare earth prices up 15% this week due to increased demand</p>
+                                    <p class="text-xs text-gray-400">2 hours ago</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🚀 Space Traffic</h4>
+                                    <p class="text-sm text-gray-300">Heavy cargo traffic expected near Keldar tonight</p>
+                                    <p class="text-xs text-gray-400">4 hours ago</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitManufacturing() {
+                    const hasBasicLicense = this.hasLicense('manufacturing_basic');
+                    const licenseLevel = this.getManufacturingLevel();
+                    
+                    this.currentView = {
+                        title: '🏭 Manufacturing Center',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Custom component creation and advanced manufacturing.</p>
+                                
+                                ${!hasBasicLicense ? `
+                                    <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-500">
+                                        <h4 class="font-semibold text-red-400 mb-2">⚠️ Manufacturing License Required</h4>
+                                        <p class="text-sm text-gray-300">Manufacturing operations require proper licensing. Operating without a license violates Keldar system law.</p>
+                                        <button onclick="stationApp().visitGovernment()" class="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">Apply for License</button>
+                                    </div>
+                                ` : `
+                                    <div class="bg-green-900 bg-opacity-30 p-4 rounded-lg border border-green-500">
+                                        <h4 class="font-semibold text-green-400 mb-2">✅ Licensed Manufacturing Facility</h4>
+                                        <p class="text-sm text-gray-300">Current License: ${licenseLevel}</p>
+                                        <p class="text-xs text-gray-400">Efficiency: ${this.getManufacturingEfficiency()}%</p>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-blue-400 mb-2">🔧 Available Operations</h4>
+                                            <ul class="text-sm text-gray-300 space-y-1">
+                                                <li>• Basic component assembly</li>
+                                                <li>• Ship part manufacturing</li>
+                                                <li>• Equipment modification</li>
+                                                ${licenseLevel === 'Master Manufacturer' ? '<li class="text-yellow-400">• Experimental technology</li>' : ''}
+                                            </ul>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-purple-400 mb-2">📊 Production Stats</h4>
+                                            <p class="text-sm text-gray-300">Daily Limit: ${this.getManufacturingLimit()} items</p>
+                                            <p class="text-sm text-gray-300">Quality Rating: ${this.getManufacturingQuality()}</p>
+                                        </div>
+                                    </div>
+                                `}
+                            </div>
+                        `
+                    };
+                },
+
+                getManufacturingLevel() {
+                    if (this.hasLicense('manufacturing_master')) return 'Master Manufacturer';
+                    if (this.hasLicense('manufacturing_industrial')) return 'Industrial License';
+                    if (this.hasLicense('manufacturing_advanced')) return 'Advanced Production';
+                    if (this.hasLicense('manufacturing_standard')) return 'Standard Manufacturing';
+                    if (this.hasLicense('manufacturing_basic')) return 'Basic Fabrication';
+                    return 'Unlicensed';
+                },
+
+                getManufacturingEfficiency() {
+                    if (this.hasLicense('manufacturing_master')) return 99;
+                    if (this.hasLicense('manufacturing_industrial')) return 98;
+                    if (this.hasLicense('manufacturing_advanced')) return 95;
+                    if (this.hasLicense('manufacturing_standard')) return 90;
+                    if (this.hasLicense('manufacturing_basic')) return 85;
+                    return 45; // Unlicensed penalty
+                },
+
+                getManufacturingLimit() {
+                    if (this.hasLicense('manufacturing_master')) return 'Unlimited';
+                    if (this.hasLicense('manufacturing_industrial')) return '100';
+                    if (this.hasLicense('manufacturing_advanced')) return '50';
+                    if (this.hasLicense('manufacturing_standard')) return '25';
+                    if (this.hasLicense('manufacturing_basic')) return '10';
+                    return '0 (Unlicensed)';
+                },
+
+                getManufacturingQuality() {
+                    if (this.hasLicense('manufacturing_master')) return 'Masterwork';
+                    if (this.hasLicense('manufacturing_industrial')) return 'Professional';
+                    if (this.hasLicense('manufacturing_advanced')) return 'High Quality';
+                    if (this.hasLicense('manufacturing_standard')) return 'Standard';
+                    if (this.hasLicense('manufacturing_basic')) return 'Basic';
+                    return 'Poor (Unlicensed)';
+                },
+
+                visitResearch() {
+                    this.currentView = {
+                        title: '🔬 Research Laboratory',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Advanced research and technology development facility.</p>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">🧪 Active Projects</h4>
+                                    <p class="text-sm text-gray-300">Advanced sensor array development</p>
+                                    <p class="text-sm text-gray-300">Improved shield frequency analysis</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitAgriculture() {
+                    this.currentView = {
+                        title: '🌱 Agricultural Center',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Food production and biological resource management.</p>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">🌾 Current Crops</h4>
+                                    <p class="text-sm text-gray-300">Hydroponic vegetables, protein cultures</p>
+                                    <p class="text-sm text-gray-300">Yield: 127% of baseline efficiency</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitMuseum() {
+                    this.currentView = {
+                        title: '🏛️ Museum & History Center',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Explore the rich history of the Keldar system and its inhabitants.</p>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">📚 Featured Exhibit</h4>
+                                    <p class="text-sm text-gray-300">"The Great Colonization: First settlers of Keldar"</p>
+                                    <p class="text-xs text-gray-400">Interactive holographic display available</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitTemple() {
+                    this.currentView = {
+                        title: '⛪ Temple of the Dog',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">A place of contemplation and... unique spiritual practices.</p>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">🐕 Daily Blessing</h4>
+                                    <p class="text-sm text-gray-300">"May your cargo bay be ever full, and your fuel tanks never empty."</p>
+                                    <p class="text-xs text-gray-400">- High Chaplain Barkington</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">🎵 Evening Service</h4>
+                                    <p class="text-sm text-gray-300">Tonight: "Cosmic Howling Session" - 20:00 standard time</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Ship Movement and Operations
+                manageMovement() {
+                    this.currentView = {
+                        title: '🚀 Movement Options',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-400 mb-2">⚡ Impulse Drive</h4>
+                                        <p class="text-sm text-gray-300">Short-range maneuvering</p>
+                                        <button class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm w-full">Engage</button>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-purple-400 mb-2">🌌 Warp Drive</h4>
+                                        <p class="text-sm text-gray-300">Faster-than-light travel</p>
+                                        <button class="mt-2 bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm w-full">Charge</button>
+                                    </div>
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-green-400 mb-2">🔗 Docking</h4>
+                                        <p class="text-sm text-gray-300">Station/ship docking</p>
+                                        <button class="mt-2 bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm w-full">Initiate</button>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageFuelPower() {
+                    this.currentView = {
+                        title: '⚡ Fuel & Power Management',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">⛽ Fuel Status</h4>
+                                    <p class="text-sm text-gray-300">Main Tank: ${this.player.fuel}%</p>
+                                    <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                                        <div class="bg-orange-400 h-2 rounded-full" style="width: ${this.player.fuel}%"></div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-2">🔋 Reactor Control</h4>
+                                    <p class="text-sm text-gray-300">Power Output: ${this.player.powerLevel}%</p>
+                                    <button class="mt-2 bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-sm">Emergency Reserves</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageMining() {
+                    this.currentView = {
+                        title: '⛏️ Mining Operations',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-yellow-500">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Mining License Required</h4>
+                                    <p class="text-sm text-gray-300">Mining operations require proper certification</p>
+                                    <button class="mt-2 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm">Apply for Mining License</button>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🛠️ Equipment Status</h4>
+                                    <p class="text-sm text-gray-300">Basic mining equipment available</p>
+                                    <p class="text-xs text-gray-400">Efficiency: 45% (unlicensed operation)</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // LICENSING SYSTEM FUNCTIONS
+                initializeLicenses() {
+                    if (!this.player.licenses) this.player.licenses = {};
+                    if (!this.player.licenseProgress) this.player.licenseProgress = {};
+                    if (!this.player.violations) this.player.violations = 0;
+                    if (!this.player.legalStanding) this.player.legalStanding = 'Good';
+                    if (!this.player.experience) this.player.experience = {};
+                },
+
+                showLicensingSystem() {
+                    this.currentView = {
+                        title: '📋 Professional Licensing System',
+                        content: `
+                            <div class="space-y-6">
+                                <p class="text-gray-300">Choose a licensing category to explore available certifications:</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-blue-500" onclick="stationApp().showManufacturingLicenses()">
+                                        <h4 class="font-semibold text-blue-400 mb-2">🏭 Manufacturing</h4>
+                                        <p class="text-sm text-gray-300">5 Tier Progressive System</p>
+                                        <p class="text-xs text-gray-400">Moderate Learning Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Basic: 10,000 CR</span><br>
+                                            <span class="text-yellow-400">Master: 200,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-purple-500" onclick="stationApp().showResearchLicenses()">
+                                        <h4 class="font-semibold text-purple-400 mb-2">🔬 Research</h4>
+                                        <p class="text-sm text-gray-300">5 Level Academic System</p>
+                                        <p class="text-xs text-gray-400">STEEP Learning Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Assistant: 15,000 CR</span><br>
+                                            <span class="text-yellow-400">Director: 300,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-orange-500" onclick="stationApp().showTechnologyLicenses()">
+                                        <h4 class="font-semibold text-orange-400 mb-2">🛠️ Technology</h4>
+                                        <p class="text-sm text-gray-300">5 Level Engineering System</p>
+                                        <p class="text-xs text-gray-400">STEEP Learning Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Technician: 8,000 CR</span><br>
+                                            <span class="text-yellow-400">Master: 180,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-green-500" onclick="stationApp().showMedicalLicenses()">
+                                        <h4 class="font-semibold text-green-400 mb-2">🏥 Medical</h4>
+                                        <p class="text-sm text-gray-300">6 License Specialty System</p>
+                                        <p class="text-xs text-gray-400">EXTREMELY STEEP Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Standard: 75,000 CR</span><br>
+                                            <span class="text-yellow-400">Xenobiologist: 750,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-red-500" onclick="stationApp().showCombatLicenses()">
+                                        <h4 class="font-semibold text-red-400 mb-2">⚔️ Combat</h4>
+                                        <p class="text-sm text-gray-300">Military Service Required</p>
+                                        <p class="text-xs text-gray-400">EXTREMELY STEEP Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Service: 6 months</span><br>
+                                            <span class="text-yellow-400">Officer: 2+ years</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-cyan-500" onclick="stationApp().showPilotLicenses()">
+                                        <h4 class="font-semibold text-cyan-400 mb-2">✈️ Pilot</h4>
+                                        <p class="text-sm text-gray-300">5 Class Progressive System</p>
+                                        <p class="text-xs text-gray-400">Foundation Learning Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Class E: 5,000 CR</span><br>
+                                            <span class="text-yellow-400">Class A: 150,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-yellow-500" onclick="stationApp().showMiningLicenses()">
+                                        <h4 class="font-semibold text-yellow-400 mb-2">⛏️ Mining</h4>
+                                        <p class="text-sm text-gray-300">12 Specialized Permits</p>
+                                        <p class="text-xs text-gray-400">STEEP Learning Curve</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Surface: 15,000 CR</span><br>
+                                            <span class="text-yellow-400">Exotic: 200,000 CR</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 border border-purple-600" onclick="stationApp().showTorpedoLicenses()">
+                                        <h4 class="font-semibold text-purple-300 mb-2">🚀 Torpedo</h4>
+                                        <p class="text-sm text-gray-300">8 Type Specialized System</p>
+                                        <p class="text-xs text-gray-400">Advanced Prerequisites</p>
+                                        <div class="mt-2 text-xs">
+                                            <span class="text-green-400">Planetary: 25,000 CR</span><br>
+                                            <span class="text-yellow-400">Solar System: 500,000 CR</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-800 p-4 rounded-lg border border-red-500">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ Legal Warning</h4>
+                                    <p class="text-sm text-gray-300">Operating without proper licenses violates Keldar system law:</p>
+                                    <ul class="text-xs text-gray-400 mt-2 space-y-1">
+                                        <li>• <strong>First Violation:</strong> Official warning</li>
+                                        <li>• <strong>Second Violation:</strong> Temporary activity ban</li>
+                                        <li>• <strong>Third Violation:</strong> <span class="text-red-400 font-bold">PERMANENT FORFEITURE</span> of all assets</li>
+                                    </ul>
+                                    <p class="text-xs text-gray-300 mt-2">All violations reviewed by Player Legal Board</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                showMyLicenses() {
+                    const licenses = this.player.licenses || {};
+                    const licenseCount = Object.keys(licenses).length;
+                    
+                    let licenseList = '';
+                    if (licenseCount === 0) {
+                        licenseList = '<p class="text-gray-400 text-center py-8">No licenses currently held</p>';
+                    } else {
+                        licenseList = '<div class="space-y-3">';
+                        Object.entries(licenses).forEach(([key, license]) => {
+                            const statusColor = license.status === 'active' ? 'text-green-400' : 'text-yellow-400';
+                            licenseList += `
+                                <div class="bg-gray-800 p-4 rounded-lg border border-gray-600">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h5 class="font-semibold text-blue-400">${license.name}</h5>
+                                            <p class="text-sm text-gray-300">${license.category}</p>
+                                            <p class="text-xs text-gray-400">Issued: ${license.issueDate}</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="text-xs ${statusColor} font-semibold">${license.status.toUpperCase()}</span>
+                                            ${license.expiryDate ? `<p class="text-xs text-gray-400">Expires: ${license.expiryDate}</p>` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        licenseList += '</div>';
+                    }
+
+                    this.currentView = {
+                        title: '✅ My Professional Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="text-lg font-semibold">Active Licenses: ${licenseCount}</h3>
+                                    <button onclick="stationApp().showLicensingSystem()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">Apply for More</button>
+                                </div>
+                                ${licenseList}
+                            </div>
+                        `
+                    };
+                },
+
+                showLegalStatus() {
+                    const standing = this.player.legalStanding || 'Good';
+                    const violations = this.player.violations || 0;
+                    const warningCount = this.player.warningCount || 0;
+                    
+                    let statusColor = 'text-green-400';
+                    let statusIcon = '✅';
+                    if (violations > 0) {
+                        statusColor = 'text-yellow-400';
+                        statusIcon = '⚠️';
+                    }
+                    if (violations >= 2) {
+                        statusColor = 'text-red-400';
+                        statusIcon = '🚨';
+                    }
+
+                    this.currentView = {
+                        title: '⚖️ Legal Status Report',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-6 rounded-lg border border-gray-600">
+                                    <div class="text-center">
+                                        <div class="text-4xl mb-4">${statusIcon}</div>
+                                        <h3 class="text-xl font-bold ${statusColor} mb-2">Legal Standing: ${standing}</h3>
+                                        <p class="text-gray-300">Total Violations: ${violations}</p>
+                                        <p class="text-gray-400 text-sm">Warnings Issued: ${warningCount}</p>
+                                    </div>
+                                </div>
+
+                                <div class="bg-gray-800 p-4 rounded-lg border border-blue-500">
+                                    <h4 class="font-semibold text-blue-400 mb-2">📋 Violation History</h4>
+                                    ${violations === 0 ? 
+                                        '<p class="text-green-400 text-sm">No violations on record - Exemplary citizen</p>' :
+                                        '<p class="text-yellow-400 text-sm">Previous violations recorded - Maintain compliance</p>'
+                                    }
+                                </div>
+
+                                <div class="bg-gray-800 p-4 rounded-lg border border-red-500">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ Consequences</h4>
+                                    <div class="text-sm text-gray-300 space-y-1">
+                                        <p><strong>Next Violation Level:</strong> ${violations === 0 ? 'Warning' : violations === 1 ? 'Temporary Ban' : 'PERMANENT FORFEITURE'}</p>
+                                        <p><strong>Review Authority:</strong> Player Legal Board</p>
+                                        <p><strong>Appeal Process:</strong> ${violations < 2 ? 'Limited appeals available' : 'No appeals for final violations'}</p>
+                                    </div>
+                                </div>
+
+                                ${violations >= 1 ? `
+                                    <div class="bg-red-900 bg-opacity-50 p-4 rounded-lg border border-red-500">
+                                        <h4 class="font-semibold text-red-400 mb-2">🚨 WARNING</h4>
+                                        <p class="text-red-300 text-sm">You are ${violations === 1 ? 'one violation away from temporary ban' : 'ONE VIOLATION AWAY FROM PERMANENT FORFEITURE'}!</p>
+                                        <p class="text-gray-400 text-xs mt-2">Ensure all operations comply with licensing requirements</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        `
+                    };
+                },
+
+                // License Application Functions
+                applyForLicense(licenseType, licenseName, cost, requirements) {
+                    console.log('Applying for license:', {licenseType, licenseName, cost, requirements});
+                    
+                    if (this.player.credits < cost) {
+                        this.showNotification(`Insufficient credits. Need ${cost.toLocaleString()} CR`, 'error');
+                        return;
+                    }
+
+                    if (!this.checkLicenseRequirements(requirements)) {
+                        this.showNotification('Requirements not met for this license', 'error');
+                        return;
+                    }
+
+                    // Deduct cost
+                    this.player.credits -= cost;
+                    
+                    // Add license
+                    if (!this.player.licenses) this.player.licenses = {};
+                    this.player.licenses[licenseType] = {
+                        name: licenseName,
+                        category: licenseType.split('_')[0],
+                        status: 'active',
+                        issueDate: new Date().toLocaleDateString(),
+                        cost: cost
+                    };
+
+                    this.savePlayer();
+                    this.showNotification(`${licenseName} acquired successfully!`, 'success');
+                    
+                    // Refresh the current view
+                    this.showMyLicenses();
+                },
+
+                checkLicenseRequirements(requirements) {
+                    // For now, simplified requirement checking
+                    // In a full implementation, this would check various player stats
+                    
+                    // Check for prerequisite licenses
+                    if (requirements.prerequisiteLicense) {
+                        if (!this.hasLicense(requirements.prerequisiteLicense)) {
+                            console.log('Missing prerequisite license:', requirements.prerequisiteLicense);
+                            return false;
+                        }
+                    }
+                    
+                    // Check reputation (simplified)
+                    if (requirements.reputation && (this.player.reputation || 0) < requirements.reputation) {
+                        console.log('Insufficient reputation');
+                        return false;
+                    }
+                    
+                    // Check experience (simplified)
+                    if (requirements.experience && (this.player.experienceDays || 0) < requirements.experience) {
+                        console.log('Insufficient experience');
+                        return false;
+                    }
+                    
+                    return true;
+                },
+
+                hasLicense(licenseType) {
+                    return this.player.licenses && 
+                           this.player.licenses[licenseType] && 
+                           this.player.licenses[licenseType].status === 'active';
+                },
+
+                // Manufacturing Licenses
+                showManufacturingLicenses() {
+                    this.currentView = {
+                        title: '🏭 Manufacturing Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Progressive manufacturing certification system - each tier unlocks advanced capabilities.</p>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateLicenseCard(
+                                        'manufacturing_basic',
+                                        'Basic Fabrication License',
+                                        10000,
+                                        'Basic component assembly, 85% efficiency',
+                                        {reputation: 0},
+                                        'Moderate'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'manufacturing_standard',
+                                        'Standard Manufacturing License',
+                                        25000,
+                                        'Intermediate components, private booth rental, 90% efficiency',
+                                        {prerequisiteLicense: 'manufacturing_basic', experience: 30},
+                                        'Moderate'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'manufacturing_advanced',
+                                        'Advanced Production License',
+                                        50000,
+                                        'Complex systems, custom blueprints, 95% efficiency',
+                                        {prerequisiteLicense: 'manufacturing_standard', experience: 60},
+                                        'Challenging'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'manufacturing_industrial',
+                                        'Industrial Manufacturing License',
+                                        100000,
+                                        'Ship modules, hazardous materials, 98% efficiency',
+                                        {prerequisiteLicense: 'manufacturing_advanced', experience: 180, reputation: 1000},
+                                        'Steep'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'manufacturing_master',
+                                        'Master Manufacturer License',
+                                        200000,
+                                        'Experimental tech, military components, 99% efficiency',
+                                        {prerequisiteLicense: 'manufacturing_industrial', experience: 365, reputation: 2000},
+                                        'Master Level'
+                                    )}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                generateLicenseCard(licenseType, name, cost, description, requirements, difficulty) {
+                    const hasLicense = this.hasLicense(licenseType);
+                    const canAfford = this.player.credits >= cost;
+                    const meetsRequirements = this.checkLicenseRequirements(requirements);
+                    const canApply = !hasLicense && canAfford && meetsRequirements;
+                    
+                    let statusIndicator = '';
+                    let buttonText = 'Apply';
+                    let buttonClass = 'bg-blue-600 hover:bg-blue-700';
+                    let buttonDisabled = '';
+                    let onclickHandler = '';
+                    
+                    if (hasLicense) {
+                        statusIndicator = '<span class="text-green-400 font-semibold">✅ OWNED</span>';
+                        buttonText = 'Owned';
+                        buttonClass = 'bg-green-600';
+                        buttonDisabled = 'disabled';
+                        onclickHandler = '';
+                    } else if (!canAfford) {
+                        statusIndicator = '<span class="text-red-400 font-semibold">💰 Insufficient Credits</span>';
+                        buttonText = 'Cannot Afford';
+                        buttonClass = 'bg-gray-600';
+                        buttonDisabled = 'disabled';
+                        onclickHandler = '';
+                    } else if (!meetsRequirements) {
+                        statusIndicator = '<span class="text-yellow-400 font-semibold">⚠️ Requirements Not Met</span>';
+                        buttonText = 'Requires Prerequisites';
+                        buttonClass = 'bg-gray-600';
+                        buttonDisabled = 'disabled';
+                        onclickHandler = '';
+                    } else {
+                        // Escape quotes for JSON string
+                        const requirementsJson = JSON.stringify(requirements).replace(/"/g, '&quot;');
+                        onclickHandler = `onclick="window.stationAppInstance.applyForLicense('${licenseType}', '${name}', ${cost}, ${requirementsJson})"`;
+                    }
+
+                    return `
+                        <div class="bg-gray-800 p-4 rounded-lg border border-gray-600">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-blue-400">${name}</h4>
+                                    <p class="text-sm text-gray-300">${description}</p>
+                                    <p class="text-xs text-gray-400 mt-1">Difficulty: ${difficulty}</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-yellow-400 font-mono">${cost.toLocaleString()} CR</div>
+                                    ${statusIndicator}
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-400">
+                                    ${Object.entries(requirements).map(([key, value]) => {
+                                        if (key === 'prerequisiteLicense') return `Requires: ${value.replace('_', ' ')}`;
+                                        if (key === 'experience') return `Experience: ${value} days`;
+                                        if (key === 'reputation') return `Reputation: ${value}`;
+                                        return '';
+                                    }).filter(Boolean).join(' • ')}
+                                </div>
+                                <button 
+                                    ${onclickHandler}
+                                    class="${buttonClass} px-4 py-2 rounded text-sm transition-colors ${buttonDisabled}"
+                                    ${buttonDisabled}
+                                >
+                                    ${buttonText}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                // Medical Licenses
+                showMedicalLicenses() {
+                    this.currentView = {
+                        title: '🏥 Medical Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Medical licensing requires extensive training and carries extreme responsibility. Learning curve is EXTREMELY STEEP.</p>
+                                
+                                <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-500 mb-4">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ Medical Responsibility Warning</h4>
+                                    <p class="text-sm text-gray-300">Medical practice involves life and death decisions. Improper medical procedures can result in immediate license revocation and criminal charges.</p>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    <h5 class="text-lg font-semibold text-green-400">Standard Medical Practice</h5>
+                                    ${this.generateLicenseCard(
+                                        'medical_standard',
+                                        'Standard Medical Practice License',
+                                        75000,
+                                        'Ship medical bays, standard treatments, basic surgery',
+                                        {education: 'medical_degree', experience: 180},
+                                        'EXTREMELY STEEP'
+                                    )}
+                                    
+                                    <h5 class="text-lg font-semibold text-orange-400">Experimental Medicine</h5>
+                                    ${this.generateLicenseCard(
+                                        'medical_experimental',
+                                        'Experimental Medicine Certification',
+                                        150000,
+                                        'Untested treatments, clinical trials, research protocols',
+                                        {prerequisiteLicense: 'medical_standard', experience: 730, ethics: 'board_approval'},
+                                        'MASTER LEVEL'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'medical_advanced_experimental',
+                                        'Advanced Experimental Medicine',
+                                        300000,
+                                        'Revolutionary treatments, genetic modification, life extension',
+                                        {prerequisiteLicense: 'medical_experimental', experience: 1825, reputation: 3000},
+                                        'LEGENDARY'
+                                    )}
+                                    
+                                    <h5 class="text-lg font-semibold text-purple-400">Alien Pathology (Future Content)</h5>
+                                    ${this.generateLicenseCard(
+                                        'medical_xenobiology',
+                                        'Basic Xenobiology License',
+                                        200000,
+                                        'Alien specimen examination, contamination protocols',
+                                        {prerequisiteLicense: 'medical_standard', security: 'alien_clearance'},
+                                        'EXTREMELY STEEP'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'medical_xenopathology',
+                                        'Advanced Xenopathology License',
+                                        400000,
+                                        'Live alien treatment, cross-species research',
+                                        {prerequisiteLicense: 'medical_xenobiology', experience: 1095},
+                                        'MASTER LEVEL'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'medical_master_xenobiologist',
+                                        'Master Xenobiologist License',
+                                        750000,
+                                        'First contact protocols, galactic medical authority',
+                                        {prerequisiteLicense: 'medical_xenopathology', council: 'galactic_approval'},
+                                        'LEGENDARY'
+                                    )}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Combat Licenses
+                showCombatLicenses() {
+                    this.currentView = {
+                        title: '⚔️ Combat Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-red-900 bg-opacity-30 p-4 rounded-lg border border-red-500 mb-4">
+                                    <h4 class="font-semibold text-red-400 mb-2">🎖️ MILITARY SERVICE REQUIRED</h4>
+                                    <p class="text-sm text-gray-300">All combat licenses require completion of mandatory 6-month military service. No exceptions.</p>
+                                    <p class="text-xs text-gray-400 mt-2">Learning curve is EXTREMELY STEEP due to life-and-death nature of combat operations.</p>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateMilitaryServiceCard()}
+                                    
+                                    <h5 class="text-lg font-semibold text-blue-400">Career Specialization Paths</h5>
+                                    ${this.generateLicenseCard(
+                                        'combat_government',
+                                        'Government Security License',
+                                        0,
+                                        'Government facilities, VIP protection, state law enforcement',
+                                        {military: 'honorable_discharge', clearance: 'security'},
+                                        'EXTREMELY STEEP'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'combat_faction',
+                                        'Faction Security License',
+                                        0,
+                                        'Corporate security, private military, faction defense',
+                                        {military: 'discharge', sponsor: 'faction'},
+                                        'EXTREMELY STEEP'
+                                    )}
+                                    
+                                    ${this.generateLicenseCard(
+                                        'combat_corporate',
+                                        'Corporate Security License',
+                                        0,
+                                        'Industrial protection, executive security, intelligence',
+                                        {military: 'discharge', sponsor: 'corporation'},
+                                        'EXTREMELY STEEP'
+                                    )}
+                                    
+                                    <h5 class="text-lg font-semibold text-red-400">Advanced Military (Future Alien Response)</h5>
+                                    ${this.generateLicenseCard(
+                                        'combat_officer',
+                                        'Military Officer Commission',
+                                        0,
+                                        'Unit command, strategic planning, alien warfare leadership',
+                                        {military: 'exceptional_service', leadership: 'assessment'},
+                                        'MASTER LEVEL'
+                                    )}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                generateMilitaryServiceCard() {
+                    const hasService = this.player.militaryService || false;
+                    return `
+                        <div class="bg-gray-800 p-4 rounded-lg border border-red-600">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-red-400">🎖️ Military Service Requirement</h4>
+                                    <p class="text-sm text-gray-300">6-month mandatory service commitment</p>
+                                    <p class="text-xs text-gray-400 mt-1">Combat training, discipline, weapons certification</p>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-yellow-400 font-mono">6 Months</div>
+                                    ${hasService ? 
+                                        '<span class="text-green-400 font-semibold">✅ COMPLETED</span>' :
+                                        '<span class="text-red-400 font-semibold">❌ REQUIRED</span>'
+                                    }
+                                </div>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-400">
+                                    Prerequisites: Age 18+, Physical fitness, Clean legal record
+                                </div>
+                                <button 
+                                    onclick="stationApp().${hasService ? 'showMilitaryRecord' : 'enlistMilitary'}()"
+                                    class="${hasService ? 'bg-green-600' : 'bg-red-600 hover:bg-red-700'} px-4 py-2 rounded text-sm transition-colors"
+                                >
+                                    ${hasService ? 'View Service Record' : 'Enlist Now'}
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                // Mining, Technology, Pilot, Research, and Torpedo License functions
+                showMiningLicenses() {
+                    this.currentView = {
+                        title: '⛏️ Mining Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Specialized mining permits for different environments and materials. STEEP learning curve due to safety requirements.</p>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="space-y-3">
+                                        <h5 class="text-lg font-semibold text-orange-400">Stellar Mining</h5>
+                                        ${this.generateLicenseCard('mining_solar', 'Solar Collection Permit', 25000, 'Solar energy, plasma harvesting', {safety: 'radiation_course'}, 'STEEP')}
+                                        ${this.generateLicenseCard('mining_corona', 'Corona Diving License', 100000, 'Stellar corona material extraction', {prerequisiteLicense: 'mining_solar', training: 'extreme_environment'}, 'EXTREMELY STEEP')}
+                                    </div>
+                                    
+                                    <div class="space-y-3">
+                                        <h5 class="text-lg font-semibold text-green-400">Planetary Mining</h5>
+                                        ${this.generateLicenseCard('mining_surface', 'Surface Mining Permit', 15000, 'Open-pit mining, surface extraction', {assessment: 'environmental_impact'}, 'STEEP')}
+                                        ${this.generateLicenseCard('mining_deep', 'Deep Core License', 50000, 'Deep drilling, rare earth extraction', {certification: 'geological_survey'}, 'EXTREMELY STEEP')}
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                showTorpedoLicenses() {
+                    this.currentView = {
+                        title: '🚀 Torpedo Construction Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Specialized torpedo construction and deployment licenses. Each type requires specific permits and approvals.</p>
+                                
+                                <div class="bg-yellow-900 bg-opacity-30 p-4 rounded-lg border border-yellow-500 mb-4">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Construction Regulations</h4>
+                                    <p class="text-sm text-gray-300">Torpedo construction in populated areas (like Nexus Station) is strictly prohibited. Deep space construction requires additional permits.</p>
+                                </div>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateLicenseCard('torpedo_planetary', 'Planetary Genesis Permit', 25000, 'Standard planet creation (100km-10,000km)', {license: 'manufacturing_basic', permit: 'environmental'}, 'Challenging')}
+                                    ${this.generateLicenseCard('torpedo_large_planetary', 'Large Planetary Genesis', 75000, 'Massive planets (10,000km-50,000km)', {license: 'manufacturing_advanced', review: 'government'}, 'Steep')}
+                                    ${this.generateLicenseCard('torpedo_solar_system', 'Solar System Genesis', 500000, 'Complete solar system creation', {license: 'manufacturing_master', approval: 'diplomatic'}, 'MASTER LEVEL')}
+                                    ${this.generateLicenseCard('torpedo_communications', 'Communications Satellite', 35000, 'Deep space communication relays', {license: 'technology_2', permit: 'spectrum'}, 'Moderate')}
+                                    ${this.generateLicenseCard('torpedo_defense', 'Defense Satellite', 100000, 'Automated defense platforms', {clearance: 'military', approval: 'strategic'}, 'EXTREMELY STEEP')}
+                                    ${this.generateLicenseCard('torpedo_mining', 'Mining Prospecting', 45000, 'Survey and extraction platforms', {license: 'mining_surface', permit: 'resource_rights'}, 'Steep')}
+                                    ${this.generateLicenseCard('torpedo_probe', 'Deep Space Probe', 55000, 'Long-range exploration missions', {license: 'research_3', approval: 'scientific'}, 'Challenging')}
+                                    ${this.generateLicenseCard('torpedo_surveillance', 'Surveillance Platform', 60000, 'Covert monitoring systems', {clearance: 'security', approval: 'judicial'}, 'EXTREMELY STEEP')}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Additional license functions and violation system
+                warnUnlicensedMining() {
+                    this.showNotification('WARNING: Unlicensed mining detected! Legal violation recorded.', 'error');
+                    this.recordViolation('Unlicensed mining operation');
+                },
+
+                performMining() {
+                    this.showNotification('Mining operation initiated successfully', 'success');
+                    // Add actual mining logic here
+                },
+
+                recordViolation(description) {
+                    if (!this.player.violations) this.player.violations = 0;
+                    if (!this.player.violationHistory) this.player.violationHistory = [];
+                    
+                    this.player.violations += 1;
+                    this.player.violationHistory.push({
+                        description: description,
+                        date: new Date().toLocaleDateString(),
+                        consequence: this.getViolationConsequence(this.player.violations)
+                    });
+
+                    // Update legal standing
+                    if (this.player.violations === 1) {
+                        this.player.legalStanding = 'Warning Issued';
+                    } else if (this.player.violations === 2) {
+                        this.player.legalStanding = 'Temporary Ban';
+                    } else if (this.player.violations >= 3) {
+                        this.player.legalStanding = 'ASSETS FORFEITED';
+                    }
+
+                    this.savePlayer();
+                    
+                    setTimeout(() => {
+                        this.showNotification(this.getViolationConsequence(this.player.violations), 'error');
+                    }, 1000);
+                },
+
+                getViolationConsequence(violationCount) {
+                    switch(violationCount) {
+                        case 1: return 'FIRST VIOLATION: Official warning issued. Future violations will result in severe penalties.';
+                        case 2: return 'SECOND VIOLATION: Temporary ban from licensed activities. One more violation will result in permanent asset forfeiture.';
+                        case 3: return 'THIRD VIOLATION: PERMANENT FORFEITURE OF ALL ASSETS. Game over.';
+                        default: return 'Multiple violations detected. Legal review required.';
+                    }
+                },
+
+                // Additional license category functions
+                showResearchLicenses() {
+                    this.currentView = {
+                        title: '🔬 Research Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Academic research licensing system with STEEP learning curves. Each level requires extensive study and peer review.</p>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateLicenseCard('research_assistant', 'Research Assistant Certification', 15000, 'Basic research access, 50% efficiency', {education: 'academic_credentials'}, 'STEEP')}
+                                    ${this.generateLicenseCard('research_junior', 'Junior Researcher License', 30000, 'Independent experiments, 75% efficiency', {prerequisiteLicense: 'research_assistant', experience: 45}, 'STEEP')}
+                                    ${this.generateLicenseCard('research_senior', 'Senior Researcher License', 75000, 'Advanced protocols, team leadership, 100% efficiency', {prerequisiteLicense: 'research_junior', experience: 90}, 'EXTREMELY STEEP')}
+                                    ${this.generateLicenseCard('research_principal', 'Principal Researcher License', 150000, 'Cutting-edge projects, 125% efficiency', {prerequisiteLicense: 'research_senior', experience: 180}, 'MASTER LEVEL')}
+                                    ${this.generateLicenseCard('research_director', 'Research Director License', 300000, 'Unlimited facility access, 150% efficiency', {prerequisiteLicense: 'research_principal', experience: 730}, 'LEGENDARY')}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                showTechnologyLicenses() {
+                    this.currentView = {
+                        title: '🛠️ Technology Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Engineering and technology certification with STEEP learning curves. Focus on system repair and innovation.</p>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateLicenseCard('tech_basic', 'Basic Systems Technician', 8000, 'Standard maintenance, 70% speed, 85% success', {assessment: 'technical_aptitude'}, 'STEEP')}
+                                    ${this.generateLicenseCard('tech_advanced', 'Advanced Systems Specialist', 20000, 'Complex integration, 85% speed, 92% success', {prerequisiteLicense: 'tech_basic', experience: 30}, 'STEEP')}
+                                    ${this.generateLicenseCard('tech_engineer', 'Engineering Officer', 45000, 'System design, 100% speed, 96% success', {prerequisiteLicense: 'tech_advanced', education: 'engineering_degree'}, 'EXTREMELY STEEP')}
+                                    ${this.generateLicenseCard('tech_chief', 'Chief Technology Officer', 90000, 'Architecture planning, 115% speed, 98% success', {prerequisiteLicense: 'tech_engineer', training: 'management'}, 'MASTER LEVEL')}
+                                    ${this.generateLicenseCard('tech_master', 'Master Engineer', 180000, 'Industry standards, 130% speed, 99% success', {prerequisiteLicense: 'tech_chief', contribution: 'major_innovation'}, 'LEGENDARY')}
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                showPilotLicenses() {
+                    this.currentView = {
+                        title: '✈️ Pilot Licenses',
+                        content: `
+                            <div class="space-y-4">
+                                <p class="text-gray-300">Progressive pilot certification system. Foundation learning curve - gateway to other specializations.</p>
+                                
+                                <div class="space-y-4">
+                                    ${this.generateLicenseCard('pilot_e', 'Class E: Basic Pilot License', 5000, 'Small civilian craft, local system only', {age: 18, medical: 'clearance'}, 'Foundation')}
+                                    ${this.generateLicenseCard('pilot_d', 'Class D: Standard Commercial', 12000, 'Medium commercial vessels, night flying', {prerequisiteLicense: 'pilot_e', hours: 100}, 'Foundation')}
+                                    ${this.generateLicenseCard('pilot_c', 'Class C: Advanced Commercial', 30000, 'Large commercial, inter-system travel', {prerequisiteLicense: 'pilot_d', hours: 500}, 'Moderate')}
+                                    ${this.generateLicenseCard('pilot_b', 'Class B: Military/Heavy Industrial', 75000, 'Military vessels, combat authorization', {prerequisiteLicense: 'pilot_c', clearance: 'security'}, 'Challenging')}
+                                    ${this.generateLicenseCard('pilot_a', 'Class A: Master Pilot License', 150000, 'Unlimited operations, instructor rights', {prerequisiteLicense: 'pilot_b', hours: 2000}, 'Steep')}
+                                </div>
+                            </div>
+                        `
+                    };
+                }
+            }
+        }
+    </script>
+</body>
+</html>

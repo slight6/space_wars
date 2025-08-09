@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Torpedo Launch Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="game-data-manager.js"></script>
+    <script src="genisys-torpedo-algorithm.js"></script>
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .torpedo-forming {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="torpedoLaunchApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">🚀 Torpedo Launch Center</h1>
+                <div class="text-sm text-yellow-400 bg-yellow-900 px-3 py-1 rounded">Solar Dynamics Licensed Facility</div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Left Panel - Available Torpedoes -->
+            <div class="space-y-6">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-blue-400">🎯 Available Torpedoes</h2>
+                    <div class="space-y-4">
+                        <template x-for="torpedo in availableTorpedoes" :key="torpedo.id">
+                            <div class="bg-gray-800 p-4 rounded-md border border-gray-600">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-white" x-text="torpedo.name"></h4>
+                                    <div class="text-right">
+                                        <div class="text-sm text-gray-400" x-text="`Qty: ${torpedo.quantity}`"></div>
+                                        <div class="text-green-400 text-xs">Ready to Launch</div>
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-300 mb-3" x-text="torpedo.description"></p>
+                                <button 
+                                    @click="selectTorpedo(torpedo)"
+                                    :disabled="torpedo.quantity <= 0"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-3 py-2 rounded text-sm transition-colors">
+                                    Select for Launch
+                                </button>
+                            </div>
+                        </template>
+                        
+                        <div x-show="availableTorpedoes.length === 0" class="text-center py-8">
+                            <div class="text-gray-400 text-lg mb-2">🚫</div>
+                            <div class="text-gray-400">No torpedoes available</div>
+                            <div class="text-sm text-gray-500 mt-2">Visit the shipyard to purchase torpedoes</div>
+                            <button @click="refreshInventory()" class="mt-3 bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors">
+                                🔄 Refresh Inventory
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coordinate Selection -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700" x-show="selectedTorpedo">
+                    <h2 class="text-xl font-bold mb-4 text-green-400">📍 Target Coordinates</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">X Coordinate</label>
+                                <input type="number" x-model="targetCoords.x" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Y Coordinate</label>
+                                <input type="number" x-model="targetCoords.y" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-1">Z Coordinate</label>
+                                <input type="number" x-model="targetCoords.z" class="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500">Current location: (0, 0, 0) - Nexus Station</div>
+                        <button 
+                            @click="launchTorpedo()"
+                            :disabled="!canLaunch()"
+                            class="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-600 px-4 py-3 rounded font-bold transition-colors">
+                            🚀 LAUNCH TORPEDO
+                        </button>
+                        
+                        <!-- Debug Info -->
+                        <div class="text-xs text-gray-500 mt-2" x-show="!canLaunch()">
+                            <div x-show="!selectedTorpedo">❌ No torpedo selected</div>
+                            <div x-show="selectedTorpedo && coordinateExists(targetCoords)">❌ Coordinates already occupied</div>
+                            <div x-show="selectedTorpedo && !coordinateExists(targetCoords) && (targetCoords.x === null || targetCoords.y === null || targetCoords.z === null)">❌ Invalid coordinates</div>
+                        </div>
+                        
+                        <!-- Launch Status -->
+                        <div class="text-xs text-green-500 mt-2" x-show="canLaunch()">
+                            ✅ Ready to launch!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel - Launch Status -->
+            <div class="space-y-6">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-purple-400">⏱️ Active Formations</h2>
+                    <div class="space-y-4 max-h-96 overflow-y-auto">
+                        <template x-for="formation in activeFormations" :key="formation.id">
+                            <div class="bg-gray-800 p-4 rounded-md border border-gray-600" :class="{'torpedo-forming': formation.status === 'FORMING'}">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <h4 class="font-semibold text-white" x-text="`Formation ${formation.id.split('_').pop()}`"></h4>
+                                        <div class="text-sm text-gray-400" x-text="`Coordinates: (${formation.coordinates.x}, ${formation.coordinates.y}, ${formation.coordinates.z})`"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm" :class="formation.status === 'FORMING' ? 'text-yellow-400' : 'text-green-400'" x-text="formation.status"></div>
+                                        <div class="text-xs text-gray-400" x-text="formatTimeRemaining(formation.completionTime)"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Progress Bar -->
+                                <div class="w-full bg-gray-700 rounded-full h-2 mb-3">
+                                    <div class="bg-purple-400 h-2 rounded-full transition-all duration-300" :style="`width: ${getFormationProgress(formation)}%`"></div>
+                                </div>
+                                
+                                <div class="flex space-x-2">
+                                    <button 
+                                        @click="scanFormation(formation, 'BASIC_SCAN')"
+                                        :disabled="formation.isComplete"
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-2 py-1 rounded text-xs transition-colors">
+                                        Basic Scan (1000 CR)
+                                    </button>
+                                    <button 
+                                        @click="testScan(formation)"
+                                        class="flex-1 bg-purple-600 hover:bg-purple-700 px-2 py-1 rounded text-xs transition-colors">
+                                        Test Scan
+                                    </button>
+                                    <button 
+                                        @click="accelerateElimination(formation)"
+                                        :disabled="formation.isComplete"
+                                        class="flex-1 bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-2 py-1 rounded text-xs transition-colors">
+                                        Fast Elimination
+                                    </button>
+                                    <button 
+                                        @click="viewFormation(formation)"
+                                        x-show="formation.isComplete"
+                                        class="flex-1 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs transition-colors">
+                                        Explore
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                        
+                        <div x-show="activeFormations.length === 0" class="text-center py-8">
+                            <div class="text-gray-400 text-lg mb-2">🌌</div>
+                            <div class="text-gray-400">No active formations</div>
+                            <div class="text-sm text-gray-500 mt-2">Launch a torpedo to begin creating worlds</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Scan Results -->
+            <div class="space-y-6">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-orange-400">🔬 Scan Results</h2>
+                    <div x-show="!selectedFormation" class="text-center py-8">
+                        <div class="text-gray-400 text-lg mb-2">🔍</div>
+                        <div class="text-gray-400">Select a formation to view scan results</div>
+                        <div class="text-sm text-gray-500 mt-2">Click "Basic Scan" on any active formation</div>
+                    </div>
+                    
+                    <div x-show="selectedFormation">
+                        <h3 class="text-lg font-semibold mb-3" x-text="`Formation ${selectedFormation?.id?.split('_').pop() || ''}`"></h3>
+                        
+                        <!-- Debug Info for Possibilities -->
+                        <div class="mb-4 p-2 bg-gray-800 rounded text-xs">
+                            <div>Has allPossibilities: <span x-text="selectedFormation?.allPossibilities ? 'Yes' : 'No'"></span></div>
+                            <div x-show="selectedFormation?.allPossibilities">
+                                Categories: <span x-text="Object.keys(selectedFormation?.allPossibilities || {}).join(', ')"></span>
+                            </div>
+                            <div>Eliminated Count: <span x-text="selectedFormation?.eliminatedCount || 0"></span></div>
+                            <div>Total Possibilities: <span x-text="selectedFormation?.totalPossibilities || 0"></span></div>
+                        </div>
+                        
+                        <!-- Remaining Possibilities Panel -->
+                        <div class="space-y-4">
+                            <div x-show="selectedFormation && selectedFormation.allPossibilities">
+                                <div class="mb-4 flex justify-between items-center">
+                                    <h4 class="text-sm font-semibold text-cyan-400">🔍 Formation Analysis</h4>
+                                    <div class="text-xs text-gray-400">
+                                        <span x-text="selectedFormation?.eliminatedCount || 0"></span>/<span x-text="selectedFormation?.totalPossibilities || 0"></span> eliminated
+                                    </div>
+                                </div>
+                                
+                                <!-- Planet Types -->
+                                <div x-show="selectedFormation?.allPossibilities?.planetTypes?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-blue-400 mb-1">Possible Planet Types:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="type in selectedFormation?.allPossibilities?.planetTypes" :key="type">
+                                            <span class="text-xs px-2 py-1 bg-blue-600 rounded" x-text="type"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Size Classes -->
+                                <div x-show="selectedFormation?.allPossibilities?.sizeClasses?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-green-400 mb-1">Possible Sizes:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="size in selectedFormation?.allPossibilities?.sizeClasses" :key="size">
+                                            <span class="text-xs px-2 py-1 bg-green-600 rounded" x-text="size"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Moon Counts -->
+                                <div x-show="selectedFormation?.allPossibilities?.moonCounts?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-purple-400 mb-1">Moon Possibilities:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="count in selectedFormation?.allPossibilities?.moonCounts" :key="count">
+                                            <span class="text-xs px-2 py-1 bg-purple-600 rounded" x-text="count"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Atmosphere Types -->
+                                <div x-show="selectedFormation?.allPossibilities?.atmosphereTypes?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-orange-400 mb-1">Atmosphere Types:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="atm in selectedFormation?.allPossibilities?.atmosphereTypes" :key="atm">
+                                            <span class="text-xs px-2 py-1 bg-orange-600 rounded" x-text="atm"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Temperature Ranges -->
+                                <div x-show="selectedFormation?.allPossibilities?.temperatures?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-red-400 mb-1">Temperature Ranges:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="temp in selectedFormation?.allPossibilities?.temperatures" :key="temp">
+                                            <span class="text-xs px-2 py-1 bg-red-600 rounded" x-text="temp"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Surface Features -->
+                                <div x-show="selectedFormation?.allPossibilities?.surfaceFeatures?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-teal-400 mb-1">Surface Features:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="feature in selectedFormation?.allPossibilities?.surfaceFeatures" :key="feature">
+                                            <span class="text-xs px-2 py-1 bg-teal-600 rounded" x-text="feature"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Mineral Wealth -->
+                                <div x-show="selectedFormation?.allPossibilities?.mineralWealth?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-yellow-400 mb-1">Mineral Wealth:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="wealth in selectedFormation?.allPossibilities?.mineralWealth" :key="wealth">
+                                            <span class="text-xs px-2 py-1 bg-yellow-600 rounded" x-text="wealth"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Special Properties -->
+                                <div x-show="selectedFormation?.allPossibilities?.specialProperties?.length > 0" class="mb-3">
+                                    <h5 class="text-xs font-semibold text-pink-400 mb-1">Special Properties:</h5>
+                                    <div class="flex flex-wrap gap-1">
+                                        <template x-for="prop in selectedFormation?.allPossibilities?.specialProperties" :key="prop">
+                                            <span class="text-xs px-2 py-1 bg-pink-600 rounded" x-text="prop"></span>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Auto-refresh notice -->
+                            <div x-show="selectedFormation && !selectedFormation.isComplete" class="text-xs text-gray-500 italic">
+                                📡 Continuously scanning... possibilities are being eliminated as formation progresses.
+                            </div>
+                        </div>
+                        
+                        <!-- Scan History -->
+                        <div x-show="selectedFormation?.scanResults?.length > 0" class="mt-6">
+                            <h4 class="text-sm font-semibold text-gray-400 mb-2">Scan History:</h4>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                <template x-for="scan in selectedFormation?.scanResults" :key="scan.timestamp">
+                                    <div class="text-xs bg-gray-800 p-2 rounded">
+                                        <div class="flex justify-between">
+                                            <span x-text="scan.scanType"></span>
+                                            <span x-text="`${scan.cost} CR`"></span>
+                                        </div>
+                                        <div class="text-gray-400" x-text="`Progress: ${scan.formationProgress}%`"></div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div x-show="!selectedFormation" class="text-center py-8">
+                        <div class="text-gray-400 text-lg mb-2">🔍</div>
+                        <div class="text-gray-400">Select a formation to view scan data</div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400">⚡ Quick Actions</h2>
+                    <div class="space-y-3">
+                        <button @click="goToShipyard()" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
+                            🏭 Buy More Torpedoes
+                        </button>
+                        <button @click="goToInventory()" class="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm transition-colors">
+                            📦 View Inventory
+                        </button>
+                        <button @click="refreshData()" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm transition-colors">
+                            🔄 Refresh Status
+                        </button>
+                        <button @click="clearAllFormations()" class="w-full bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors">
+                            🧹 Clear All Formations (Testing)
+                        </button>
+                        <button @click="initializePossibilitiesForAll()" class="w-full bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm transition-colors">
+                            🔧 Initialize Possibilities (Fix Existing)
+                        </button>
+                        <button @click="debugFormations()" class="w-full bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded text-sm transition-colors">
+                            🐛 Debug Formations
+                        </button>
+                        <button @click="addTestTorpedoes()" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm transition-colors">
+                            🚀 Add Test Torpedoes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Debug Info -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-red-400">🐛 Debug Info</h2>
+                    <div class="text-xs space-y-2">
+                        <div class="text-gray-400">Torpedo System: <span :class="torpedoSystem ? 'text-green-400' : 'text-red-400'" x-text="torpedoSystem ? 'Available' : 'Not Available'"></span></div>
+                        <div class="text-gray-400">GameDataManager: <span :class="typeof GameDataManager !== 'undefined' ? 'text-green-400' : 'text-yellow-400'" x-text="typeof GameDataManager !== 'undefined' ? 'Available' : 'Fallback Mode'"></span></div>
+                        <div class="text-gray-400">Total Inventory Items: <span class="text-white" x-text="player.inventory?.length || 0"></span></div>
+                        <div class="text-gray-400">Available Torpedoes: <span class="text-white" x-text="availableTorpedoes.length"></span></div>
+                        <div class="text-gray-400">Active Formations: <span class="text-white" x-text="activeFormations.length"></span></div>
+                        <div class="text-gray-400">Selected Torpedo: <span class="text-white" x-text="selectedTorpedo ? selectedTorpedo.name : 'None'"></span></div>
+                        <div class="text-gray-400">Target Coords: <span class="text-white" x-text="`(${targetCoords.x}, ${targetCoords.y}, ${targetCoords.z})`"></span></div>
+                        <div class="text-gray-400">Can Launch: <span :class="canLaunch() ? 'text-green-400' : 'text-red-400'" x-text="canLaunch() ? 'Yes' : 'No'"></span></div>
+                        <div class="text-gray-400">Player Username: <span class="text-white" x-text="player.username"></span></div>
+                        <div class="text-gray-400">Credits: <span class="text-white" x-text="player.credits"></span></div>
+                        <details class="mt-2">
+                            <summary class="text-gray-400 cursor-pointer">Raw Inventory Data</summary>
+                            <pre class="text-xs text-green-400 mt-2 overflow-x-auto" x-text="JSON.stringify(player.inventory, null, 2)"></pre>
+                        </details>
+                        <button @click="reinitializeSystems()" class="mt-2 w-full bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded text-xs transition-colors">
+                            🔄 Reinitialize Systems
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function torpedoLaunchApp() {
+            return {
+                player: {},
+                selectedTorpedo: null,
+                selectedFormation: null,
+                targetCoords: { x: 1, y: 0, z: 0 },
+                availableTorpedoes: [],
+                activeFormations: [],
+                torpedoSystem: null,
+                currentTime: Date.now(), // Reactive timestamp for real-time updates
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize GameDataManager if not available
+                    if (typeof GameDataManager === 'undefined') {
+                        console.log('GameDataManager not available, using localStorage fallback');
+                    }
+                    
+                    // Initialize torpedo system with error handling
+                    try {
+                        if (typeof GenisysTorpedoSystem !== 'undefined') {
+                            this.torpedoSystem = new GenisysTorpedoSystem();
+                            console.log('GenisysTorpedoSystem initialized successfully');
+                        } else {
+                            console.error('GenisysTorpedoSystem class not found');
+                            this.showNotification('Torpedo system not available. Please refresh the page.', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error initializing torpedo system:', error);
+                        this.torpedoSystem = null;
+                        this.showNotification('Error initializing torpedo system: ' + error.message, 'error');
+                    }
+                    
+                    // Ensure player has at least one torpedo for testing
+                    if (!this.player.inventory) {
+                        this.player.inventory = [];
+                    }
+                    
+                    // Add a test torpedo if none exist
+                    const hasTorpedo = this.player.inventory.some(item => item.id.includes('torpedo'));
+                    if (!hasTorpedo) {
+                        this.player.inventory.push({
+                            id: 'genisys_torpedo',
+                            name: 'Genisys Torpedo',
+                            description: 'Solar Dynamics supercompressed particle torpedo. Creates celestial bodies with unpredictable outcomes.',
+                            quantity: 3,
+                            sellPrice: 50000,
+                            category: 'weapon'
+                        });
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    }
+                    
+                    this.loadAvailableTorpedoes();
+                    this.loadActiveFormations();
+                    
+                    // Update formations every second for real-time countdown and possibilities elimination
+                    setInterval(() => {
+                        this.currentTime = Date.now(); // Update reactive timestamp
+                        this.updateFormations();
+                        
+                        // If we have a selected formation, refresh its data to show real-time elimination
+                        if (this.selectedFormation) {
+                            const updatedFormation = this.activeFormations.find(f => f.id === this.selectedFormation.id);
+                            if (updatedFormation) {
+                                this.selectedFormation = updatedFormation;
+                            }
+                        }
+                    }, 1000);
+                },
+                
+                loadAvailableTorpedoes() {
+                    console.log('Loading available torpedoes...');
+                    console.log('Player inventory:', this.player.inventory);
+                    
+                    if (!this.player.inventory) {
+                        console.log('No inventory found');
+                        return;
+                    }
+                    
+                    const torpedoItems = this.player.inventory.filter(item => 
+                        item.id.includes('torpedo')
+                    );
+                    
+                    console.log('Filtered torpedo items:', torpedoItems);
+                    
+                    this.availableTorpedoes = torpedoItems.map(torpedo => ({
+                        ...torpedo,
+                        description: torpedo.id === 'genisys_torpedo' ? 
+                            'Solar Dynamics supercompressed particle torpedo. Creates celestial bodies with unpredictable outcomes.' : 
+                            torpedo.description
+                    }));
+                    
+                    console.log('Available torpedoes after mapping:', this.availableTorpedoes);
+                },
+                
+                loadActiveFormations() {
+                    try {
+                        if (typeof GameDataManager !== 'undefined' && GameDataManager.getTorpedoFormations) {
+                            const formations = GameDataManager.getTorpedoFormations(this.player.username);
+                            this.activeFormations = formations.map(f => ({
+                                ...f,
+                                coordinates: JSON.parse(f.coordinates),
+                                scanResults: JSON.parse(f.scan_results || '[]'),
+                                allPossibilities: JSON.parse(f.all_possibilities || '{}'),
+                                actualOutcome: f.actual_outcome ? JSON.parse(f.actual_outcome) : null
+                            }));
+                        } else {
+                            console.log('GameDataManager not available, using torpedo system formations');
+                            // Fallback to torpedo system formations
+                            if (this.torpedoSystem) {
+                                this.activeFormations = this.torpedoSystem.getActiveFormations(this.player.username);
+                            } else {
+                                // Fallback to localStorage
+                                const formations = localStorage.getItem('torpedoFormations');
+                                if (formations) {
+                                    this.activeFormations = JSON.parse(formations);
+                                } else {
+                                    this.activeFormations = [];
+                                }
+                            }
+                        }
+                        this.updateFormations();
+                    } catch (error) {
+                        console.error('Error loading formations:', error);
+                        this.activeFormations = [];
+                        // Try fallback to torpedo system
+                        if (this.torpedoSystem) {
+                            this.activeFormations = this.torpedoSystem.getActiveFormations(this.player.username);
+                        }
+                    }
+                },
+                
+                saveFormations() {
+                    try {
+                        if (typeof GameDataManager !== 'undefined') {
+                            this.activeFormations.forEach(formation => {
+                                GameDataManager.saveTorpedoFormation(formation);
+                            });
+                        } else {
+                            // Fallback to localStorage
+                            localStorage.setItem('torpedoFormations', JSON.stringify(this.activeFormations));
+                        }
+                    } catch (error) {
+                        console.log('Error saving formations:', error);
+                        localStorage.setItem('torpedoFormations', JSON.stringify(this.activeFormations));
+                    }
+                },
+                
+                selectTorpedo(torpedo) {
+                    this.selectedTorpedo = torpedo;
+                    this.showNotification(`Selected ${torpedo.name} for launch`, 'success');
+                },
+                
+                canLaunch() {
+                    const x = parseInt(this.targetCoords.x);
+                    const y = parseInt(this.targetCoords.y);
+                    const z = parseInt(this.targetCoords.z);
+                    
+                    return this.selectedTorpedo && 
+                           !isNaN(x) && 
+                           !isNaN(y) && 
+                           !isNaN(z) &&
+                           !this.coordinateExists({ x, y, z });
+                },
+                
+                coordinateExists(coords) {
+                    const targetX = parseInt(coords.x);
+                    const targetY = parseInt(coords.y);
+                    const targetZ = parseInt(coords.z);
+                    
+                    return this.activeFormations.some(formation => 
+                        parseInt(formation.coordinates.x) === targetX &&
+                        parseInt(formation.coordinates.y) === targetY &&
+                        parseInt(formation.coordinates.z) === targetZ
+                    );
+                },
+                
+                launchTorpedo() {
+                    console.log('Launch torpedo called');
+                    console.log('Can launch:', this.canLaunch());
+                    console.log('Selected torpedo:', this.selectedTorpedo);
+                    console.log('Target coords:', this.targetCoords);
+                    console.log('Coordinate exists:', this.coordinateExists(this.targetCoords));
+                    console.log('Torpedo system available:', this.torpedoSystem !== null);
+                    
+                    if (!this.canLaunch()) {
+                        this.showNotification('Cannot launch torpedo. Check requirements.', 'error');
+                        return;
+                    }
+                    
+                    // Check if torpedo system is available
+                    if (!this.torpedoSystem) {
+                        this.showNotification('Torpedo system not initialized. Please refresh the page.', 'error');
+                        return;
+                    }
+                    
+                    const launchData = {
+                        playerID: this.player.username,
+                        coordinates: { 
+                            x: parseInt(this.targetCoords.x), 
+                            y: parseInt(this.targetCoords.y), 
+                            z: parseInt(this.targetCoords.z) 
+                        },
+                        torpedoType: this.selectedTorpedo.id === 'genisys_torpedo' ? 'STANDARD' : 'STANDARD'
+                    };
+                    
+                    console.log('Launch data:', launchData);
+                    
+                    try {
+                        const formation = this.torpedoSystem.launchGenisysTorpedo(launchData);
+                        console.log('Formation created:', formation);
+                        
+                        // Add to active formations
+                        this.activeFormations.push(formation);
+                        
+                        // Save formation 
+                        try {
+                            if (typeof GameDataManager !== 'undefined') {
+                                GameDataManager.saveTorpedoFormation(formation);
+                                
+                                // Log transaction
+                                GameDataManager.saveTransaction({
+                                    playerId: this.player.username,
+                                    type: 'torpedo_launch',
+                                    itemId: this.selectedTorpedo.id,
+                                    itemName: this.selectedTorpedo.name,
+                                    quantity: 1,
+                                    unitPrice: 0,
+                                    totalAmount: 0,
+                                    creditsBefore: this.player.credits,
+                                    creditsAfter: this.player.credits,
+                                    location: this.targetCoords,
+                                    description: `Launched torpedo at coordinates (${this.targetCoords.x}, ${this.targetCoords.y}, ${this.targetCoords.z})`
+                                });
+                            }
+                        } catch (error) {
+                            console.log('GameDataManager error, using localStorage:', error);
+                        }
+                        
+                        this.saveFormations();
+                        
+                        // Remove torpedo from inventory
+                        const torpedoIndex = this.player.inventory.findIndex(item => item.id === this.selectedTorpedo.id);
+                        if (torpedoIndex !== -1) {
+                            if (this.player.inventory[torpedoIndex].quantity > 1) {
+                                this.player.inventory[torpedoIndex].quantity -= 1;
+                            } else {
+                                this.player.inventory.splice(torpedoIndex, 1);
+                            }
+                            
+                            // Save player data
+                            try {
+                                if (typeof GameDataManager !== 'undefined') {
+                                    GameDataManager.savePlayer(this.player);
+                                }
+                            } catch (error) {
+                                console.log('GameDataManager error saving player:', error);
+                            }
+                            localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                        }
+                        
+                        this.loadAvailableTorpedoes();
+                        this.selectedTorpedo = null;
+                        this.targetCoords = { 
+                            x: parseInt(this.targetCoords.x) + 1, 
+                            y: parseInt(this.targetCoords.y), 
+                            z: parseInt(this.targetCoords.z) 
+                        };
+                        
+                        this.showNotification(`Torpedo launched! Formation will complete in ${Math.round(formation.cooldownDuration / 60000)} minutes.`, 'success');
+                        
+                    } catch (error) {
+                        console.error('Error launching torpedo:', error);
+                        this.showNotification('Error launching torpedo: ' + error.message, 'error');
+                    }
+                },
+                
+                updateFormations() {
+                    const now = Date.now();
+                    let updated = false;
+                    
+                    this.activeFormations.forEach(formation => {
+                        if (!formation.is_complete && now >= formation.completionTime) {
+                            formation.is_complete = true;
+                            formation.status = 'COMPLETE';
+                            updated = true;
+                            
+                            // Update in database
+                            GameDataManager.updateTorpedoFormation(formation.id, {
+                                is_complete: true,
+                                status: 'COMPLETE'
+                            });
+                            
+                            this.showNotification(`Formation at (${formation.coordinates.x}, ${formation.coordinates.y}, ${formation.coordinates.z}) is complete!`, 'success');
+                        }
+                    });
+                    
+                    if (updated) {
+                        this.loadActiveFormations();
+                    }
+                },
+                
+                getFormationProgress(formation) {
+                    if (formation.is_complete) return 100;
+                    const now = Date.now();
+                    const elapsed = now - formation.launch_timestamp;
+                    const progress = (elapsed / formation.cooldown_duration) * 100;
+                    return Math.min(100, Math.max(0, progress));
+                },
+                
+                formatTimeRemaining(completionTime) {
+                    const now = this.currentTime;
+                    const remaining = completionTime - now;
+                    
+                    if (remaining <= 0) return 'Complete';
+                    
+                    const hours = Math.floor(remaining / (60 * 60 * 1000));
+                    const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+                    const seconds = Math.floor((remaining % (60 * 1000)) / 1000);
+                    
+                    if (hours > 0) {
+                        return `${hours}h ${minutes}m ${seconds}s`;
+                    }
+                    if (minutes > 0) {
+                        return `${minutes}m ${seconds}s`;
+                    }
+                    return `${seconds}s`;
+                },
+                
+                scanFormation(formation, scanType) {
+                    console.log('=== SCAN FORMATION CALLED ===');
+                    console.log('Formation:', formation);
+                    console.log('Scan Type:', scanType);
+                    console.log('Formation isComplete:', formation?.isComplete);
+                    
+                    if (formation.isComplete) {
+                        this.showNotification('Formation is already complete', 'warning');
+                        return;
+                    }
+                    
+                    const scanCost = 1000;
+                    console.log('Player credits:', this.player.credits, 'Scan cost:', scanCost);
+                    
+                    if (this.player.credits < scanCost) {
+                        this.showNotification('Insufficient credits for scan', 'error');
+                        return;
+                    }
+                    
+                    // Deduct credits
+                    this.player.credits -= scanCost;
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    console.log('Credits deducted, new balance:', this.player.credits);
+                    
+                    // Ensure formation has possibilities
+                    if (!formation.allPossibilities) {
+                        console.log('Formation missing allPossibilities, adding them...');
+                        formation.allPossibilities = {
+                            planetTypes: [
+                                'Rocky', 'Gas Giant', 'Ice World', 'Volcanic', 'Earth-like', 'Desert', 
+                                'Ocean World', 'Lava Planet', 'Crystal World', 'Metal Core', 'Frozen Gas', 
+                                'Radioactive', 'Plasma Storm', 'Dark Matter', 'Quantum Fluctuation'
+                            ],
+                            sizeClasses: [
+                                'Asteroid (100-500 km)', 'Dwarf Planet (500-2000 km)', 
+                                'Small Planet (2000-8000 km)', 'Medium Planet (8000-15000 km)',
+                                'Large Planet (15000-30000 km)', 'Super Planet (30000-50000 km)',
+                                'Gas Dwarf (5000-12000 km)', 'Gas Giant (20000-80000 km)',
+                                'Super Giant (80000+ km)'
+                            ],
+                            moonCounts: ['0 moons', '1 moon', '2-3 moons', '4-6 moons', '7-12 moons', '13-25 moons', '26-50 moons'],
+                            atmosphereTypes: [
+                                'None (Vacuum)', 'Thin Oxygen', 'Dense Oxygen', 'Methane', 'Ammonia',
+                                'Carbon Dioxide', 'Hydrogen', 'Noble Gases', 'Toxic Sulfur',
+                                'Corrosive Acid', 'Plasma Field', 'Quantum Mist', 'Dark Energy'
+                            ],
+                            temperatures: [
+                                'Absolute Zero (-273°C)', 'Frozen (-200 to -100°C)', 'Cold (-100 to 0°C)',
+                                'Temperate (0 to 50°C)', 'Hot (50 to 200°C)', 'Scorching (200 to 1000°C)',
+                                'Molten (1000 to 5000°C)', 'Plasma (5000°C+)', 'Solar Core (Millions°C)'
+                            ],
+                            surfaceFeatures: [
+                                'Smooth Plains', 'Mountain Ranges', 'Deep Canyons', 'Crater Fields',
+                                'Volcanic Activity', 'Ice Caps', 'Liquid Oceans', 'Methane Lakes',
+                                'Crystal Formations', 'Metal Veins', 'Floating Islands', 'Quantum Rifts',
+                                'Temporal Anomalies', 'Gravity Wells', 'Energy Storms'
+                            ],
+                            mineralWealth: [
+                                'Barren', 'Poor', 'Modest', 'Moderate', 'Rich', 'Very Rich', 
+                                'Extremely Rich', 'Legendary Deposits', 'Exotic Materials', 'Unique Elements'
+                            ],
+                            habitability: [
+                                'Completely Hostile', 'Barely Survivable', 'Harsh Environment',
+                                'Challenging', 'Liveable with Equipment', 'Naturally Habitable',
+                                'Paradise World', 'Utopian Conditions'
+                            ],
+                            magneticField: [
+                                'None', 'Weak', 'Moderate', 'Strong', 'Extreme', 'Fluctuating',
+                                'Reversed Polarity', 'Multi-Polar', 'Quantum Entangled'
+                            ],
+                            specialProperties: [
+                                'Standard Physics', 'Time Dilation Effects', 'Gravity Anomalies',
+                                'Dimensional Rifts', 'Quantum Tunneling', 'Anti-Matter Traces',
+                                'Dark Matter Influence', 'Psionic Resonance', 'Life Signs',
+                                'Ancient Artifacts', 'Energy Beings', 'Sentient Planet'
+                            ]
+                        };
+                        
+                        // Count total possibilities
+                        let total = 0;
+                        Object.values(formation.allPossibilities).forEach(category => {
+                            total += category.length;
+                        });
+                        formation.totalPossibilities = total;
+                        formation.eliminatedCount = 0;
+                    }
+                    
+                    // Set as selected formation for viewing
+                    this.selectedFormation = formation;
+                    console.log('Set selectedFormation:', this.selectedFormation);
+                    
+                    // Simulate scan providing additional information
+                    if (!formation.scanResults) formation.scanResults = [];
+                    
+                    const scanResult = {
+                        timestamp: Date.now(),
+                        scanType: scanType,
+                        cost: scanCost,
+                        formationProgress: this.getFormationProgress(formation),
+                        remainingPossibilities: formation.totalPossibilities - (formation.eliminatedCount || 0)
+                    };
+                    
+                    formation.scanResults.push(scanResult);
+                    console.log('Added scan result:', scanResult);
+                    
+                    // Save formation data
+                    this.saveFormations();
+                    
+                    // Log transaction
+                    try {
+                        if (typeof GameDataManager !== 'undefined') {
+                            GameDataManager.saveTransaction({
+                                playerId: this.player.username,
+                                type: 'scan',
+                                itemId: 'torpedo_scan',
+                                itemName: 'Torpedo Formation Scan',
+                                quantity: 1,
+                                unitPrice: scanCost,
+                                totalAmount: scanCost,
+                                creditsBefore: this.player.credits + scanCost,
+                                creditsAfter: this.player.credits,
+                                location: formation.coordinates,
+                                description: `Performed ${scanType} scan on formation ${formation.id}`
+                            });
+                        }
+                    } catch (error) {
+                        console.log('GameDataManager error:', error);
+                    }
+                    
+                    this.showNotification(`Scan complete! ${scanResult.remainingPossibilities} possibilities remaining.`, 'success');
+                },
+                
+                viewFormation(formation) {
+                    if (!formation.is_complete) return;
+                    
+                    // For now, just show the formation details
+                    const outcome = formation.actualOutcome;
+                    const details = `
+Planet: ${outcome.planet.name}
+Type: ${outcome.planet.type}
+Diameter: ${outcome.planet.diameter.toLocaleString()} km
+Moons: ${outcome.moons.length}
+Mineral Wealth: ${outcome.planet.mineralWealth}
+                    `.trim();
+                    
+                    this.showNotification(`Formation Complete!\n${details}`, 'success');
+                },
+                
+                refreshData() {
+                    this.loadAvailableTorpedoes();
+                    this.updateFormations();
+                    this.showNotification('Data refreshed', 'success');
+                },
+                
+                refreshInventory() {
+                    // Reload player data from localStorage
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (currentPlayer) {
+                        this.player = JSON.parse(currentPlayer);
+                        this.loadAvailableTorpedoes();
+                        this.showNotification('Inventory refreshed', 'success');
+                    } else {
+                        this.showNotification('No player data found', 'error');
+                    }
+                },
+
+                reinitializeSystems() {
+                    console.log('Reinitializing systems...');
+                    
+                    // Try to reinitialize torpedo system
+                    try {
+                        if (typeof GenisysTorpedoSystem !== 'undefined') {
+                            this.torpedoSystem = new GenisysTorpedoSystem();
+                            this.showNotification('Torpedo system reinitialized successfully', 'success');
+                        } else {
+                            this.showNotification('GenisysTorpedoSystem class not found. Check if genisys-torpedo-algorithm.js is loaded.', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error reinitializing torpedo system:', error);
+                        this.showNotification('Error reinitializing torpedo system: ' + error.message, 'error');
+                    }
+                    
+                    // Refresh all data
+                    this.refreshInventory();
+                    this.loadActiveFormations();
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                goToShipyard() {
+                    window.location.href = 'shipyard.html';
+                },
+                
+                goToInventory() {
+                    window.location.href = 'inventory.html';
+                },
+                
+                clearAllFormations() {
+                    if (!confirm('⚠️ This will remove ALL active formations! Are you sure? This action cannot be undone.')) {
+                        return;
+                    }
+                    
+                    try {
+                        // Clear from torpedo system if available
+                        if (this.torpedoSystem) {
+                            this.torpedoSystem.clearAllFormations();
+                        }
+                        
+                        // Clear ALL possible localStorage keys that might store formations
+                        const formationKeys = [
+                            'torpedo_formations',
+                            'genisys_formations',
+                            'formations',
+                            'active_formations'
+                        ];
+                        
+                        let totalCleared = 0;
+                        formationKeys.forEach(key => {
+                            const existing = localStorage.getItem(key);
+                            if (existing) {
+                                try {
+                                    const parsed = JSON.parse(existing);
+                                    if (Array.isArray(parsed)) {
+                                        totalCleared += parsed.length;
+                                    }
+                                } catch (e) {
+                                    // Ignore parsing errors
+                                }
+                                localStorage.removeItem(key);
+                                console.log(`Cleared localStorage key: ${key}`);
+                            }
+                        });
+                        
+                        // Clear from GameDataManager if available
+                        if (typeof GameDataManager !== 'undefined' && GameDataManager.clearAllTorpedoFormations) {
+                            GameDataManager.clearAllTorpedoFormations();
+                        }
+                        
+                        // Update local state
+                        this.activeFormations = [];
+                        
+                        // Force reload formations to make sure they're gone
+                        this.loadActiveFormations();
+                        
+                        this.showNotification(`Cleared ${totalCleared} formation(s) successfully! All storage cleared.`, 'success');
+                        console.log('All formations cleared completely - checked all storage locations');
+                        
+                    } catch (error) {
+                        console.error('Error clearing formations:', error);
+                        this.showNotification('Error clearing formations: ' + error.message, 'error');
+                    }
+                },
+
+                initializePossibilitiesForAll() {
+                    if (!this.torpedoSystem) {
+                        this.showNotification('Torpedo system not available', 'error');
+                        return;
+                    }
+
+                    let updatedCount = 0;
+                    this.activeFormations.forEach(formation => {
+                        if (!formation.allPossibilities || !formation.totalPossibilities) {
+                            // Use the torpedo system's method to generate possibilities
+                            const possibilities = {
+                                planetTypes: [
+                                    'Rocky', 'Gas Giant', 'Ice World', 'Volcanic', 'Earth-like', 'Desert', 
+                                    'Ocean World', 'Lava Planet', 'Crystal World', 'Metal Core', 'Frozen Gas', 
+                                    'Radioactive', 'Plasma Storm', 'Dark Matter', 'Quantum Fluctuation'
+                                ],
+                                sizeClasses: [
+                                    'Asteroid (100-500 km)', 'Dwarf Planet (500-2000 km)', 
+                                    'Small Planet (2000-8000 km)', 'Medium Planet (8000-15000 km)',
+                                    'Large Planet (15000-30000 km)', 'Super Planet (30000-50000 km)',
+                                    'Gas Dwarf (5000-12000 km)', 'Gas Giant (20000-80000 km)',
+                                    'Super Giant (80000+ km)'
+                                ],
+                                moonCounts: ['0 moons', '1 moon', '2-3 moons', '4-6 moons', '7-12 moons', '13-25 moons', '26-50 moons'],
+                                atmosphereTypes: [
+                                    'None (Vacuum)', 'Thin Oxygen', 'Dense Oxygen', 'Methane', 'Ammonia',
+                                    'Carbon Dioxide', 'Hydrogen', 'Noble Gases', 'Toxic Sulfur',
+                                    'Corrosive Acid', 'Plasma Field', 'Quantum Mist', 'Dark Energy'
+                                ],
+                                temperatures: [
+                                    'Absolute Zero (-273°C)', 'Frozen (-200 to -100°C)', 'Cold (-100 to 0°C)',
+                                    'Temperate (0 to 50°C)', 'Hot (50 to 200°C)', 'Scorching (200 to 1000°C)',
+                                    'Molten (1000 to 5000°C)', 'Plasma (5000°C+)', 'Solar Core (Millions°C)'
+                                ],
+                                surfaceFeatures: [
+                                    'Smooth Plains', 'Mountain Ranges', 'Deep Canyons', 'Crater Fields',
+                                    'Volcanic Activity', 'Ice Caps', 'Liquid Oceans', 'Methane Lakes',
+                                    'Crystal Formations', 'Metal Veins', 'Floating Islands', 'Quantum Rifts',
+                                    'Temporal Anomalies', 'Gravity Wells', 'Energy Storms'
+                                ],
+                                mineralWealth: [
+                                    'Barren', 'Poor', 'Modest', 'Moderate', 'Rich', 'Very Rich', 
+                                    'Extremely Rich', 'Legendary Deposits', 'Exotic Materials', 'Unique Elements'
+                                ],
+                                habitability: [
+                                    'Completely Hostile', 'Barely Survivable', 'Harsh Environment',
+                                    'Challenging', 'Liveable with Equipment', 'Naturally Habitable',
+                                    'Paradise World', 'Utopian Conditions'
+                                ],
+                                magneticField: [
+                                    'None', 'Weak', 'Moderate', 'Strong', 'Extreme', 'Fluctuating',
+                                    'Reversed Polarity', 'Multi-Polar', 'Quantum Entangled'
+                                ],
+                                specialProperties: [
+                                    'Standard Physics', 'Time Dilation Effects', 'Gravity Anomalies',
+                                    'Dimensional Rifts', 'Quantum Tunneling', 'Anti-Matter Traces',
+                                    'Dark Matter Influence', 'Psionic Resonance', 'Life Signs',
+                                    'Ancient Artifacts', 'Energy Beings', 'Sentient Planet'
+                                ]
+                            };
+                            
+                            formation.allPossibilities = possibilities;
+                            
+                            // Count total possibilities
+                            let total = 0;
+                            Object.values(possibilities).forEach(category => {
+                                total += category.length;
+                            });
+                            formation.totalPossibilities = total;
+                            formation.eliminatedCount = 0;
+                            
+                            updatedCount++;
+                            console.log(`Initialized possibilities for formation ${formation.id} with ${total} total possibilities`);
+                        }
+                    });
+
+                    this.saveFormations();
+                    this.showNotification(`Initialized possibilities for ${updatedCount} formations`, 'success');
+                },
+
+                debugFormations() {
+                    console.log('=== FORMATION DEBUG INFO ===');
+                    console.log('Active formations count:', this.activeFormations.length);
+                    console.log('Active formations:', this.activeFormations);
+                    console.log('Available torpedoes:', this.availableTorpedoes.length);
+                    console.log('Available torpedoes:', this.availableTorpedoes);
+                    console.log('Player inventory:', this.player.inventory);
+                    console.log('Torpedo system:', this.torpedoSystem);
+                    
+                    // Check localStorage
+                    const storedFormations = localStorage.getItem('genisys_formations');
+                    console.log('Stored formations in localStorage:', storedFormations);
+                    
+                    this.showNotification(`Debug info logged to console. Active: ${this.activeFormations.length}, Torpedoes: ${this.availableTorpedoes.length}`, 'info');
+                },
+
+                addTestTorpedoes() {
+                    // Add torpedoes to inventory if they don't exist
+                    if (!this.player.inventory) {
+                        this.player.inventory = [];
+                    }
+
+                    // Check if torpedoes already exist
+                    const existingTorpedoes = this.player.inventory.filter(item => item.id.includes('torpedo'));
+                    if (existingTorpedoes.length > 0) {
+                        this.showNotification(`You already have ${existingTorpedoes.length} torpedoes`, 'info');
+                        return;
+                    }
+
+                    // Add Genisys torpedoes
+                    this.player.inventory.push({
+                        id: 'genisys_torpedo',
+                        name: 'Genisys Torpedo',
+                        description: 'Solar Dynamics supercompressed particle torpedo. Creates celestial bodies with unpredictable outcomes.',
+                        quantity: 3,
+                        sellPrice: 50000,
+                        category: 'weapon'
+                    });
+
+                    // Save player data
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    
+                    // Reload available torpedoes
+                    this.loadAvailableTorpedoes();
+                    
+                    this.showNotification('Added 3 Genisys Torpedoes to your inventory!', 'success');
+                },
+
+                testScan(formation) {
+                    console.log('=== TEST SCAN CALLED ===');
+                    console.log('Formation:', formation);
+                    console.log('Formation ID:', formation?.id);
+                    console.log('Formation allPossibilities:', formation?.allPossibilities);
+                    console.log('Formation isComplete:', formation?.isComplete);
+                    console.log('Player credits:', this.player?.credits);
+                    
+                    // Force add possibilities if they don't exist
+                    if (!formation.allPossibilities) {
+                        console.log('Adding possibilities to formation...');
+                        formation.allPossibilities = {
+                            planetTypes: [
+                                'Rocky', 'Gas Giant', 'Ice World', 'Volcanic', 'Earth-like', 'Desert', 
+                                'Ocean World', 'Lava Planet', 'Crystal World', 'Metal Core', 'Frozen Gas', 
+                                'Radioactive', 'Plasma Storm', 'Dark Matter', 'Quantum Fluctuation'
+                            ],
+                            sizeClasses: [
+                                'Asteroid (100-500 km)', 'Dwarf Planet (500-2000 km)', 
+                                'Small Planet (2000-8000 km)', 'Medium Planet (8000-15000 km)',
+                                'Large Planet (15000-30000 km)', 'Super Planet (30000-50000 km)',
+                                'Gas Dwarf (5000-12000 km)', 'Gas Giant (20000-80000 km)',
+                                'Super Giant (80000+ km)'
+                            ],
+                            moonCounts: ['0 moons', '1 moon', '2-3 moons', '4-6 moons', '7-12 moons', '13-25 moons', '26-50 moons'],
+                            atmosphereTypes: [
+                                'None (Vacuum)', 'Thin Oxygen', 'Dense Oxygen', 'Methane', 'Ammonia',
+                                'Carbon Dioxide', 'Hydrogen', 'Noble Gases', 'Toxic Sulfur',
+                                'Corrosive Acid', 'Plasma Field', 'Quantum Mist', 'Dark Energy'
+                            ],
+                            temperatures: [
+                                'Absolute Zero (-273°C)', 'Frozen (-200 to -100°C)', 'Cold (-100 to 0°C)',
+                                'Temperate (0 to 50°C)', 'Hot (50 to 200°C)', 'Scorching (200 to 1000°C)',
+                                'Molten (1000 to 5000°C)', 'Plasma (5000°C+)', 'Solar Core (Millions°C)'
+                            ],
+                            surfaceFeatures: [
+                                'Smooth Plains', 'Mountain Ranges', 'Deep Canyons', 'Crater Fields',
+                                'Volcanic Activity', 'Ice Caps', 'Liquid Oceans', 'Methane Lakes',
+                                'Crystal Formations', 'Metal Veins', 'Floating Islands', 'Quantum Rifts',
+                                'Temporal Anomalies', 'Gravity Wells', 'Energy Storms'
+                            ],
+                            mineralWealth: [
+                                'Barren', 'Poor', 'Modest', 'Moderate', 'Rich', 'Very Rich', 
+                                'Extremely Rich', 'Legendary Deposits', 'Exotic Materials', 'Unique Elements'
+                            ],
+                            habitability: [
+                                'Completely Hostile', 'Barely Survivable', 'Harsh Environment',
+                                'Challenging', 'Liveable with Equipment', 'Naturally Habitable',
+                                'Paradise World', 'Utopian Conditions'
+                            ],
+                            magneticField: [
+                                'None', 'Weak', 'Moderate', 'Strong', 'Extreme', 'Fluctuating',
+                                'Reversed Polarity', 'Multi-Polar', 'Quantum Entangled'
+                            ],
+                            specialProperties: [
+                                'Standard Physics', 'Time Dilation Effects', 'Gravity Anomalies',
+                                'Dimensional Rifts', 'Quantum Tunneling', 'Anti-Matter Traces',
+                                'Dark Matter Influence', 'Psionic Resonance', 'Life Signs',
+                                'Ancient Artifacts', 'Energy Beings', 'Sentient Planet'
+                            ]
+                        };
+                        
+                        // Count total possibilities
+                        let total = 0;
+                        Object.values(formation.allPossibilities).forEach(category => {
+                            total += category.length;
+                        });
+                        formation.totalPossibilities = total;
+                        formation.eliminatedCount = 0;
+                        
+                        console.log('Added possibilities, total:', total);
+                    }
+                    
+                    // Set as selected formation
+                    this.selectedFormation = formation;
+                    console.log('Set selectedFormation:', this.selectedFormation);
+                    
+                    this.showNotification('Test scan complete! Check the scan results panel.', 'success');
+                },
+
+                accelerateElimination(formation) {
+                    if (!formation.allPossibilities || formation.isComplete) {
+                        this.showNotification('Formation not available for acceleration', 'warning');
+                        return;
+                    }
+
+                    // Manually eliminate 5-10 possibilities instantly
+                    const eliminationCount = Math.floor(Math.random() * 6) + 5; // 5-10 eliminations
+                    let actualEliminations = 0;
+
+                    for (let i = 0; i < eliminationCount; i++) {
+                        // Find categories that still have items to eliminate
+                        const availableCategories = Object.keys(formation.allPossibilities).filter(
+                            category => formation.allPossibilities[category].length > 1
+                        );
+                        
+                        if (availableCategories.length === 0) break;
+                        
+                        // Pick a random category
+                        const category = availableCategories[Math.floor(Math.random() * availableCategories.length)];
+                        const categoryArray = formation.allPossibilities[category];
+                        
+                        // Remove a random item from that category (but keep at least one)
+                        if (categoryArray.length > 1) {
+                            const randomIndex = Math.floor(Math.random() * categoryArray.length);
+                            const eliminated = categoryArray.splice(randomIndex, 1)[0];
+                            formation.eliminatedCount++;
+                            actualEliminations++;
+                            
+                            console.log(`Fast eliminated from ${category}: ${eliminated}`);
+                            
+                            // Stop if we've eliminated enough to keep some mystery
+                            if (formation.eliminatedCount >= formation.totalPossibilities - 15) break;
+                        }
+                    }
+
+                    // Save the updated formation
+                    this.saveFormations();
+                    
+                    // Update selected formation if this is the one being viewed
+                    if (this.selectedFormation && this.selectedFormation.id === formation.id) {
+                        this.selectedFormation = formation;
+                    }
+
+                    this.showNotification(`Accelerated elimination! Removed ${actualEliminations} possibilities instantly.`, 'success');
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: type === 'success' ? 3000 : 5000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Marketplace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .market-category {
+            transition: all 0.3s ease;
+        }
+        .market-category:hover {
+            transform: translateY(-2px);
+        }
+        .price-trend-up {
+            color: #10B981;
+        }
+        .price-trend-down {
+            color: #EF4444;
+        }
+        .price-trend-stable {
+            color: #6B7280;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="marketplaceApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <div>
+                    <h1 class="text-2xl font-bold" x-text="currentLocation.name"></h1>
+                    <p class="text-sm text-gray-400" x-text="currentLocation.description"></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Cargo:</div>
+                    <div class="text-blue-400 font-mono text-lg" x-text="`${getCurrentCargoWeight()}/${player.maxCargo || 100}`"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Market Status Banner -->
+    <div class="bg-gradient-to-r from-purple-900 to-blue-900 border-b border-gray-700 px-6 py-3">
+        <div class="flex justify-between items-center text-sm">
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-300">Market Status:</span>
+                    <span :class="marketStatus.class" x-text="marketStatus.text"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-300">Trade Tax:</span>
+                    <span class="text-yellow-400" x-text="`${currentLocation.tradeTax || 0}%`"></span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-300">Last Updated:</span>
+                <span class="text-blue-400" x-text="formatTime(lastUpdate)"></span>
+                <button @click="refreshMarket()" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs transition-colors">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Player Inventory Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-green-400">📦 Your Cargo Hold</h2>
+                    <div class="space-y-2 max-h-96 overflow-y-auto">
+                        <template x-for="item in player.inventory" :key="item.id">
+                            <div class="bg-gray-800 p-3 rounded-md">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div class="font-semibold text-sm" x-text="item.name"></div>
+                                        <div class="text-xs text-gray-400" x-text="`Qty: ${item.quantity} | ${item.weight || 1}kg each`"></div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-green-400" x-text="`${getMarketPrice(item.id, 'sell').toLocaleString()} CR`"></div>
+                                        <button 
+                                            @click="sellToMarket(item)"
+                                            :disabled="!canSellItem(item)"
+                                            class="bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-2 py-1 rounded text-xs transition-colors mt-1">
+                                            Sell
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-gray-700 rounded-full h-1">
+                                    <div class="bg-green-400 h-1 rounded-full" :style="`width: ${Math.min(100, (item.quantity / 50) * 100)}%`"></div>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="!player.inventory || player.inventory.length === 0" class="text-gray-400 text-center py-4">
+                            Your cargo hold is empty
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Listings Panel -->
+            <div class="lg:col-span-3">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-blue-400">🏪 Market Listings</h2>
+                        <div class="flex space-x-2">
+                            <button 
+                                @click="selectedCategory = 'all'"
+                                :class="selectedCategory === 'all' ? 'bg-blue-600' : 'bg-gray-600'"
+                                class="px-3 py-1 rounded text-sm transition-colors">
+                                All
+                            </button>
+                            <template x-for="category in availableCategories" :key="category">
+                                <button 
+                                    @click="selectedCategory = category"
+                                    :class="selectedCategory === category ? 'bg-blue-600' : 'bg-gray-600'"
+                                    class="px-3 py-1 rounded text-sm transition-colors capitalize"
+                                    x-text="category">
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                        <template x-for="item in getFilteredMarketItems()" :key="item.id">
+                            <div class="market-category bg-gray-800 p-4 rounded-md border border-gray-600">
+                                <div class="flex justify-between items-start mb-2">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-white" x-text="item.name"></h4>
+                                        <p class="text-xs text-gray-400 capitalize" x-text="item.category"></p>
+                                    </div>
+                                    <div class="text-right ml-2">
+                                        <div class="flex items-center space-x-1">
+                                            <span class="text-yellow-400 font-mono text-sm" x-text="`${item.buyPrice.toLocaleString()} CR`"></span>
+                                            <span :class="getPriceTrendClass(item.priceTrend)" x-text="getPriceTrendSymbol(item.priceTrend)"></span>
+                                        </div>
+                                        <div class="text-xs text-gray-400" x-text="`Stock: ${item.stock}`"></div>
+                                    </div>
+                                </div>
+                                
+                                <p class="text-sm text-gray-300 mb-3" x-text="item.description"></p>
+                                
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="text-xs text-gray-400">
+                                        <div x-text="`Weight: ${item.weight || 1}kg`"></div>
+                                        <div x-text="`Origin: ${item.origin || 'Local'}`"></div>
+                                    </div>
+                                    <div class="text-xs text-right">
+                                        <div class="text-green-400" x-text="`Sell: ${item.sellPrice.toLocaleString()} CR`"></div>
+                                        <div class="text-gray-400" x-text="`Margin: ${((item.sellPrice - item.buyPrice) / item.buyPrice * 100).toFixed(1)}%`"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Quantity Selector -->
+                                <div class="flex items-center space-x-2 mb-3">
+                                    <button 
+                                        @click="decreaseQuantity(item.id)"
+                                        class="bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded text-xs">
+                                        -
+                                    </button>
+                                    <input 
+                                        type="number" 
+                                        :value="getSelectedQuantity(item.id)"
+                                        @input="setQuantity(item.id, $event.target.value)"
+                                        min="1" 
+                                        :max="Math.min(item.stock, Math.floor(player.credits / item.buyPrice))"
+                                        class="bg-gray-700 text-white text-center w-16 px-2 py-1 rounded text-xs">
+                                    <button 
+                                        @click="increaseQuantity(item.id)"
+                                        class="bg-gray-600 hover:bg-gray-700 px-2 py-1 rounded text-xs">
+                                        +
+                                    </button>
+                                    <span class="text-xs text-gray-400" x-text="`Total: ${(item.buyPrice * getSelectedQuantity(item.id)).toLocaleString()} CR`"></span>
+                                </div>
+                                
+                                <button 
+                                    @click="buyFromMarket(item)"
+                                    :disabled="!canBuyItem(item)"
+                                    class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-3 py-2 rounded text-sm transition-colors">
+                                    <span x-text="getBuyButtonText(item)"></span>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                    
+                    <div x-show="getFilteredMarketItems().length === 0" class="text-gray-400 text-center py-8">
+                        No items available in this category
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Market Summary -->
+        <div class="mt-6 bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+            <h3 class="text-lg font-bold mb-4 text-purple-400">📊 Market Summary</h3>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                <div>
+                    <div class="text-2xl font-bold text-blue-400" x-text="marketItems.length"></div>
+                    <div class="text-sm text-gray-400">Items Available</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-green-400" x-text="getAverageProfit().toFixed(1) + '%'"></div>
+                    <div class="text-sm text-gray-400">Avg Profit Margin</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-yellow-400" x-text="getTotalValue().toLocaleString()"></div>
+                    <div class="text-sm text-gray-400">Total Market Value</div>
+                </div>
+                <div>
+                    <div class="text-2xl font-bold text-purple-400" x-text="availableCategories.length"></div>
+                    <div class="text-sm text-gray-400">Categories</div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function marketplaceApp() {
+            return {
+                player: {},
+                currentLocation: {},
+                marketItems: [],
+                selectedQuantities: {},
+                selectedCategory: 'all',
+                lastUpdate: Date.now(),
+                marketStatus: { text: 'Open', class: 'text-green-400' },
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize inventory and cargo capacity
+                    if (!this.player.inventory) {
+                        this.player.inventory = [];
+                    }
+                    if (!this.player.maxCargo) {
+                        this.player.maxCargo = 100; // Default cargo capacity
+                    }
+                    if (!this.player.credits) {
+                        this.player.credits = 50000;
+                    }
+                    
+                    // Get location from URL params or default to Nexus Station
+                    this.currentLocation = this.getCurrentLocation();
+                    this.loadMarketData();
+                    this.savePlayer();
+                },
+                
+                getCurrentLocation() {
+                    // In future, this would be determined by player's current coordinates
+                    // For now, default to Nexus Station
+                    return {
+                        id: 'nexus_station',
+                        name: '🏭 Nexus Station Marketplace',
+                        description: 'Central trading hub for the outer rim territories',
+                        tradeTax: 2.5,
+                        coordinates: { x: 0, y: 0, z: 0 },
+                        type: 'station'
+                    };
+                },
+                
+                loadMarketData() {
+                    // This would eventually load from server/coordinates
+                    // For now, generate dynamic market based on location
+                    this.marketItems = this.generateMarketItems();
+                    this.lastUpdate = Date.now();
+                },
+                
+                generateMarketItems() {
+                    const baseItems = [
+                        // Raw Materials
+                        { id: 'iron_ore', name: 'Iron Ore', category: 'materials', description: 'Essential metal for construction and manufacturing', weight: 2, origin: 'Asteroid Belt' },
+                        { id: 'rare_earth', name: 'Rare Earth Elements', category: 'materials', description: 'Critical components for advanced technology', weight: 1, origin: 'Deep Space Mining' },
+                        { id: 'deuterium', name: 'Deuterium Fuel', category: 'fuel', description: 'High-efficiency fusion fuel for spacecraft', weight: 0.5, origin: 'Gas Giant Refineries' },
+                        { id: 'quantum_cores', name: 'Quantum Processing Cores', category: 'technology', description: 'Advanced computational matrices for AI systems', weight: 0.1, origin: 'Tech Worlds' },
+                        
+                        // Trade Goods
+                        { id: 'luxury_textiles', name: 'Luxury Textiles', category: 'luxury', description: 'Fine fabrics from the inner systems', weight: 0.3, origin: 'Core Worlds' },
+                        { id: 'exotic_spices', name: 'Exotic Spices', category: 'consumables', description: 'Rare culinary ingredients from alien worlds', weight: 0.2, origin: 'Frontier Colonies' },
+                        { id: 'medical_supplies', name: 'Medical Supplies', category: 'consumables', description: 'Essential healthcare equipment and medicines', weight: 1, origin: 'Medical Stations' },
+                        
+                        // Weapons & Equipment
+                        { id: 'plasma_rifle', name: 'Plasma Rifle', category: 'weapons', description: 'Military-grade energy weapon', weight: 3, origin: 'Arms Dealers' },
+                        { id: 'shield_generator', name: 'Personal Shield Generator', category: 'equipment', description: 'Portable energy shield technology', weight: 2, origin: 'Defense Contractors' },
+                        
+                        // Alien Artifacts
+                        { id: 'precursor_relic', name: 'Precursor Relic', category: 'artifacts', description: 'Mysterious ancient technology of unknown origin', weight: 0.5, origin: 'Archaeological Sites' },
+                        { id: 'crystal_matrix', name: 'Energy Crystal Matrix', category: 'artifacts', description: 'Crystalline formations that store massive amounts of energy', weight: 1, origin: 'Crystal Caves' }
+                    ];
+                    
+                    return baseItems.map(item => {
+                        const basePrice = this.getBasePriceForItem(item);
+                        const priceTrend = ['up', 'down', 'stable'][Math.floor(Math.random() * 3)];
+                        const trendMultiplier = priceTrend === 'up' ? 1.2 : priceTrend === 'down' ? 0.8 : 1.0;
+                        
+                        return {
+                            ...item,
+                            buyPrice: Math.floor(basePrice * trendMultiplier),
+                            sellPrice: Math.floor(basePrice * trendMultiplier * 0.7), // 70% of buy price
+                            stock: Math.floor(Math.random() * 50) + 10,
+                            priceTrend: priceTrend
+                        };
+                    });
+                },
+                
+                getBasePriceForItem(item) {
+                    const basePrices = {
+                        'materials': 500,
+                        'fuel': 800,
+                        'technology': 2000,
+                        'luxury': 1500,
+                        'consumables': 300,
+                        'weapons': 5000,
+                        'equipment': 3000,
+                        'artifacts': 10000
+                    };
+                    return basePrices[item.category] || 1000;
+                },
+                
+                get availableCategories() {
+                    const categories = [...new Set(this.marketItems.map(item => item.category))];
+                    return categories.sort();
+                },
+                
+                getFilteredMarketItems() {
+                    if (this.selectedCategory === 'all') {
+                        return this.marketItems;
+                    }
+                    return this.marketItems.filter(item => item.category === this.selectedCategory);
+                },
+                
+                getSelectedQuantity(itemId) {
+                    return this.selectedQuantities[itemId] || 1;
+                },
+                
+                setQuantity(itemId, quantity) {
+                    this.selectedQuantities[itemId] = Math.max(1, parseInt(quantity) || 1);
+                },
+                
+                increaseQuantity(itemId) {
+                    const current = this.getSelectedQuantity(itemId);
+                    const item = this.marketItems.find(i => i.id === itemId);
+                    const maxAffordable = Math.floor(this.player.credits / item.buyPrice);
+                    const max = Math.min(item.stock, maxAffordable);
+                    
+                    if (current < max) {
+                        this.selectedQuantities[itemId] = current + 1;
+                    }
+                },
+                
+                decreaseQuantity(itemId) {
+                    const current = this.getSelectedQuantity(itemId);
+                    if (current > 1) {
+                        this.selectedQuantities[itemId] = current - 1;
+                    }
+                },
+                
+                canBuyItem(item) {
+                    const quantity = this.getSelectedQuantity(item.id);
+                    const totalCost = item.buyPrice * quantity;
+                    const totalWeight = (item.weight || 1) * quantity;
+                    
+                    return this.player.credits >= totalCost && 
+                           item.stock >= quantity &&
+                           (this.getCurrentCargoWeight() + totalWeight) <= this.player.maxCargo;
+                },
+                
+                canSellItem(item) {
+                    return item.quantity > 0;
+                },
+                
+                getBuyButtonText(item) {
+                    if (item.stock === 0) return 'Out of Stock';
+                    if (this.player.credits < item.buyPrice) return 'Insufficient Credits';
+                    
+                    const quantity = this.getSelectedQuantity(item.id);
+                    const totalWeight = (item.weight || 1) * quantity;
+                    
+                    if ((this.getCurrentCargoWeight() + totalWeight) > this.player.maxCargo) {
+                        return 'Cargo Full';
+                    }
+                    
+                    return `Buy ${quantity}x`;
+                },
+                
+                getCurrentCargoWeight() {
+                    return this.player.inventory.reduce((total, item) => {
+                        return total + ((item.weight || 1) * item.quantity);
+                    }, 0);
+                },
+                
+                getMarketPrice(itemId, type) {
+                    const marketItem = this.marketItems.find(item => item.id === itemId);
+                    if (!marketItem) return 0;
+                    return type === 'sell' ? marketItem.sellPrice : marketItem.buyPrice;
+                },
+                
+                getPriceTrendClass(trend) {
+                    return trend === 'up' ? 'price-trend-up' : 
+                           trend === 'down' ? 'price-trend-down' : 'price-trend-stable';
+                },
+                
+                getPriceTrendSymbol(trend) {
+                    return trend === 'up' ? '↗' : trend === 'down' ? '↙' : '→';
+                },
+                
+                buyFromMarket(item) {
+                    if (!this.canBuyItem(item)) return;
+                    
+                    const quantity = this.getSelectedQuantity(item.id);
+                    const totalCost = item.buyPrice * quantity;
+                    const tax = Math.floor(totalCost * (this.currentLocation.tradeTax || 0) / 100);
+                    const finalCost = totalCost + tax;
+                    
+                    // Deduct credits
+                    this.player.credits -= finalCost;
+                    
+                    // Reduce market stock
+                    item.stock -= quantity;
+                    
+                    // Add to inventory
+                    const existingItem = this.player.inventory.find(invItem => invItem.id === item.id);
+                    if (existingItem) {
+                        existingItem.quantity += quantity;
+                    } else {
+                        this.player.inventory.push({
+                            id: item.id,
+                            name: item.name,
+                            description: item.description,
+                            quantity: quantity,
+                            weight: item.weight || 1,
+                            category: item.category
+                        });
+                    }
+                    
+                    // Reset quantity selector
+                    this.selectedQuantities[item.id] = 1;
+                    
+                    this.savePlayer();
+                    this.showNotification(`Purchased ${quantity}x ${item.name} for ${finalCost.toLocaleString()} CR`, 'success');
+                },
+                
+                sellToMarket(item) {
+                    if (!this.canSellItem(item)) return;
+                    
+                    const marketItem = this.marketItems.find(mItem => mItem.id === item.id);
+                    if (!marketItem) {
+                        this.showNotification('This item is not accepted at this market', 'error');
+                        return;
+                    }
+                    
+                    const sellPrice = marketItem.sellPrice;
+                    const tax = Math.floor(sellPrice * (this.currentLocation.tradeTax || 0) / 100);
+                    const finalPrice = sellPrice - tax;
+                    
+                    // Add credits
+                    this.player.credits += finalPrice;
+                    
+                    // Increase market stock
+                    marketItem.stock += 1;
+                    
+                    // Remove from inventory
+                    if (item.quantity > 1) {
+                        item.quantity -= 1;
+                    } else {
+                        const index = this.player.inventory.findIndex(invItem => invItem.id === item.id);
+                        this.player.inventory.splice(index, 1);
+                    }
+                    
+                    this.savePlayer();
+                    this.showNotification(`Sold ${item.name} for ${finalPrice.toLocaleString()} CR`, 'success');
+                },
+                
+                refreshMarket() {
+                    this.loadMarketData();
+                    this.showNotification('Market data refreshed', 'success');
+                },
+                
+                getAverageProfit() {
+                    if (this.marketItems.length === 0) return 0;
+                    const totalProfit = this.marketItems.reduce((sum, item) => {
+                        return sum + ((item.sellPrice - item.buyPrice) / item.buyPrice * 100);
+                    }, 0);
+                    return totalProfit / this.marketItems.length;
+                },
+                
+                getTotalValue() {
+                    return this.marketItems.reduce((sum, item) => {
+                        return sum + (item.buyPrice * item.stock);
+                    }, 0);
+                },
+                
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString();
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        style: {
+                            background: type === 'success' ? "#10B981" : "#EF4444"
+                        }
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

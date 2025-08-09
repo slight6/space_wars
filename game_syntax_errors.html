@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Nexus Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .dropdown-menu {
+            display: none;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown:hover .dropdown-menu {
+            display: block;
+        }
+        .scanner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="stationApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold">🚀 Nexus Station - <span x-text="player.currentLocation || 'Main Deck'"></span></h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Status Bar -->
+    <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-4 text-sm">
+            <div class="flex flex-wrap items-center gap-6">
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Pilot:</span>
+                    <span class="text-blue-400 font-semibold" x-text="player.username"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Ship:</span>
+                    <span class="text-green-400" x-text="player.currentShip || 'Standard Explorer'"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Hull:</span>
+                    <span class="text-cyan-400" x-text="`${player.hullIntegrity || 100}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Shields:</span>
+                    <span class="text-purple-400" x-text="`${player.shieldStrength || 100}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Fuel:</span>
+                    <span class="text-orange-400" x-text="`${player.fuel || 67}%`"></span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-400">Power:</span>
+                    <span class="text-red-400" x-text="`${player.powerLevel || 89}%`"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel - Navigation Dropdowns -->
+            <div class="lg:col-span-1 space-y-4">
+                
+                <!-- Ship Information Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipInfo')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-blue-400">🚀 Ship Information</span>
+                            <span x-text="dropdowns.shipInfo ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipInfo" class="dropdown-menu border-t border-gray-700">
+                            <a href="#" @click.prevent="showCargoManifest()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Manifest</a>
+                            <a href="#" @click.prevent="showCrewInfo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 Crew Information</a>
+                            <a href="#" @click.prevent="showUpgrades()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ List Upgrades</a>
+                            <a href="#" @click.prevent="showShipLogs()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Ship Logs</a>
+                            <a href="inventory.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Complete Ship Status</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship Options Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipOptions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-cyan-400">⚙️ Ship Options</span>
+                            <span x-text="dropdowns.shipOptions ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipOptions" class="dropdown-menu border-t border-gray-700">
+                            <a href="#" @click.prevent="configureWeapons()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Weapons Systems</a>
+                            <a href="#" @click.prevent="configureCargo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Options</a>
+                            <a href="#" @click.prevent="configureShields()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛡️ Shields & Defense</a>
+                            <a href="#" @click.prevent="configureCommunications()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Communications</a>
+                            <a href="#" @click.prevent="configureLifeSupport()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Life Support</a>
+                            <a href="#" @click.prevent="configureCloaking()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👻 Cloaking Device</a>
+                            <a href="#" @click.prevent="configureNanobots()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔧 Auto-Repair Nanobots</a>
+                            <a href="#" @click.prevent="configureGravity()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌍 Gravity Generator</a>
+                            <a href="#" @click.prevent="configureSensors()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Sensor Range</a>
+                            <a href="#" @click.prevent="configureBlackMarket()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🕳️ Hidden Compartment</a>
+                            <div class="border-t border-gray-600 mt-2 pt-2">
+                                <a href="#" @click.prevent="manageLoadouts()" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-yellow-400">⚡ Manage Loadouts</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ship Actions Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipActions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-green-400">🎯 Ship Actions</span>
+                            <span x-text="dropdowns.shipActions ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipActions" class="dropdown-menu border-t border-gray-700">
+                            <div class="px-4 py-2 text-xs text-gray-400 font-semibold">SCANNER OPTIONS</div>
+                            <a href="#" @click.prevent="useSpatialScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌌 Spatial Scanners</a>
+                            <a href="#" @click.prevent="useSurfaceScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏔️ Surface Scanners</a>
+                            <a href="#" @click.prevent="useProspectingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Prospecting Scanners</a>
+                            <a href="#" @click.prevent="useSkimmingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Skimming Scanners</a>
+                            <a href="#" @click.prevent="useShipScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Ship Scanners</a>
+                            <div class="border-t border-gray-600 mt-2 pt-2">
+                                <div class="px-4 py-2 text-xs text-gray-400 font-semibold">OPERATIONS</div>
+                                <a href="#" @click.prevent="manageMovement()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Movement Options</a>
+                                <a href="#" @click.prevent="manageFuelPower()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ Fuel & Power</a>
+                                <a href="#" @click.prevent="manageMining()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Mining Operations</a>
+                                <a href="torpedo-launch.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🚀 Torpedo Launch</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Station Locations Dropdown -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('stationLocations')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-purple-400">🏢 Station Locations</span>
+                            <span x-text="dropdowns.stationLocations ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.stationLocations" class="dropdown-menu border-t border-gray-700">
+                            <a href="shipyard.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Shipyard</a>
+                            <a href="#" @click.prevent="visitEquipmentCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Equipment Center</a>
+                            <a href="marketplace.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Marketplace</a>
+                            <a href="trade-center.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏦 Trading Zone</a>
+                            <a href="#" @click.prevent="visitTavern()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🍺 Tavern</a>
+                            <a href="#" @click.prevent="visitGovernment()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Government Services</a>
+                            <a href="specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 State Specialists</a>
+                            <a href="system-map.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🗺️ Local Maps</a>
+                            <a href="#" @click.prevent="checkNews()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📰 Local News</a>
+                            <a href="mission-log.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Mission Log</a>
+                            <a href="#" @click.prevent="visitManufacturing()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Manufacturing</a>
+                            <a href="#" @click.prevent="visitResearch()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔬 Research Lab</a>
+                            <a href="#" @click.prevent="visitAgriculture()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌱 Agricultural Center</a>
+                            <a href="#" @click.prevent="visitMuseum()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Museum</a>
+                            <a href="#" @click.prevent="visitTemple()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛪ Temple of the Dog</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="lg:col-span-3">
+                <!-- Current View Display -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
+                    <h2 class="text-xl font-bold mb-4" x-text="currentView.title"></h2>
+                    <div x-html="currentView.content"></div>
+                </div>
+
+                <!-- Scanner Results (when applicable) -->
+                <div x-show="scannerResults.visible" class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h3 class="text-lg font-bold mb-4 text-cyan-400">📡 Scanner Results</h3>
+                    <div x-html="scannerResults.data"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function stationApp() {
+            return {
+                player: {},
+                dropdowns: {
+                    shipInfo: false,
+                    shipOptions: false,
+                    shipActions: false,
+                    stationLocations: false
+                },
+                currentView: {
+                    title: 'Welcome to Nexus Station',
+                    content: `
+                        <div class="space-y-4">
+                            <p class="text-gray-300">Welcome aboard Nexus Station, the central hub of the Keldar system. Use the navigation panel on the left to access different areas of your ship and the station.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">🚀 Ship Status</h4>
+                                    <p class="text-sm text-gray-300">Your ship is docked and ready for operations. All systems are nominal.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">📡 Station Services</h4>
+                                    <p class="text-sm text-gray-300">Full station services are available including trading, repairs, and research.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">🌍 Local Area</h4>
+                                    <p class="text-sm text-gray-300">Keldar system - Prime star system with multiple explorable locations.</p>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚡ Quick Actions</h4>
+                                    <p class="text-sm text-gray-300">Access scanners, configure ship systems, or visit station locations.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `
+                },
+                scannerResults: {
+                    visible: false,
+                    data: ''
+                },
+                shipLoadouts: {
+                    current: 'standard',
+                    configurations: {
+                        standard: {
+                            name: 'Standard Operations',
+                            weapons: { primary: 'pulse_laser', secondary: 'none' },
+                            shields: { frequency: 'standard', power: 75 },
+                            cloaking: { enabled: false, power: 0 },
+                            sensors: { range: 'medium', boost: false },
+                            lifesupport: { power: 100, efficiency: 'normal' },
+                            nanobots: { enabled: true, repair_rate: 'slow' },
+                            gravity: { level: 1.0, power: 50 },
+                            cargo: { security: 'basic', capacity: 100 },
+                            communications: { range: 'system', encryption: 'basic' },
+                            blackmarket: { enabled: false, capacity: 0 }
+                        },
+                        combat: {
+                            name: 'Combat Ready',
+                            weapons: { primary: 'pulse_cannon', secondary: 'missiles' },
+                            shields: { frequency: 'adaptive', power: 100 },
+                            cloaking: { enabled: true, power: 30 },
+                            sensors: { range: 'long', boost: true },
+                            lifesupport: { power: 80, efficiency: 'combat' },
+                            nanobots: { enabled: true, repair_rate: 'fast' },
+                            gravity: { level: 0.8, power: 40 },
+                            cargo: { security: 'military', capacity: 80 },
+                            communications: { range: 'intersystem', encryption: 'military' },
+                            blackmarket: { enabled: false, capacity: 0 }
+                        },
+                        stealth: {
+                            name: 'Stealth Operations',
+                            weapons: { primary: 'silent_laser', secondary: 'emp_mines' },
+                            shields: { frequency: 'low_emission', power: 50 },
+                            cloaking: { enabled: true, power: 60 },
+                            sensors: { range: 'passive', boost: false },
+                            lifesupport: { power: 60, efficiency: 'silent' },
+                            nanobots: { enabled: false, repair_rate: 'off' },
+                            gravity: { level: 0.6, power: 30 },
+                            cargo: { security: 'encrypted', capacity: 60 },
+                            communications: { range: 'short', encryption: 'quantum' },
+                            blackmarket: { enabled: true, capacity: 20 }
+                        }
+                    }
+                },
+
+                init() {
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    this.initializePlayerDefaults();
+                    this.savePlayer();
+                },
+
+                initializePlayerDefaults() {
+                    if (!this.player.currentShip) this.player.currentShip = 'Standard Explorer';
+                    if (!this.player.hullIntegrity) this.player.hullIntegrity = 100;
+                    if (!this.player.shieldStrength) this.player.shieldStrength = 100;
+                    if (!this.player.fuel) this.player.fuel = 67;
+                    if (!this.player.powerLevel) this.player.powerLevel = 89;
+                    if (!this.player.currentLocation) this.player.currentLocation = 'Main Deck';
+                },
+
+                toggleDropdown(dropdown) {
+                    this.dropdowns[dropdown] = !this.dropdowns[dropdown];
+                },
+
+                // Ship Information Functions
+                showCargoManifest() {
+                    this.currentView = {
+                        title: '📦 Cargo Manifest',
+                        content: this.generateCargoManifest()
+                    };
+                },
+
+                showCrewInfo() {
+                    this.currentView = {
+                        title: '👥 Crew Information',
+                        content: this.generateCrewInfo()
+                    };
+                },
+
+                showUpgrades() {
+                    this.currentView = {
+                        title: '⚡ Ship Upgrades',
+                        content: this.generateUpgradesList()
+                    };
+                },
+
+                showShipLogs() {
+                    this.currentView = {
+                        title: '📋 Ship Logs',
+                        content: this.generateShipLogs()
+                    };
+                },
+
+                // Ship Options Configuration Functions
+                configureWeapons() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '⚔️ Weapons Systems Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-3">Current Weapons Configuration</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Primary Weapon</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="pulse_laser" ${currentLoadout.weapons.primary === 'pulse_laser' ? 'selected' : ''}>Pulse Laser</option>
+                                                <option value="pulse_cannon" ${currentLoadout.weapons.primary === 'pulse_cannon' ? 'selected' : ''}>Pulse Cannon</option>
+                                                <option value="plasma_rifle" ${currentLoadout.weapons.primary === 'plasma_rifle' ? 'selected' : ''}>Plasma Rifle</option>
+                                                <option value="silent_laser" ${currentLoadout.weapons.primary === 'silent_laser' ? 'selected' : ''}>Silent Laser</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Secondary Weapon</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="none" ${currentLoadout.weapons.secondary === 'none' ? 'selected' : ''}>None</option>
+                                                <option value="missiles" ${currentLoadout.weapons.secondary === 'missiles' ? 'selected' : ''}>Missile Pod</option>
+                                                <option value="emp_mines" ${currentLoadout.weapons.secondary === 'emp_mines' ? 'selected' : ''}>EMP Mines</option>
+                                                <option value="torpedo_launcher" ${currentLoadout.weapons.secondary === 'torpedo_launcher' ? 'selected' : ''}>Torpedo Launcher</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <button onclick="stationApp().applyWeaponsConfig()" class="mt-4 bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm">Apply Configuration</button>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-2">Weapon Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Primary Weapon: <span class="text-green-400">${currentLoadout.weapons.primary.replace('_', ' ').toUpperCase()}</span></p>
+                                        <p>• Secondary Weapon: <span class="text-green-400">${currentLoadout.weapons.secondary.replace('_', ' ').toUpperCase()}</span></p>
+                                        <p>• Targeting System: <span class="text-green-400">ONLINE</span></p>
+                                        <p>• Fire Control: <span class="text-green-400">READY</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCargo() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '📦 Cargo Options Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">Cargo Bay Configuration</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Security Level</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="basic" ${currentLoadout.cargo.security === 'basic' ? 'selected' : ''}>Basic Security</option>
+                                                <option value="enhanced" ${currentLoadout.cargo.security === 'enhanced' ? 'selected' : ''}>Enhanced Security</option>
+                                                <option value="military" ${currentLoadout.cargo.security === 'military' ? 'selected' : ''}>Military Grade</option>
+                                                <option value="encrypted" ${currentLoadout.cargo.security === 'encrypted' ? 'selected' : ''}>Quantum Encrypted</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Cargo Capacity</label>
+                                            <input type="range" min="50" max="150" value="${currentLoadout.cargo.capacity}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.cargo.capacity} units</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">Cargo Bay Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Used: <span class="text-yellow-400">${this.player.cargoUsed || 0}/${currentLoadout.cargo.capacity}</span></p>
+                                        <p>• Security: <span class="text-green-400">${currentLoadout.cargo.security.toUpperCase()}</span></p>
+                                        <p>• Temperature Control: <span class="text-green-400">ACTIVE</span></p>
+                                        <p>• Atmosphere: <span class="text-green-400">STABLE</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureShields() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '🛡️ Shields & Defense Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-3">Shield Configuration</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Shield Frequency</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="standard" ${currentLoadout.shields.frequency === 'standard' ? 'selected' : ''}>Standard</option>
+                                                <option value="adaptive" ${currentLoadout.shields.frequency === 'adaptive' ? 'selected' : ''}>Adaptive</option>
+                                                <option value="low_emission" ${currentLoadout.shields.frequency === 'low_emission' ? 'selected' : ''}>Low Emission</option>
+                                                <option value="resonant" ${currentLoadout.shields.frequency === 'resonant' ? 'selected' : ''}>Resonant</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Power Level</label>
+                                            <input type="range" min="25" max="100" value="${currentLoadout.shields.power}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.shields.power}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Shield Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Integrity: <span class="text-green-400">${this.player.shieldStrength || 100}%</span></p>
+                                        <p>• Frequency: <span class="text-green-400">${currentLoadout.shields.frequency.replace('_', ' ').toUpperCase()}</span></p>
+                                        <p>• Harmonics: <span class="text-green-400">STABLE</span></p>
+                                        <p>• Regeneration: <span class="text-green-400">ACTIVE</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCommunications() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '📡 Communications Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-3">Communication Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Range</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="short" ${currentLoadout.communications.range === 'short' ? 'selected' : ''}>Short Range</option>
+                                                <option value="system" ${currentLoadout.communications.range === 'system' ? 'selected' : ''}>System Wide</option>
+                                                <option value="intersystem" ${currentLoadout.communications.range === 'intersystem' ? 'selected' : ''}>Inter-System</option>
+                                                <option value="galactic" ${currentLoadout.communications.range === 'galactic' ? 'selected' : ''}>Galactic</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Encryption Level</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="basic" ${currentLoadout.communications.encryption === 'basic' ? 'selected' : ''}>Basic</option>
+                                                <option value="enhanced" ${currentLoadout.communications.encryption === 'enhanced' ? 'selected' : ''}>Enhanced</option>
+                                                <option value="military" ${currentLoadout.communications.encryption === 'military' ? 'selected' : ''}>Military</option>
+                                                <option value="quantum" ${currentLoadout.communications.encryption === 'quantum' ? 'selected' : ''}>Quantum</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureLifeSupport() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '💨 Life Support System Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">Life Support Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Power Allocation</label>
+                                            <input type="range" min="50" max="100" value="${currentLoadout.lifesupport.power}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.lifesupport.power}%</div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Efficiency Mode</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="normal" ${currentLoadout.lifesupport.efficiency === 'normal' ? 'selected' : ''}>Normal</option>
+                                                <option value="efficient" ${currentLoadout.lifesupport.efficiency === 'efficient' ? 'selected' : ''}>Efficient</option>
+                                                <option value="combat" ${currentLoadout.lifesupport.efficiency === 'combat' ? 'selected' : ''}>Combat Ready</option>
+                                                <option value="silent" ${currentLoadout.lifesupport.efficiency === 'silent' ? 'selected' : ''}>Silent Running</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Environmental Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Oxygen: <span class="text-green-400">21.3%</span></p>
+                                        <p>• Temperature: <span class="text-green-400">22°C</span></p>
+                                        <p>• Pressure: <span class="text-green-400">101.3 kPa</span></p>
+                                        <p>• Air Quality: <span class="text-green-400">EXCELLENT</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureCloaking() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '👻 Cloaking Device Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-3">Cloaking Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Cloaking Status</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="checkbox" ${currentLoadout.cloaking.enabled ? 'checked' : ''} class="form-checkbox">
+                                                <span class="text-sm">${currentLoadout.cloaking.enabled ? 'ENABLED' : 'DISABLED'}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Power Usage</label>
+                                            <input type="range" min="0" max="80" value="${currentLoadout.cloaking.power}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.cloaking.power}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Cloaking Warning</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>Cloaking device consumes significant power. Extended use may affect other ship systems.</p>
+                                        <p class="mt-2">Current Status: <span class="text-${currentLoadout.cloaking.enabled ? 'red' : 'green'}-400">${currentLoadout.cloaking.enabled ? 'CLOAKED' : 'VISIBLE'}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureNanobots() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '🔧 Auto-Repair Nanobots Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-3">Nanobot Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">System Status</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="checkbox" ${currentLoadout.nanobots.enabled ? 'checked' : ''} class="form-checkbox">
+                                                <span class="text-sm">${currentLoadout.nanobots.enabled ? 'ACTIVE' : 'STANDBY'}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Repair Rate</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="off" ${currentLoadout.nanobots.repair_rate === 'off' ? 'selected' : ''}>Off</option>
+                                                <option value="slow" ${currentLoadout.nanobots.repair_rate === 'slow' ? 'selected' : ''}>Slow</option>
+                                                <option value="normal" ${currentLoadout.nanobots.repair_rate === 'normal' ? 'selected' : ''}>Normal</option>
+                                                <option value="fast" ${currentLoadout.nanobots.repair_rate === 'fast' ? 'selected' : ''}>Fast</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Repair Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Hull Integrity: <span class="text-green-400">${this.player.hullIntegrity || 100}%</span></p>
+                                        <p>• Nanobots Active: <span class="text-green-400">${currentLoadout.nanobots.enabled ? 'YES' : 'NO'}</span></p>
+                                        <p>• Repair Queue: <span class="text-green-400">EMPTY</span></p>
+                                        <p>• Material Reserves: <span class="text-yellow-400">78%</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureGravity() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '🌍 Gravity Field Generator Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-3">Artificial Gravity Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Gravity Level</label>
+                                            <input type="range" min="0.1" max="2.0" step="0.1" value="${currentLoadout.gravity.level}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.gravity.level}G</div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Power Usage</label>
+                                            <input type="range" min="20" max="80" value="${currentLoadout.gravity.power}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.gravity.power}%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Gravity Field Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Field Strength: <span class="text-green-400">${currentLoadout.gravity.level}G</span></p>
+                                        <p>• Field Stability: <span class="text-green-400">STABLE</span></p>
+                                        <p>• Generator Health: <span class="text-green-400">OPTIMAL</span></p>
+                                        <p>• Crew Comfort: <span class="text-green-400">NORMAL</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureSensors() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '📡 Sensor Range Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-3">Sensor Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Sensor Range</label>
+                                            <select class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2">
+                                                <option value="short" ${currentLoadout.sensors.range === 'short' ? 'selected' : ''}>Short Range</option>
+                                                <option value="medium" ${currentLoadout.sensors.range === 'medium' ? 'selected' : ''}>Medium Range</option>
+                                                <option value="long" ${currentLoadout.sensors.range === 'long' ? 'selected' : ''}>Long Range</option>
+                                                <option value="passive" ${currentLoadout.sensors.range === 'passive' ? 'selected' : ''}>Passive Only</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Range Boost</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="checkbox" ${currentLoadout.sensors.boost ? 'checked' : ''} class="form-checkbox">
+                                                <span class="text-sm">${currentLoadout.sensors.boost ? 'ACTIVE' : 'INACTIVE'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Sensor Array Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Array Status: <span class="text-green-400">ONLINE</span></p>
+                                        <p>• Detection Range: <span class="text-green-400">${currentLoadout.sensors.range.toUpperCase()}</span></p>
+                                        <p>• Signal Clarity: <span class="text-green-400">EXCELLENT</span></p>
+                                        <p>• Interference: <span class="text-green-400">MINIMAL</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                configureBlackMarket() {
+                    const currentLoadout = this.shipLoadouts.configurations[this.shipLoadouts.current];
+                    this.currentView = {
+                        title: '🕳️ Hidden Compartment Configuration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-red-600">
+                                    <h4 class="font-semibold text-red-400 mb-3">⚠️ CLASSIFIED SYSTEM</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Compartment Status</label>
+                                            <div class="flex items-center space-x-2">
+                                                <input type="checkbox" ${currentLoadout.blackmarket.enabled ? 'checked' : ''} class="form-checkbox">
+                                                <span class="text-sm">${currentLoadout.blackmarket.enabled ? 'ENABLED' : 'DISABLED'}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Storage Capacity</label>
+                                            <input type="range" min="0" max="50" value="${currentLoadout.blackmarket.capacity}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${currentLoadout.blackmarket.capacity} units</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Security Warning</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p class="text-red-400">WARNING: Hidden compartments may trigger security alerts during inspections.</p>
+                                        <p class="mt-2">Compartment Status: <span class="text-${currentLoadout.blackmarket.enabled ? 'red' : 'green'}-400">${currentLoadout.blackmarket.enabled ? 'ACTIVE' : 'SEALED'}</span></p>
+                                        <p>Detection Risk: <span class="text-yellow-400">${currentLoadout.blackmarket.enabled ? 'MODERATE' : 'NONE'}</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageLoadouts() {
+                    this.currentView = {
+                        title: '⚡ Loadout Management',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-3">Ship Configuration Presets</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        ${Object.entries(this.shipLoadouts.configurations).map(([key, config]) => `
+                                            <div class="bg-gray-700 p-4 rounded border ${this.shipLoadouts.current === key ? 'border-yellow-400' : 'border-gray-600'}">
+                                                <h5 class="font-semibold text-white mb-2">${config.name}</h5>
+                                                <div class="text-xs text-gray-400 space-y-1">
+                                                    <p>Weapons: ${config.weapons.primary}</p>
+                                                    <p>Shields: ${config.shields.power}%</p>
+                                                    <p>Cloaking: ${config.cloaking.enabled ? 'ON' : 'OFF'}</p>
+                                                </div>
+                                                <button onclick="stationApp().switchLoadout('${key}')" 
+                                                    class="w-full mt-3 px-3 py-1 rounded text-sm ${this.shipLoadouts.current === key ? 'bg-yellow-600' : 'bg-blue-600 hover:bg-blue-700'}">
+                                                    ${this.shipLoadouts.current === key ? 'ACTIVE' : 'SELECT'}
+                                                </button>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Current Configuration: ${this.shipLoadouts.configurations[this.shipLoadouts.current].name}</h4>
+                                    <div class="text-sm text-gray-300 grid grid-cols-2 gap-2">
+                                        <p>Primary Weapon: <span class="text-green-400">${this.shipLoadouts.configurations[this.shipLoadouts.current].weapons.primary}</span></p>
+                                        <p>Shield Power: <span class="text-cyan-400">${this.shipLoadouts.configurations[this.shipLoadouts.current].shields.power}%</span></p>
+                                        <p>Cloaking: <span class="text-purple-400">${this.shipLoadouts.configurations[this.shipLoadouts.current].cloaking.enabled ? 'ENABLED' : 'DISABLED'}</span></p>
+                                        <p>Gravity: <span class="text-blue-400">${this.shipLoadouts.configurations[this.shipLoadouts.current].gravity.level}G</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                switchLoadout(loadoutKey) {
+                    this.shipLoadouts.current = loadoutKey;
+                    this.showNotification(`Switched to ${this.shipLoadouts.configurations[loadoutKey].name} configuration`, 'success');
+                    this.manageLoadouts(); // Refresh the display
+                },
+                useSpatialScanner() {
+                    this.currentView = {
+                        title: '🌌 Spatial Scanner Active',
+                        content: '<p class="text-gray-300">Initializing spatial scanner array...</p>'
+                    };
+                    this.performSpatialScan();
+                },
+
+                useSurfaceScanner() {
+                    this.currentView = {
+                        title: '🏔️ Surface Scanner Active',
+                        content: '<p class="text-gray-300">Surface scanning requires proximity to a planetary body.</p>'
+                    };
+                },
+
+                useProspectingScanner() {
+                    this.currentView = {
+                        title: '⛏️ Prospecting Scanner Active',
+                        content: '<p class="text-gray-300">Prospecting scanner ready. Target a mineral-rich location.</p>'
+                    };
+                },
+
+                useSkimmingScanner() {
+                    this.currentView = {
+                        title: '💨 Skimming Scanner Active',
+                        content: '<p class="text-gray-300">Atmospheric skimming scanner online. Detecting gaseous resources.</p>'
+                    };
+                },
+
+                useShipScanner() {
+                    this.currentView = {
+                        title: '🚀 Ship Scanner Active',
+                        content: '<p class="text-gray-300">No other ships detected in immediate vicinity.</p>'
+                    };
+                },
+
+                performSpatialScan() {
+                    setTimeout(() => {
+                        this.scannerResults = {
+                            visible: true,
+                            data: `
+                                <div class="space-y-4">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-blue-400 mb-2">🌟 Prime (Main Star)</h4>
+                                            <p class="text-sm text-gray-300">G2V-class star, stable fusion reactions detected</p>
+                                            <p class="text-xs text-gray-400">Distance: 0.8 AU</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-green-400 mb-2">🌍 Keldar (Primary Planet)</h4>
+                                            <p class="text-sm text-gray-300">Large terrestrial world, breathable atmosphere</p>
+                                            <p class="text-xs text-gray-400">3 moons detected</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-purple-400 mb-2">🛰️ Orbital Platforms</h4>
+                                            <p class="text-sm text-gray-300">Multiple artificial satellites and stations</p>
+                                            <p class="text-xs text-gray-400">Including current location: Nexus Station</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-orange-400 mb-2">⚡ Energy Signatures</h4>
+                                            <p class="text-sm text-gray-300">Industrial activity detected planetside</p>
+                                            <p class="text-xs text-gray-400">Multiple power sources identified</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        };
+                },
+
+                // Ship Action Functions
+                manageMovement() {
+                    this.currentView = {
+                        title: '🚀 Movement Options',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">Navigation Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🚀 Impulse Drive</div>
+                                            <div class="text-sm text-gray-300">Sub-light speed travel</div>
+                                        </button>
+                                        <button class="bg-purple-600 hover:bg-purple-700 p-3 rounded text-left">
+                                            <div class="font-semibold">⚡ Warp Drive</div>
+                                            <div class="text-sm text-gray-300">Faster-than-light travel</div>
+                                        </button>
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🏠 Docking Procedures</div>
+                                            <div class="text-sm text-gray-300">Station/ship docking</div>
+                                        </button>
+                                        <button class="bg-orange-600 hover:bg-orange-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🌌 Deep Space</div>
+                                            <div class="text-sm text-gray-300">Interstellar navigation</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Current Position</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Location: <span class="text-yellow-400">Nexus Station, Keldar System</span></p>
+                                        <p>• Coordinates: <span class="text-cyan-400">X: 1250, Y: 890, Z: 340</span></p>
+                                        <p>• Orbital Velocity: <span class="text-green-400">2.1 km/s</span></p>
+                                        <p>• Status: <span class="text-green-400">DOCKED</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageFuelPower() {
+                    this.currentView = {
+                        title: '⚡ Fuel & Power Management',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-3">Power Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Main Reactor Output</label>
+                                            <input type="range" min="25" max="100" value="${this.player.powerLevel || 89}" class="w-full">
+                                            <div class="text-sm text-gray-400 mt-1">Current: ${this.player.powerLevel || 89}%</div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm text-gray-400 mb-2">Emergency Reserves</label>
+                                            <div class="text-lg font-mono text-green-400">78%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">Fuel Systems</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="text-center">
+                                            <div class="text-2xl font-mono text-orange-400">${this.player.fuel || 67}%</div>
+                                            <div class="text-sm text-gray-400">Main Fuel</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl font-mono text-purple-400">45%</div>
+                                            <div class="text-sm text-gray-400">Warp Fuel</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl font-mono text-green-400">89%</div>
+                                            <div class="text-sm text-gray-400">Maneuvering</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-2">Power Distribution</h4>
+                                    <div class="text-sm text-gray-300 space-y-1">
+                                        <div class="flex justify-between"><span>Life Support:</span><span class="text-green-400">35%</span></div>
+                                        <div class="flex justify-between"><span>Shields:</span><span class="text-cyan-400">20%</span></div>
+                                        <div class="flex justify-between"><span>Engines:</span><span class="text-blue-400">15%</span></div>
+                                        <div class="flex justify-between"><span>Sensors:</span><span class="text-purple-400">10%</span></div>
+                                        <div class="flex justify-between"><span>Weapons:</span><span class="text-red-400">8%</span></div>
+                                        <div class="flex justify-between"><span>Other Systems:</span><span class="text-gray-400">12%</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                manageMining() {
+                    this.currentView = {
+                        title: '⛏️ Mining Operations',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-3">Mining Equipment</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Mining Laser</div>
+                                            <div class="text-sm text-gray-400">Not Installed</div>
+                                        </button>
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Cargo Drones</div>
+                                            <div class="text-sm text-gray-400">Not Available</div>
+                                        </button>
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Refinery Module</div>
+                                            <div class="text-sm text-gray-400">Not Installed</div>
+                                        </button>
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Survey Scanner</div>
+                                            <div class="text-sm text-gray-400">Not Available</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Mining Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Equipment Status: <span class="text-red-400">OFFLINE</span></p>
+                                        <p>• Target Selected: <span class="text-gray-400">NONE</span></p>
+                                        <p>• Operation Status: <span class="text-gray-400">INACTIVE</span></p>
+                                        <p class="mt-3 text-yellow-400">ℹ️ Visit the Shipyard to purchase mining equipment</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Station Location Functions
+                visitEquipmentCenter() {
+                    this.currentView = {
+                        title: '⚔️ Equipment Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-3">Weapons & Combat Equipment</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <div class="font-semibold">Pulse Rifles</div>
+                                            <div class="text-sm text-gray-400">Personal defense weapons</div>
+                                            <div class="text-yellow-400 text-sm mt-1">2,500 CR</div>
+                                        </div>
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <div class="font-semibold">Combat Armor</div>
+                                            <div class="text-sm text-gray-400">Protective suits</div>
+                                            <div class="text-yellow-400 text-sm mt-1">5,000 CR</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-3">Tools & Utilities</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <div class="font-semibold">Multi-tool</div>
+                                            <div class="text-sm text-gray-400">Versatile utility device</div>
+                                            <div class="text-yellow-400 text-sm mt-1">1,200 CR</div>
+                                        </div>
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <div class="font-semibold">Portable Scanner</div>
+                                            <div class="text-sm text-gray-400">Handheld analysis tool</div>
+                                            <div class="text-yellow-400 text-sm mt-1">3,500 CR</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitTavern() {
+                    this.currentView = {
+                        title: '🍺 The Nexus Tavern',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-3">Welcome to "The Cosmic Drift"</h4>
+                                    <p class="text-gray-300 mb-4">The station's premier establishment for pilots, traders, and travelers. A mix of exotic aromas, quiet conversations, and the occasional tall tale fill the air.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <button class="bg-brown-600 hover:bg-brown-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🍺 Buy a Drink</div>
+                                            <div class="text-sm text-gray-300">50 CR</div>
+                                        </button>
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">👥 Talk to Locals</div>
+                                            <div class="text-sm text-gray-300">Gather information</div>
+                                        </button>
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">📰 Check Rumors</div>
+                                            <div class="text-sm text-gray-300">Latest gossip</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-purple-400 mb-2">Current Patrons</h4>
+                                    <div class="text-sm text-gray-300 space-y-2">
+                                        <p>• <span class="text-blue-400">Captain Valdez</span> - Discussing trade routes to outer systems</p>
+                                        <p>• <span class="text-green-400">Engineer Kimura</span> - Complaining about reactor maintenance</p>
+                                        <p>• <span class="text-purple-400">Dr. Chen</span> - Reading research notes over synthehol</p>
+                                        <p>• <span class="text-orange-400">Trader Morrison</span> - Looking for mining partners</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitGovernment() {
+                    this.currentView = {
+                        title: '🏛️ Government Services',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">Keldar System Administration</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">📄 Ship Registration</div>
+                                            <div class="text-sm text-gray-300">Update vessel documentation</div>
+                                        </button>
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🛂 Travel Permits</div>
+                                            <div class="text-sm text-gray-300">Restricted area access</div>
+                                        </button>
+                                        <button class="bg-purple-600 hover:bg-purple-700 p-3 rounded text-left">
+                                            <div class="font-semibold">⚖️ Legal Affairs</div>
+                                            <div class="text-sm text-gray-300">Dispute resolution</div>
+                                        </button>
+                                        <button class="bg-orange-600 hover:bg-orange-700 p-3 rounded text-left">
+                                            <div class="font-semibold">💰 Tax Services</div>
+                                            <div class="text-sm text-gray-300">Commercial transactions</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Your Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Citizenship: <span class="text-green-400">Keldar System Resident</span></p>
+                                        <p>• Pilot License: <span class="text-green-400">VALID</span></p>
+                                        <p>• Criminal Record: <span class="text-green-400">CLEAN</span></p>
+                                        <p>• Tax Status: <span class="text-yellow-400">CURRENT</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                checkNews() {
+                    this.currentView = {
+                        title: '📰 Keldar System News Network',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-3">📢 Breaking News</h4>
+                                    <div class="space-y-3">
+                                        <div class="bg-red-900 bg-opacity-50 p-3 rounded">
+                                            <div class="font-semibold text-red-400">Solar Flare Activity Detected</div>
+                                            <div class="text-sm text-gray-300">Prime star showing increased activity. Navigation systems may experience interference.</div>
+                                            <div class="text-xs text-gray-400 mt-1">2 hours ago</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-3">🏢 Business News</h4>
+                                    <div class="space-y-2 text-sm">
+                                        <p>• <span class="text-green-400">Mining output up 15%</span> on Kelidras moon this quarter</p>
+                                        <p>• <span class="text-yellow-400">Rare metals shortage</span> affecting shipyard operations</p>
+                                        <p>• <span class="text-blue-400">New trade route opened</span> to neighboring systems</p>
+                                        <p>• <span class="text-purple-400">Research breakthrough</span> in quantum communications</p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-3">🌌 System Events</h4>
+                                    <div class="space-y-2 text-sm">
+                                        <p>• Annual Pilot's Festival scheduled for next month</p>
+                                        <p>• Agricultural moon reporting excellent harvest</p>
+                                        <p>• New diplomatic mission arriving from outer systems</p>
+                                        <p>• Nexus Station celebrating 50th anniversary</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitManufacturing() {
+                    this.currentView = {
+                        title: '🏭 Manufacturing Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-3">Custom Component Manufacturing</h4>
+                                    <p class="text-gray-300 mb-4">Create custom ship components and equipment from raw materials.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ 3D Fabricator</div>
+                                            <div class="text-sm text-gray-400">Access Required</div>
+                                        </button>
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Material Processor</div>
+                                            <div class="text-sm text-gray-400">License Required</div>
+                                        </button>
+                                        <button class="bg-gray-700 hover:bg-gray-600 p-3 rounded text-left border-2 border-gray-600">
+                                            <div class="font-semibold text-red-400">❌ Quality Control</div>
+                                            <div class="text-sm text-gray-400">Certification Needed</div>
+                                        </button>
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">✅ Information Kiosk</div>
+                                            <div class="text-sm text-gray-300">Learn about services</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">ℹ️ Access Requirements</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>Manufacturing access requires:</p>
+                                        <ul class="mt-2 space-y-1 list-disc list-inside">
+                                            <li>Industrial License (10,000 CR)</li>
+                                            <li>Safety Certification Course</li>
+                                            <li>Materials Handler Rating</li>
+                                            <li>Minimum reputation level: Trusted</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitResearch() {
+                    this.currentView = {
+                        title: '🔬 Research Laboratory',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-3">Keldar Advanced Research Facility</h4>
+                                    <p class="text-gray-300 mb-4">Cutting-edge research in spacefaring technology, xenobiology, and quantum physics.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🧬 Xenobiology Lab</div>
+                                            <div class="text-sm text-gray-300">Alien life studies</div>
+                                        </button>
+                                        <button class="bg-purple-600 hover:bg-purple-700 p-3 rounded text-left">
+                                            <div class="font-semibold">⚛️ Quantum Physics</div>
+                                            <div class="text-sm text-gray-300">Advanced propulsion</div>
+                                        </button>
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🛠️ Engineering</div>
+                                            <div class="text-sm text-gray-300">Ship technology</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Current Projects</h4>
+                                    <div class="text-sm text-gray-300 space-y-1">
+                                        <p>• <span class="text-blue-400">Improved Warp Coils</span> - 67% complete</p>
+                                        <p>• <span class="text-purple-400">Quantum Scanners</span> - 34% complete</p>
+                                        <p>• <span class="text-green-400">Bio-Neural Computers</span> - 89% complete</p>
+                                        <p>• <span class="text-orange-400">Enhanced Life Support</span> - 12% complete</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitAgriculture() {
+                    this.currentView = {
+                        title: '🌱 Agricultural Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-3">Hydroponics & Food Production</h4>
+                                    <p class="text-gray-300 mb-4">Advanced agricultural systems providing fresh food for the entire station population.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="bg-green-900 bg-opacity-50 p-3 rounded">
+                                            <div class="font-semibold text-green-400">🥬 Fresh Produce</div>
+                                            <div class="text-sm text-gray-300">Vegetables, fruits, grains</div>
+                                            <div class="text-yellow-400 text-sm mt-1">15-50 CR per unit</div>
+                                        </div>
+                                        <div class="bg-blue-900 bg-opacity-50 p-3 rounded">
+                                            <div class="font-semibold text-blue-400">🧬 Protein Cultures</div>
+                                            <div class="text-sm text-gray-300">Lab-grown meat alternatives</div>
+                                            <div class="text-yellow-400 text-sm mt-1">25-75 CR per unit</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">Production Status</h4>
+                                    <div class="text-sm text-gray-300">
+                                        <p>• Daily Output: <span class="text-green-400">2,450 units</span></p>
+                                        <p>• Quality Rating: <span class="text-green-400">Excellent</span></p>
+                                        <p>• Growth Efficiency: <span class="text-green-400">97.2%</span></p>
+                                        <p>• Next Harvest: <span class="text-yellow-400">6 hours</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitMuseum() {
+                    this.currentView = {
+                        title: '🏛️ Keldar System Museum & History Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-3">Welcome to Our Heritage</h4>
+                                    <p class="text-gray-300 mb-4">Explore the rich history of the Keldar system, from ancient civilizations to modern spacefaring achievements.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <button class="bg-orange-600 hover:bg-orange-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🏺 Ancient Artifacts</div>
+                                            <div class="text-sm text-gray-300">Pre-space era</div>
+                                        </button>
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🚀 Space Age</div>
+                                            <div class="text-sm text-gray-300">First colonies</div>
+                                        </button>
+                                        <button class="bg-purple-600 hover:bg-purple-700 p-3 rounded text-left">
+                                            <div class="font-semibold">⭐ Modern Era</div>
+                                            <div class="text-sm text-gray-300">Current civilization</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-cyan-400 mb-2">Featured Exhibit</h4>
+                                    <div class="bg-blue-900 bg-opacity-50 p-3 rounded">
+                                        <div class="font-semibold text-blue-400">"The Great Awakening: Keldar's First Contact"</div>
+                                        <div class="text-sm text-gray-300 mt-2">An immersive experience chronicling humanity's first contact with alien technology that led to our current understanding of interstellar travel.</div>
+                                        <div class="text-xs text-gray-400 mt-2">Interactive holographic displays - Admission: 100 CR</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitTemple() {
+                    this.currentView = {
+                        title: '⛪ Temple of the Dog',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-purple-600">
+                                    <h4 class="font-semibold text-purple-400 mb-3">🐕 "Blessed be the Cosmic Canine"</h4>
+                                    <p class="text-gray-300 mb-4 italic">"In the vastness of space, only the loyalty of the eternal hound guides us home."</p>
+                                    <div class="bg-purple-900 bg-opacity-50 p-4 rounded">
+                                        <p class="text-sm text-gray-300">Welcome, weary traveler, to the Temple of the Dog. Here we honor the sacred bond between human and canine that transcends the boundaries of space and time.</p>
+                                        <p class="text-sm text-gray-300 mt-2">The Great Golden Retriever watches over all who journey among the stars, ensuring safe passage and faithful companionship in the cold depths of space.</p>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-3">Sacred Services</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <button class="bg-yellow-600 hover:bg-yellow-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🕯️ Light a Candle</div>
+                                            <div class="text-sm text-gray-300">For safe travels (10 CR)</div>
+                                        </button>
+                                        <button class="bg-purple-600 hover:bg-purple-700 p-3 rounded text-left">
+                                            <div class="font-semibold">📿 Blessing Ceremony</div>
+                                            <div class="text-sm text-gray-300">Ship blessing (50 CR)</div>
+                                        </button>
+                                        <button class="bg-blue-600 hover:bg-blue-700 p-3 rounded text-left">
+                                            <div class="font-semibold">🎵 Meditation Hour</div>
+                                            <div class="text-sm text-gray-300">Inner peace (Free)</div>
+                                        </button>
+                                        <button class="bg-green-600 hover:bg-green-700 p-3 rounded text-left">
+                                            <div class="font-semibold">💰 Donation Box</div>
+                                            <div class="text-sm text-gray-300">Support the temple</div>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">Today's Blessing</h4>
+                                    <div class="text-sm text-gray-300 italic text-center">
+                                        "May your fuel tanks never run dry, may your navigation be true, and may you always find a friendly face when you dock at a new port."
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // Content Generation Functions
+                generateCargoManifest() {
+                    const inventory = this.player.inventory || [];
+                    if (inventory.length === 0) {
+                        return '<p class="text-gray-400">Cargo bay is empty.</p>';
+                    }
+                    
+                    let manifest = '<div class="space-y-2">';
+                    inventory.forEach(item => {
+                        manifest += `
+                            <div class="bg-gray-800 p-3 rounded flex justify-between items-center">
+                                <div>
+                                    <span class="font-semibold">${item.name}</span>
+                                    <span class="text-sm text-gray-400 ml-2">Qty: ${item.quantity}</span>
+                                </div>
+                                <div class="text-xs text-gray-400">${item.description || 'No description'}</div>
+                            </div>
+                        `;
+                    });
+                    manifest += '</div>';
+                    return manifest;
+                },
+
+                generateCrewInfo() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-400 mb-2">👨‍✈️ Captain</h4>
+                                <p class="text-sm text-gray-300">${this.player.username} (You)</p>
+                                <p class="text-xs text-gray-400">Ship Command, Navigation, Combat</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">🔧 Engineering</h4>
+                                <p class="text-sm text-gray-300">Currently hiring - Visit Station Personnel</p>
+                                <p class="text-xs text-gray-400">Ship Maintenance, Power Management</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-purple-400 mb-2">📡 Communications</h4>
+                                <p class="text-sm text-gray-300">AI Assistant Online</p>
+                                <p class="text-xs text-gray-400">Scanner Operations, Data Analysis</p>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateUpgradesList() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">✅ Installed Upgrades</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Basic Life Support System</li>
+                                    <li>• Standard Navigation Computer</li>
+                                    <li>• Emergency Backup Power</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Available Slots</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Weapon Hardpoint (2 available)</li>
+                                    <li>• Utility Module (3 available)</li>
+                                    <li>• Engine Enhancement (1 available)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateShipLogs() {
+                    return `
+                        <div class="space-y-2">
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-green-400">[${new Date().toLocaleString()}]</span>
+                                <span class="text-gray-300"> - Docked at Nexus Station</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-blue-400">[Previous Session]</span>
+                                <span class="text-gray-300"> - All systems checked, ready for operations</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-purple-400">[System Boot]</span>
+                                <span class="text-gray-300"> - Ship AI initialized successfully</span>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                // Utility Functions
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

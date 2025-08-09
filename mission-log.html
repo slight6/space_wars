@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Mission Log</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .mission-active {
+            border-left: 4px solid #10B981;
+        }
+        .mission-completed {
+            border-left: 4px solid #6B7280;
+            opacity: 0.7;
+        }
+        .mission-failed {
+            border-left: 4px solid #EF4444;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="missionLogApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">📋 Mission Log</h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Active Missions:</div>
+                    <div class="text-green-400 font-mono text-lg" x-text="getActiveMissionCount()"></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Reputation:</div>
+                    <div class="text-purple-400 font-mono text-lg" x-text="player.reputation || 0"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Active Missions -->
+            <div class="lg:col-span-2">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-green-400">🔄 Active Missions</h2>
+                    <div class="space-y-4">
+                        <template x-for="mission in getActiveMissions()" :key="mission.id">
+                            <div class="mission-active bg-gray-800 p-4 rounded-md">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="text-lg font-semibold text-white" x-text="formatMissionName(mission.id)"></h3>
+                                    <div class="text-xs bg-green-900 text-green-200 px-2 py-1 rounded">ACTIVE</div>
+                                </div>
+                                <p class="text-sm text-gray-300 mb-3" x-text="getMissionDescription(mission.id)"></p>
+                                <div class="grid grid-cols-2 gap-4 mb-3">
+                                    <div class="text-sm">
+                                        <span class="text-gray-400">Specialist:</span>
+                                        <span class="text-blue-400" x-text="getSpecialistName(mission.specialistId)"></span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <span class="text-gray-400">Accepted:</span>
+                                        <span class="text-gray-300" x-text="formatDate(mission.acceptedAt)"></span>
+                                    </div>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <div class="flex space-x-4">
+                                        <span class="text-xs text-purple-400">+<span x-text="getMissionReputationReward(mission.id)"></span> Reputation</span>
+                                        <span class="text-xs text-yellow-400"><span x-text="getMissionCreditReward(mission.id)"></span> CR</span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button @click="completeMission(mission)" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs transition-colors">
+                                            Complete
+                                        </button>
+                                        <button @click="abandonMission(mission)" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded text-xs transition-colors">
+                                            Abandon
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                        <div x-show="getActiveMissions().length === 0" class="text-center py-8">
+                            <div class="text-gray-400 text-lg">No active missions</div>
+                            <div class="text-gray-500 text-sm mt-2">Visit specialists to accept new missions</div>
+                            <button @click="window.location.href='specialists.html'" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors">
+                                Visit Specialists
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Completed Missions -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-gray-400">✅ Completed Missions</h2>
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        <template x-for="mission in getCompletedMissions()" :key="mission">
+                            <div class="mission-completed bg-gray-800 p-3 rounded-md">
+                                <div class="flex justify-between items-start">
+                                    <h4 class="font-semibold text-gray-300" x-text="formatMissionName(mission)"></h4>
+                                    <div class="text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">COMPLETE</div>
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1" x-text="getMissionDescription(mission)"></p>
+                            </div>
+                        </template>
+                        <div x-show="getCompletedMissions().length === 0" class="text-center py-4">
+                            <div class="text-gray-500 text-sm">No completed missions yet</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Panel -->
+            <div class="space-y-6">
+                <!-- Progress Summary -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-purple-400">📊 Progress Summary</h2>
+                    <div class="space-y-4">
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="text-sm text-gray-400">Total Missions Completed</div>
+                            <div class="text-2xl font-bold text-white" x-text="getCompletedMissions().length"></div>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="text-sm text-gray-400">Current Reputation</div>
+                            <div class="text-2xl font-bold text-purple-400" x-text="player.reputation || 0"></div>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="text-sm text-gray-400">Specialists Unlocked</div>
+                            <div class="text-2xl font-bold text-blue-400" x-text="getUnlockedSpecialistsCount()"></div>
+                            <div class="text-xs text-gray-500">out of 12 total</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skill Progress -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-cyan-400">🎯 Skill Tracks</h2>
+                    <div class="space-y-3">
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-300">Research Track</span>
+                                <span class="text-xs text-purple-400" x-text="`${getSkillProgress('research')}%`"></span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-purple-600 h-2 rounded-full transition-all duration-300" 
+                                     :style="`width: ${getSkillProgress('research')}%`"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-300">Agricultural Track</span>
+                                <span class="text-xs text-green-400" x-text="`${getSkillProgress('agricultural')}%`"></span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                                     :style="`width: ${getSkillProgress('agricultural')}%`"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-300">Mining Track</span>
+                                <span class="text-xs text-orange-400" x-text="`${getSkillProgress('mining')}%`"></span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-orange-600 h-2 rounded-full transition-all duration-300" 
+                                     :style="`width: ${getSkillProgress('mining')}%`"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-3 rounded-md">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm text-gray-300">Navigation Track</span>
+                                <span class="text-xs text-blue-400" x-text="`${getSkillProgress('navigation')}%`"></span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                     :style="`width: ${getSkillProgress('navigation')}%`"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                    <h2 class="text-xl font-bold mb-4 text-yellow-400">⚡ Quick Actions</h2>
+                    <div class="space-y-3">
+                        <button @click="window.location.href='specialists.html'" class="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors">
+                            Find New Missions
+                        </button>
+                        <button @click="window.location.href='system-map.html'" class="w-full bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors">
+                            Travel to Specialists
+                        </button>
+                        <button @click="window.location.href='game.html'" class="w-full bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+                            Return to Main Hub
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function missionLogApp() {
+            return {
+                player: {},
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize mission tracking
+                    if (!this.player.activeMissions) {
+                        this.player.activeMissions = [];
+                    }
+                    if (!this.player.completedMissions) {
+                        this.player.completedMissions = [];
+                    }
+                    if (!this.player.reputation) {
+                        this.player.reputation = 0;
+                    }
+                    
+                    this.savePlayer();
+                },
+                
+                getActiveMissions() {
+                    return this.player.activeMissions?.filter(m => m.status === 'active') || [];
+                },
+                
+                getCompletedMissions() {
+                    return this.player.completedMissions || [];
+                },
+                
+                getActiveMissionCount() {
+                    return this.getActiveMissions().length;
+                },
+                
+                completeMission(mission) {
+                    // Add to completed missions
+                    this.player.completedMissions.push(mission.id);
+                    
+                    // Add reputation and credits
+                    this.player.reputation = (this.player.reputation || 0) + this.getMissionReputationReward(mission.id);
+                    this.player.credits = (this.player.credits || 0) + this.getMissionCreditReward(mission.id);
+                    
+                    // Remove from active missions
+                    const index = this.player.activeMissions.findIndex(m => m.id === mission.id);
+                    if (index !== -1) {
+                        this.player.activeMissions.splice(index, 1);
+                    }
+                    
+                    this.savePlayer();
+                    this.showNotification(`Mission completed! +${this.getMissionReputationReward(mission.id)} reputation, +${this.getMissionCreditReward(mission.id)} credits`, 'success');
+                },
+                
+                abandonMission(mission) {
+                    // Remove from active missions
+                    const index = this.player.activeMissions.findIndex(m => m.id === mission.id);
+                    if (index !== -1) {
+                        this.player.activeMissions.splice(index, 1);
+                    }
+                    
+                    this.savePlayer();
+                    this.showNotification('Mission abandoned', 'error');
+                },
+                
+                getUnlockedSpecialistsCount() {
+                    const reputation = this.player.reputation || 0;
+                    let count = 0;
+                    
+                    // Count specialists based on reputation requirements
+                    if (reputation >= 0) count++; // Commander Voss
+                    if (reputation >= 50) count += 3; // Edison/McCormick/Hoover specialists
+                    if (reputation >= 75) count += 2; // Advanced specialists
+                    if (reputation >= 100) count += 2; // Trade/Advanced Mining
+                    if (reputation >= 125) count++; // Navigation
+                    if (reputation >= 150) count++; // Security
+                    if (reputation >= 175) count++; // Diplomatic
+                    if (reputation >= 200) count++; // Historical
+                    
+                    return Math.min(count, 12);
+                },
+                
+                getSkillProgress(track) {
+                    const completed = this.player.completedMissions || [];
+                    
+                    const trackMissions = {
+                        research: ['research_methodology_training', 'laboratory_equipment_certification', 'experimental_design_projects', 'data_analysis_techniques', 'manufacturing_process_training', 'quality_control_certification'],
+                        agricultural: ['sustainable_farming_techniques', 'hydroponics_system_management', 'crop_genetic_optimization', 'ecosystem_balance_projects', 'nutritional_analysis_training', 'food_preservation_techniques'],
+                        mining: ['deep_mining_certification', 'geological_survey_training', 'heavy_equipment_operation', 'safety_protocol_advancement', 'metallurgy_fundamentals', 'alloy_development_projects'],
+                        navigation: ['system_orientation', 'basic_navigation_training', 'advanced_navigation_training', 'stellar_cartography_projects', 'exploration_route_planning']
+                    };
+                    
+                    const missions = trackMissions[track] || [];
+                    const completedInTrack = missions.filter(m => completed.includes(m)).length;
+                    
+                    return Math.round((completedInTrack / missions.length) * 100);
+                },
+                
+                // Utility functions
+                formatMissionName(mission) {
+                    return mission.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                getMissionDescription(mission) {
+                    const descriptions = {
+                        'system_orientation': 'Learn about the Keldar system, its history, and basic navigation.',
+                        'basic_navigation_training': 'Master fundamental space navigation and docking procedures.',
+                        'specialist_introductions': 'Meet other specialists and understand their roles.',
+                        'research_methodology_training': 'Learn scientific research methods and data collection.',
+                        'sustainable_farming_techniques': 'Study eco-friendly agricultural practices for space habitats.',
+                        'deep_mining_certification': 'Get certified in deep space mining operations.',
+                        'advanced_navigation_training': 'Master complex navigation techniques and route planning.',
+                        'market_analysis_training': 'Learn to analyze market trends and economic indicators.',
+                        'security_protocol_training': 'Understand security procedures and threat assessment.',
+                        'diplomatic_protocol_training': 'Learn proper diplomatic procedures and negotiation.',
+                        'historical_research_methodology': 'Study methods for historical research and preservation.'
+                    };
+                    return descriptions[mission] || 'Complete specialized training with this expert.';
+                },
+                
+                getMissionReputationReward(mission) {
+                    const rewards = {
+                        'system_orientation': 10,
+                        'basic_navigation_training': 15,
+                        'specialist_introductions': 5,
+                        'research_methodology_training': 20,
+                        'sustainable_farming_techniques': 20,
+                        'deep_mining_certification': 25,
+                        'advanced_navigation_training': 30,
+                        'market_analysis_training': 25,
+                        'security_protocol_training': 35,
+                        'diplomatic_protocol_training': 40,
+                        'historical_research_methodology': 50
+                    };
+                    return rewards[mission] || 15;
+                },
+                
+                getMissionCreditReward(mission) {
+                    const rewards = {
+                        'system_orientation': 1000,
+                        'basic_navigation_training': 1500,
+                        'specialist_introductions': 500,
+                        'research_methodology_training': 2000,
+                        'sustainable_farming_techniques': 2000,
+                        'deep_mining_certification': 2500,
+                        'advanced_navigation_training': 3000,
+                        'market_analysis_training': 2500,
+                        'security_protocol_training': 3500,
+                        'diplomatic_protocol_training': 4000,
+                        'historical_research_methodology': 5000
+                    };
+                    return rewards[mission] || 1500;
+                },
+                
+                getSpecialistName(specialistId) {
+                    const names = {
+                        'spec_001': 'Commander Voss',
+                        'spec_002': 'Dr. Elena Morse',
+                        'spec_003': 'Chief Engineer Yamamoto',
+                        'spec_004': 'Agricultural Coordinator Chen',
+                        'spec_005': 'Nutritionist Dr. Patel',
+                        'spec_006': 'Mining Foreman Rodriguez',
+                        'spec_007': 'Metallurgist Dr. Kim',
+                        'spec_008': 'Navigator Captain Singh',
+                        'spec_009': 'Trade Commissioner Walsh',
+                        'spec_010': 'Security Chief Martinez',
+                        'spec_011': 'Diplomatic Attaché Reynolds',
+                        'spec_012': 'Archive Keeper Morrison'
+                    };
+                    return names[specialistId] || 'Unknown Specialist';
+                },
+                
+                formatDate(timestamp) {
+                    return new Date(timestamp).toLocaleDateString();
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    const colors = {
+                        success: "#10B981",
+                        error: "#EF4444",
+                        info: "#3B82F6"
+                    };
+                    
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: colors[type] || colors.success,
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

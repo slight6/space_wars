@@ -1,0 +1,477 @@
+{
+  "systemInfo": {
+    "name": "Keldar System",
+    "designation": "KLD-001",
+    "currentYear": 5150,
+    "star": {
+      "name": "Prime",
+      "type": "G-class main sequence",
+      "classification": "G2V",
+      "mass": 1.2,
+      "luminosity": 1.15,
+      "temperature": 5800,
+      "age": 4.8
+    },
+    "coordinates": {
+      "galactic": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "sector": "Alpha-001"
+    },
+    "establishedYear": 3088,
+    "currentPopulation": 2847620,
+    "governingBody": "The State",
+    "economicStatus": "developing",
+    "securityLevel": "peaceful_zone",
+    "allowOffense": false
+  },
+  "celestialBodies": {
+    "keldar": {
+      "name": "Keldar",
+      "type": "planet",
+      "classification": "terrestrial_habitable",
+      "size": {
+        "radius": 63710,
+        "mass": 10.0,
+        "gravity": 1.15,
+        "surfaceArea": 51009200000
+      },
+      "atmosphere": {
+        "composition": {
+          "nitrogen": 0.72,
+          "oxygen": 0.21,
+          "argon": 0.02,
+          "carbonDioxide": 0.04,
+          "other": 0.01
+        },
+        "pressure": 1.2,
+        "breathable": true
+      },
+      "biomes": [
+        {
+          "name": "Temperate Forests",
+          "coverage": 0.25,
+          "climate": "temperate",
+          "resources": ["timber", "freshwater", "organic_compounds"]
+        },
+        {
+          "name": "Arid Deserts",
+          "coverage": 0.20,
+          "climate": "arid",
+          "resources": ["rare_minerals", "silicon", "geothermal_energy"]
+        },
+        {
+          "name": "Polar Ice Caps",
+          "coverage": 0.15,
+          "climate": "polar",
+          "resources": ["freshwater_ice", "methane_hydrates", "rare_isotopes"]
+        },
+        {
+          "name": "Tropical Rainforests",
+          "coverage": 0.15,
+          "climate": "tropical",
+          "resources": ["exotic_flora", "medicinal_compounds", "biodiversity"]
+        },
+        {
+          "name": "Mountain Ranges",
+          "coverage": 0.10,
+          "climate": "alpine",
+          "resources": ["metal_ores", "precious_metals", "geothermal_vents"]
+        },
+        {
+          "name": "Ocean Systems",
+          "coverage": 0.10,
+          "climate": "marine",
+          "resources": ["marine_life", "deep_sea_minerals", "tidal_energy"]
+        },
+        {
+          "name": "Grasslands",
+          "coverage": 0.05,
+          "climate": "temperate",
+          "resources": ["agricultural_land", "wind_energy", "grazing_areas"]
+        }
+      ],
+      "population": 1423810,
+      "settlements": [
+        {
+          "name": "New Foundation",
+          "type": "capital_city",
+          "population": 892000,
+          "coordinates": { "lat": 23.5, "lon": -45.2 },
+          "specialization": "administration",
+          "infrastructure": 85
+        },
+        {
+          "name": "Terra Prima",
+          "type": "manufacturing_hub",
+          "population": 234000,
+          "coordinates": { "lat": -12.3, "lon": 67.8 },
+          "specialization": "heavy_industry",
+          "infrastructure": 72
+        },
+        {
+          "name": "Haven Port",
+          "type": "spaceport",
+          "population": 156000,
+          "coordinates": { "lat": 45.1, "lon": 12.9 },
+          "specialization": "logistics",
+          "infrastructure": 90
+        },
+        {
+          "name": "Frontier Outpost",
+          "type": "research_station",
+          "population": 78000,
+          "coordinates": { "lat": -67.4, "lon": -23.1 },
+          "specialization": "planetary_science",
+          "infrastructure": 65
+        }
+      ],
+      "resources": {
+        "available_elements": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118],
+        "abundance_tiers": {
+          "common": [1, 6, 7, 8, 14, 16, 20, 26],
+          "uncommon": [2, 3, 4, 5, 9, 10, 11, 12, 13, 15, 17, 18, 19],
+          "rare": [21, 22, 23, 24, 25, 27, 28, 29, 30],
+          "ultra_rare": [31, 32, 33, 34, 35, 36, 37, 38, 39, 40],
+          "exotic": [41, 42, 43, 44, 45, 46, 47, 48, 49, 50]
+        }
+      }
+    },
+    "moons": {
+      "edison": {
+        "name": "Edison",
+        "type": "moon",
+        "classification": "research_industrial",
+        "size": {
+          "radius": 6371,
+          "mass": 1.0,
+          "gravity": 0.98
+        },
+        "orbit": {
+          "distance": 384400,
+          "period": 27.3,
+          "eccentricity": 0.055
+        },
+        "atmosphere": {
+          "artificiallyMaintained": true,
+          "breathable": true,
+          "domeProtected": true
+        },
+        "population": 474605,
+        "specialization": "research_and_industry",
+        "facilities": [
+          {
+            "name": "Edison Research Complex",
+            "type": "research_facility",
+            "capacity": 50000,
+            "specialization": "advanced_physics"
+          },
+          {
+            "name": "Industrial Sector Alpha",
+            "type": "manufacturing",
+            "capacity": 25000,
+            "specialization": "precision_components"
+          },
+          {
+            "name": "Tesla Energy Grid",
+            "type": "power_generation",
+            "capacity": 15000,
+            "specialization": "fusion_power"
+          }
+        ],
+        "resources": {
+          "specialties": ["rare_earth_elements", "quantum_materials", "energy_crystals"],
+          "research_output": 450,
+          "industrial_output": 380
+        }
+      },
+      "mccormick": {
+        "name": "McCormick",
+        "type": "moon",
+        "classification": "agricultural",
+        "size": {
+          "radius": 6371,
+          "mass": 1.0,
+          "gravity": 0.98
+        },
+        "orbit": {
+          "distance": 405696,
+          "period": 29.1,
+          "eccentricity": 0.043
+        },
+        "atmosphere": {
+          "artificiallyMaintained": true,
+          "breathable": true,
+          "optimizedForAgriculture": true
+        },
+        "population": 474605,
+        "specialization": "agriculture_and_food_production",
+        "facilities": [
+          {
+            "name": "Central Agricultural Complex",
+            "type": "farming_facility",
+            "capacity": 60000,
+            "specialization": "crop_production"
+          },
+          {
+            "name": "Hydroponics Research Center",
+            "type": "research_facility",
+            "capacity": 15000,
+            "specialization": "agricultural_science"
+          },
+          {
+            "name": "Food Processing Network",
+            "type": "manufacturing",
+            "capacity": 20000,
+            "specialization": "food_distribution"
+          }
+        ],
+        "resources": {
+          "specialties": ["organic_compounds", "nutritional_supplements", "agricultural_seeds"],
+          "food_production": 850,
+          "export_capacity": 650
+        }
+      },
+      "hoover": {
+        "name": "Hoover",
+        "type": "moon",
+        "classification": "mining_industrial",
+        "size": {
+          "radius": 6371,
+          "mass": 1.0,
+          "gravity": 0.98
+        },
+        "orbit": {
+          "distance": 363228,
+          "period": 25.8,
+          "eccentricity": 0.067
+        },
+        "atmosphere": {
+          "artificiallyMaintained": false,
+          "breathable": false,
+          "industrialEnvironment": true
+        },
+        "population": 474600,
+        "specialization": "mining_and_resource_extraction",
+        "facilities": [
+          {
+            "name": "Deep Core Mining Operation",
+            "type": "mining_facility",
+            "capacity": 40000,
+            "specialization": "heavy_minerals"
+          },
+          {
+            "name": "Refinement Complex Beta",
+            "type": "processing_facility",
+            "capacity": 30000,
+            "specialization": "ore_refinement"
+          },
+          {
+            "name": "Materials Engineering Lab",
+            "type": "research_facility",
+            "capacity": 10000,
+            "specialization": "metallurgy"
+          }
+        ],
+        "resources": {
+          "specialties": ["heavy_metals", "radioactive_materials", "construction_materials"],
+          "mining_output": 720,
+          "processing_capacity": 580
+        }
+      }
+    },
+    "stations": {
+      "nexus": {
+        "name": "Nexus Station",
+        "type": "space_station",
+        "classification": "multi_purpose_hub",
+        "size": {
+          "length": 15000,
+          "width": 8000,
+          "height": 3000
+        },
+        "orbit": {
+          "type": "gravitational_lock",
+          "target": "keldar",
+          "distance": 35786,
+          "synchronized": true
+        },
+        "population": 125000,
+        "specialization": "training_hub_and_commerce",
+        "status": "testing_phase",
+        "futureRole": "limited_operations_post_testing",
+        "facilities": [
+          {
+            "name": "Central Command",
+            "type": "administration",
+            "capacity": 5000,
+            "specialization": "station_operations"
+          },
+          {
+            "name": "Training Complex",
+            "type": "education",
+            "capacity": 25000,
+            "specialization": "multi_discipline_training"
+          },
+          {
+            "name": "Commercial District",
+            "type": "commerce",
+            "capacity": 15000,
+            "specialization": "trade_and_services"
+          },
+          {
+            "name": "Residential Sectors",
+            "type": "housing",
+            "capacity": 80000,
+            "specialization": "crew_quarters"
+          }
+        ],
+        "services": {
+          "shipyard": {
+            "available": true,
+            "capacity": "full_service",
+            "specialization": "all_vessel_types"
+          },
+          "marketplace": {
+            "available": true,
+            "scope": "system_wide",
+            "specialization": "general_goods"
+          },
+          "research": {
+            "available": true,
+            "level": "advanced",
+            "specialization": "multi_discipline"
+          }
+        }
+      }
+    },
+    "satellites": {
+      "research_sat_1": {
+        "name": "Research Satellite Archimedes",
+        "type": "satellite",
+        "classification": "research_platform",
+        "orbit": {
+          "type": "high_keldar_orbit",
+          "distance": 71572,
+          "period": 24.0
+        },
+        "crew": 150,
+        "specialization": "scientific_research",
+        "facilities": ["advanced_laboratories", "deep_space_sensors", "quantum_computers"]
+      },
+      "comm_sat_1": {
+        "name": "Communications Satellite Hermes",
+        "type": "satellite",
+        "classification": "communications_hub",
+        "orbit": {
+          "type": "polar_keldar_orbit",
+          "distance": 42000,
+          "period": 12.0
+        },
+        "crew": 75,
+        "specialization": "system_wide_communications",
+        "facilities": ["quantum_transmitters", "data_relays", "emergency_beacons"]
+      },
+      "defense_sat_1": {
+        "name": "Defense Satellite Aegis",
+        "type": "satellite",
+        "classification": "defensive_platform",
+        "orbit": {
+          "type": "geosynchronous_keldar_orbit",
+          "distance": 35786,
+          "period": 24.0
+        },
+        "crew": 200,
+        "specialization": "system_defense_and_neighbor_assistance",
+        "facilities": ["shield_generators", "early_warning_systems", "humanitarian_aid_deployment"]
+      }
+    }
+  },
+  "government": {
+    "primary": {
+      "name": "The State",
+      "type": "shadow_government",
+      "structure": "classified",
+      "visibility": "limited",
+      "authority": "absolute",
+      "specialists": {
+        "count": 12,
+        "roles": "to_be_determined",
+        "purpose": "missions_quests_guidance",
+        "employer": "The State",
+        "access_level": "player_guidance"
+      }
+    }
+  },
+  "history": {
+    "warOf3088": {
+      "year": 3088,
+      "event": "cataclysmic_explosion",
+      "outcome": "fleet_scattered_across_universe",
+      "survivors": "unknown_number_of_ships",
+      "keldar_arrivals": "founding_population",
+      "reconstruction_period": "3088-5150"
+    },
+    "moonSeparation": {
+      "year": 4150,
+      "event": "governmental_rift",
+      "duration": 1000,
+      "outcome": "population_split_across_moons",
+      "restrictions": "no_inter_moon_travel",
+      "resolution": "nexus_station_concept",
+      "technological_boom": "post_nexus_era"
+    }
+  },
+  "economy": {
+    "systemCurrency": "Credits (CR)",
+    "economicModel": "mixed_planned_market",
+    "transparency": {
+      "enabled": true,
+      "scope": "all_financial_flows",
+      "visibility": "public_financial_reporting",
+      "frequency": "real_time"
+    },
+    "resourceFlow": {
+      "imports": {
+        "source": "distant_testing_ground",
+        "frequency": "periodic_shipments",
+        "contents": ["goods", "services", "colonists"],
+        "purpose": "system_development"
+      },
+      "exports": {
+        "primary": ["research_data", "manufactured_goods", "processed_materials"],
+        "secondary": ["cultural_exports", "training_services"]
+      }
+    },
+    "investment_priorities": [
+      "infrastructure_upgrades",
+      "economic_enhancements", 
+      "research_and_development",
+      "resource_gathering_expansion"
+    ]
+  },
+  "gameplay": {
+    "startingLocation": "nexus_station",
+    "initialPhase": "training_and_development",
+    "playerProgression": [
+      "moon_visitation_required",
+      "skill_acquisition_from_locals",
+      "specialization_training",
+      "exploration_preparation"
+    ],
+    "reputation": {
+      "system": "in_depth_tracking",
+      "range": "negative_to_positive",
+      "crime_restrictions": "high_reputation_blocks_minor_crimes",
+      "redemption": "easier_for_moderate_negative",
+      "faction_influence": "underground_and_black_market_control"
+    },
+    "missions": {
+      "source": "state_specialists",
+      "types": ["training", "exploration", "resource_gathering", "research"],
+      "progression": "skill_based_unlocking"
+    }
+  }
+}

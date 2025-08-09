@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Trade Center</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .trade-status-pending {
+            border-left: 4px solid #F59E0B;
+        }
+        .trade-status-paid {
+            border-left: 4px solid #10B981;
+        }
+        .trade-status-overdue {
+            border-left: 4px solid #EF4444;
+        }
+        .trade-status-completed {
+            border-left: 4px solid #8B5CF6;
+        }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="tradeCenterApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <div>
+                    <h1 class="text-2xl font-bold">🏦 Galactic Trade Center</h1>
+                    <p class="text-sm text-gray-400" x-text="currentLocation.name"></p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Active Trades:</div>
+                    <div class="text-blue-400 font-mono text-lg" x-text="getActiveTradesCount()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Trade Center Status Banner -->
+    <div class="bg-gradient-to-r from-green-900 to-blue-900 border-b border-gray-700 px-6 py-3">
+        <div class="flex justify-between items-center text-sm">
+            <div class="flex items-center space-x-6">
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-300">Trade Center Status:</span>
+                    <span class="text-green-400">🟢 OPERATIONAL</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-300">Security Level:</span>
+                    <span class="text-yellow-400">⭐⭐⭐⭐⭐ MAXIMUM</span>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-300">Service Fee:</span>
+                    <span class="text-red-400">1.5% per hour (after 24h grace period)</span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-300">Last Updated:</span>
+                <span class="text-blue-400" x-text="formatTime(lastUpdate)"></span>
+                <button @click="refreshTrades()" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs transition-colors">
+                    🔄 Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-6">
+            <div class="flex space-x-0">
+                <button 
+                    @click="activeTab = 'my-trades'"
+                    :class="activeTab === 'my-trades' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                    class="px-6 py-3 font-medium transition-colors">
+                    📦 My Trades
+                </button>
+                <button 
+                    @click="activeTab = 'deposit'"
+                    :class="activeTab === 'deposit' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                    class="px-6 py-3 font-medium transition-colors">
+                    📥 Deposit Item
+                </button>
+                <button 
+                    @click="activeTab = 'pending'"
+                    :class="activeTab === 'pending' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                    class="px-6 py-3 font-medium transition-colors">
+                    ⏳ Pending Payments
+                </button>
+                <button 
+                    @click="activeTab = 'pickup'"
+                    :class="activeTab === 'pickup' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'"
+                    class="px-6 py-3 font-medium transition-colors">
+                    📤 Ready for Pickup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- My Trades Tab -->
+        <div x-show="activeTab === 'my-trades'" class="space-y-6">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">📊 My Trade Activity</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- As Seller -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-green-400">💰 Items I'm Selling</h3>
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            <template x-for="trade in getMySellingTrades()" :key="trade.id">
+                                <div :class="getTradeStatusClass(trade)" class="bg-gray-800 p-4 rounded-md">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="font-semibold" x-text="trade.itemName"></h4>
+                                            <p class="text-sm text-gray-400" x-text="`Quantity: ${trade.quantity} | Price: ${trade.price.toLocaleString()} CR`"></p>
+                                        </div>
+                                        <span :class="getStatusColor(trade.status)" class="text-xs px-2 py-1 rounded" x-text="trade.status.toUpperCase()"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs text-gray-400">
+                                        <span x-text="`Buyer: ${trade.buyerName}`"></span>
+                                        <span x-text="getTimeRemaining(trade)"></span>
+                                    </div>
+                                    <div x-show="trade.status === 'overdue'" class="mt-2 text-xs text-red-400">
+                                        Service fees apply: <span x-text="`${calculateServiceFees(trade).toLocaleString()} CR`"></span>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="getMySellingTrades().length === 0" class="text-gray-400 text-center py-4">
+                                No items currently being sold
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- As Buyer -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-purple-400">🛒 Items I'm Buying</h3>
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            <template x-for="trade in getMyBuyingTrades()" :key="trade.id">
+                                <div :class="getTradeStatusClass(trade)" class="bg-gray-800 p-4 rounded-md">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="font-semibold" x-text="trade.itemName"></h4>
+                                            <p class="text-sm text-gray-400" x-text="`Quantity: ${trade.quantity} | Price: ${trade.price.toLocaleString()} CR`"></p>
+                                        </div>
+                                        <span :class="getStatusColor(trade.status)" class="text-xs px-2 py-1 rounded" x-text="trade.status.toUpperCase()"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center text-xs text-gray-400 mb-2">
+                                        <span x-text="`Seller: ${trade.sellerName}`"></span>
+                                        <span x-text="getTimeRemaining(trade)"></span>
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button 
+                                            x-show="trade.status === 'pending' && canPayForTrade(trade)"
+                                            @click="payForTrade(trade)"
+                                            class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs transition-colors">
+                                            💳 Pay Now
+                                        </button>
+                                        <button 
+                                            x-show="trade.status === 'paid' || trade.status === 'overdue'"
+                                            @click="pickupItem(trade)"
+                                            class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs transition-colors">
+                                            📦 Pickup
+                                        </button>
+                                    </div>
+                                    <div x-show="trade.status === 'overdue'" class="mt-2 text-xs text-red-400">
+                                        Total owed: <span x-text="`${(trade.price + calculateServiceFees(trade)).toLocaleString()} CR`"></span>
+                                    </div>
+                                </div>
+                            </template>
+                            <div x-show="getMyBuyingTrades().length === 0" class="text-gray-400 text-center py-4">
+                                No items currently being purchased
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Deposit Item Tab -->
+        <div x-show="activeTab === 'deposit'" class="space-y-6">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-green-400">📥 Deposit Item for Trade</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Your Inventory -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-blue-400">📦 Your Inventory</h3>
+                        <div class="space-y-2 max-h-96 overflow-y-auto">
+                            <template x-for="item in player.inventory" :key="item.id">
+                                <div class="bg-gray-800 p-3 rounded-md flex justify-between items-center">
+                                    <div>
+                                        <div class="font-semibold text-sm" x-text="item.name"></div>
+                                        <div class="text-xs text-gray-400" x-text="`Qty: ${item.quantity}`"></div>
+                                    </div>
+                                    <button 
+                                        @click="selectItemToSell(item)"
+                                        :disabled="selectedItem && selectedItem.id === item.id"
+                                        class="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-2 py-1 rounded text-xs transition-colors">
+                                        Select
+                                    </button>
+                                </div>
+                            </template>
+                            <div x-show="!player.inventory || player.inventory.length === 0" class="text-gray-400 text-center py-4">
+                                Your inventory is empty
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trade Setup -->
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-yellow-400">⚙️ Trade Setup</h3>
+                        <div x-show="!selectedItem" class="text-gray-400 text-center py-8">
+                            Select an item from your inventory to begin
+                        </div>
+                        
+                        <div x-show="selectedItem" class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-md">
+                                <h4 class="font-semibold mb-2">Selected Item</h4>
+                                <div class="text-sm text-gray-300" x-text="selectedItem?.name"></div>
+                                <div class="text-xs text-gray-400" x-text="`Available: ${selectedItem?.quantity}`"></div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Buyer Username</label>
+                                <input 
+                                    type="text" 
+                                    x-model="tradeForm.buyerName"
+                                    placeholder="Enter buyer's username"
+                                    class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Quantity to Sell</label>
+                                <input 
+                                    type="number" 
+                                    x-model="tradeForm.quantity"
+                                    :max="selectedItem?.quantity"
+                                    min="1"
+                                    class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white focus:border-blue-500 focus:outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Price (Credits)</label>
+                                <input 
+                                    type="number" 
+                                    x-model="tradeForm.price"
+                                    min="1"
+                                    placeholder="Enter total price"
+                                    class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">Trade Notes (Optional)</label>
+                                <textarea 
+                                    x-model="tradeForm.notes"
+                                    placeholder="Any additional information for the buyer"
+                                    rows="3"
+                                    class="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none"></textarea>
+                            </div>
+                            
+                            <button 
+                                @click="depositItem()"
+                                :disabled="!canDeposit()"
+                                class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-3 rounded-md font-medium transition-colors">
+                                🏦 Deposit Item to Trade Center
+                            </button>
+                            
+                            <div class="text-xs text-gray-400 bg-gray-800 p-3 rounded-md">
+                                <strong>Trade Terms:</strong><br>
+                                • Buyer has 3 hours to transfer funds<br>
+                                • After payment, 24 hours to pickup<br>
+                                • 1.5% service fee per hour after 24h grace period<br>
+                                • Trade Center guarantees secure escrow
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Payments Tab -->
+        <div x-show="activeTab === 'pending'" class="space-y-6">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-orange-400">⏳ Trades Awaiting Payment</h2>
+                
+                <div class="space-y-4">
+                    <template x-for="trade in getPendingPaymentTrades()" :key="trade.id">
+                        <div class="trade-status-pending bg-gray-800 p-4 rounded-md">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-lg" x-text="trade.itemName"></h4>
+                                    <p class="text-sm text-gray-400" x-text="`Quantity: ${trade.quantity} | Price: ${trade.price.toLocaleString()} CR`"></p>
+                                    <p class="text-xs text-gray-400" x-text="`Seller: ${trade.sellerName} → Buyer: ${trade.buyerName}`"></p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-orange-400 text-sm font-medium">AWAITING PAYMENT</span>
+                                    <div class="text-xs text-gray-400" x-text="getTimeRemaining(trade)"></div>
+                                </div>
+                            </div>
+                            
+                            <div x-show="trade.notes" class="text-sm text-gray-300 bg-gray-700 p-2 rounded mb-3">
+                                <strong>Notes:</strong> <span x-text="trade.notes"></span>
+                            </div>
+                            
+                            <div x-show="trade.buyerName === player.username" class="flex space-x-3">
+                                <button 
+                                    @click="payForTrade(trade)"
+                                    :disabled="!canPayForTrade(trade)"
+                                    class="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm transition-colors">
+                                    💳 Pay <span x-text="trade.price.toLocaleString()"></span> CR
+                                </button>
+                                <button 
+                                    @click="cancelTrade(trade)"
+                                    class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded text-sm transition-colors">
+                                    ❌ Cancel Trade
+                                </button>
+                            </div>
+                            
+                            <div x-show="trade.buyerName !== player.username" class="text-xs text-gray-400">
+                                Waiting for buyer to complete payment...
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <div x-show="getPendingPaymentTrades().length === 0" class="text-gray-400 text-center py-8">
+                        No trades currently awaiting payment
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ready for Pickup Tab -->
+        <div x-show="activeTab === 'pickup'" class="space-y-6">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">📤 Items Ready for Pickup</h2>
+                
+                <div class="space-y-4">
+                    <template x-for="trade in getReadyForPickupTrades()" :key="trade.id">
+                        <div :class="getTradeStatusClass(trade)" class="bg-gray-800 p-4 rounded-md">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h4 class="font-semibold text-lg" x-text="trade.itemName"></h4>
+                                    <p class="text-sm text-gray-400" x-text="`Quantity: ${trade.quantity} | Price: ${trade.price.toLocaleString()} CR`"></p>
+                                    <p class="text-xs text-gray-400" x-text="`Seller: ${trade.sellerName} → Buyer: ${trade.buyerName}`"></p>
+                                </div>
+                                <div class="text-right">
+                                    <span :class="getStatusColor(trade.status)" class="text-sm font-medium" x-text="trade.status.toUpperCase()"></span>
+                                    <div class="text-xs text-gray-400" x-text="getTimeRemaining(trade)"></div>
+                                </div>
+                            </div>
+                            
+                            <div x-show="trade.status === 'overdue'" class="mb-3 p-2 bg-red-900 border border-red-600 rounded text-sm">
+                                <strong class="text-red-400">OVERDUE!</strong> Service fees are accumulating.<br>
+                                Total owed: <span class="text-yellow-400" x-text="`${(trade.price + calculateServiceFees(trade)).toLocaleString()} CR`"></span>
+                            </div>
+                            
+                            <div x-show="trade.buyerName === player.username" class="flex space-x-3">
+                                <button 
+                                    @click="pickupItem(trade)"
+                                    class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm transition-colors">
+                                    📦 Pickup Item
+                                </button>
+                                <button 
+                                    x-show="trade.status === 'overdue'"
+                                    @click="payOverdueFees(trade)"
+                                    class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded text-sm transition-colors">
+                                    💰 Pay Fees (<span x-text="calculateServiceFees(trade).toLocaleString()"></span> CR)
+                                </button>
+                            </div>
+                            
+                            <div x-show="trade.buyerName !== player.username" class="text-xs text-gray-400">
+                                Waiting for buyer to pickup item...
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <div x-show="getReadyForPickupTrades().length === 0" class="text-gray-400 text-center py-8">
+                        No items currently ready for pickup
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function tradeCenterApp() {
+            return {
+                player: {},
+                currentLocation: { name: 'Nexus Station Trade Center' },
+                trades: [],
+                activeTab: 'my-trades',
+                selectedItem: null,
+                tradeForm: {
+                    buyerName: '',
+                    quantity: 1,
+                    price: '',
+                    notes: ''
+                },
+                lastUpdate: Date.now(),
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize inventory if it doesn't exist
+                    if (!this.player.inventory) {
+                        this.player.inventory = [];
+                    }
+                    if (!this.player.credits) {
+                        this.player.credits = 50000;
+                    }
+                    
+                    this.loadTrades();
+                    this.savePlayer();
+                    
+                    // Update trades every 30 seconds
+                    setInterval(() => {
+                        this.updateTradeStatuses();
+                    }, 30000);
+                },
+                
+                loadTrades() {
+                    // Load trades from localStorage
+                    const saved = localStorage.getItem('trade_center_data');
+                    if (saved) {
+                        try {
+                            const data = JSON.parse(saved);
+                            this.trades = data.trades || [];
+                        } catch (error) {
+                            console.error('Error loading trades:', error);
+                            this.trades = [];
+                        }
+                    } else {
+                        // Initialize with some sample trades for testing
+                        this.trades = this.generateSampleTrades();
+                    }
+                    this.updateTradeStatuses();
+                    this.lastUpdate = Date.now();
+                },
+                
+                generateSampleTrades() {
+                    const now = Date.now();
+                    return [
+                        {
+                            id: 'trade_001',
+                            itemId: 'iron_ore',
+                            itemName: 'Iron Ore',
+                            quantity: 10,
+                            price: 5000,
+                            sellerName: 'MinerJoe',
+                            buyerName: 'BuilderBob',
+                            status: 'pending',
+                            depositTime: now - (1 * 60 * 60 * 1000), // 1 hour ago
+                            paymentTime: null,
+                            notes: 'High quality ore from asteroid belt'
+                        },
+                        {
+                            id: 'trade_002',
+                            itemId: 'rare_earth',
+                            itemName: 'Rare Earth Elements',
+                            quantity: 5,
+                            price: 12000,
+                            sellerName: 'DeepMiner',
+                            buyerName: this.player.username,
+                            status: 'paid',
+                            depositTime: now - (2 * 60 * 60 * 1000), // 2 hours ago
+                            paymentTime: now - (30 * 60 * 1000), // 30 minutes ago
+                            notes: 'Certified pure elements'
+                        }
+                    ];
+                },
+                
+                saveTrades() {
+                    const data = {
+                        trades: this.trades,
+                        lastUpdate: this.lastUpdate
+                    };
+                    localStorage.setItem('trade_center_data', JSON.stringify(data));
+                },
+                
+                updateTradeStatuses() {
+                    const now = Date.now();
+                    let updated = false;
+                    
+                    this.trades.forEach(trade => {
+                        const hoursSinceDeposit = (now - trade.depositTime) / (1000 * 60 * 60);
+                        const hoursSincePayment = trade.paymentTime ? (now - trade.paymentTime) / (1000 * 60 * 60) : 0;
+                        
+                        if (trade.status === 'pending' && hoursSinceDeposit > 3) {
+                            // Payment window expired
+                            trade.status = 'expired';
+                            updated = true;
+                        } else if (trade.status === 'paid' && hoursSincePayment > 24) {
+                            // Pickup grace period expired
+                            trade.status = 'overdue';
+                            updated = true;
+                        }
+                    });
+                    
+                    if (updated) {
+                        this.saveTrades();
+                    }
+                },
+                
+                getActiveTradesCount() {
+                    return this.trades.filter(trade => 
+                        (trade.sellerName === this.player.username || trade.buyerName === this.player.username) &&
+                        ['pending', 'paid', 'overdue'].includes(trade.status)
+                    ).length;
+                },
+                
+                getMySellingTrades() {
+                    return this.trades.filter(trade => trade.sellerName === this.player.username);
+                },
+                
+                getMyBuyingTrades() {
+                    return this.trades.filter(trade => trade.buyerName === this.player.username);
+                },
+                
+                getPendingPaymentTrades() {
+                    return this.trades.filter(trade => trade.status === 'pending');
+                },
+                
+                getReadyForPickupTrades() {
+                    return this.trades.filter(trade => ['paid', 'overdue'].includes(trade.status));
+                },
+                
+                getTradeStatusClass(trade) {
+                    const classes = {
+                        'pending': 'trade-status-pending',
+                        'paid': 'trade-status-paid',
+                        'overdue': 'trade-status-overdue',
+                        'completed': 'trade-status-completed'
+                    };
+                    return classes[trade.status] || '';
+                },
+                
+                getStatusColor(status) {
+                    const colors = {
+                        'pending': 'bg-orange-600 text-white',
+                        'paid': 'bg-green-600 text-white',
+                        'overdue': 'bg-red-600 text-white',
+                        'completed': 'bg-purple-600 text-white',
+                        'expired': 'bg-gray-600 text-white'
+                    };
+                    return colors[status] || 'bg-gray-600 text-white';
+                },
+                
+                getTimeRemaining(trade) {
+                    const now = Date.now();
+                    
+                    if (trade.status === 'pending') {
+                        const deadline = trade.depositTime + (3 * 60 * 60 * 1000); // 3 hours
+                        const remaining = deadline - now;
+                        if (remaining > 0) {
+                            const hours = Math.floor(remaining / (60 * 60 * 1000));
+                            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+                            return `${hours}h ${minutes}m to pay`;
+                        }
+                        return 'Payment window expired';
+                    } else if (trade.status === 'paid') {
+                        const deadline = trade.paymentTime + (24 * 60 * 60 * 1000); // 24 hours
+                        const remaining = deadline - now;
+                        if (remaining > 0) {
+                            const hours = Math.floor(remaining / (60 * 60 * 1000));
+                            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+                            return `${hours}h ${minutes}m to pickup`;
+                        }
+                        return 'Grace period expired';
+                    } else if (trade.status === 'overdue') {
+                        const overdue = now - (trade.paymentTime + (24 * 60 * 60 * 1000));
+                        const hours = Math.floor(overdue / (60 * 60 * 1000));
+                        return `${hours}h overdue`;
+                    }
+                    
+                    return '';
+                },
+                
+                calculateServiceFees(trade) {
+                    if (trade.status !== 'overdue' || !trade.paymentTime) return 0;
+                    
+                    const now = Date.now();
+                    const graceEnd = trade.paymentTime + (24 * 60 * 60 * 1000);
+                    const overdueTime = now - graceEnd;
+                    const overdueHours = Math.ceil(overdueTime / (60 * 60 * 1000));
+                    
+                    return Math.floor(trade.price * 0.015 * overdueHours); // 1.5% per hour
+                },
+                
+                selectItemToSell(item) {
+                    this.selectedItem = item;
+                    this.tradeForm.quantity = 1;
+                    this.tradeForm.price = '';
+                    this.tradeForm.buyerName = '';
+                    this.tradeForm.notes = '';
+                },
+                
+                canDeposit() {
+                    return this.selectedItem &&
+                           this.tradeForm.buyerName.trim() &&
+                           this.tradeForm.quantity > 0 &&
+                           this.tradeForm.quantity <= this.selectedItem.quantity &&
+                           this.tradeForm.price > 0;
+                },
+                
+                depositItem() {
+                    if (!this.canDeposit()) return;
+                    
+                    const newTrade = {
+                        id: 'trade_' + Date.now(),
+                        itemId: this.selectedItem.id,
+                        itemName: this.selectedItem.name,
+                        quantity: parseInt(this.tradeForm.quantity),
+                        price: parseInt(this.tradeForm.price),
+                        sellerName: this.player.username,
+                        buyerName: this.tradeForm.buyerName.trim(),
+                        status: 'pending',
+                        depositTime: Date.now(),
+                        paymentTime: null,
+                        notes: this.tradeForm.notes.trim()
+                    };
+                    
+                    // Remove item from inventory
+                    if (this.selectedItem.quantity > this.tradeForm.quantity) {
+                        this.selectedItem.quantity -= this.tradeForm.quantity;
+                    } else {
+                        const index = this.player.inventory.findIndex(item => item.id === this.selectedItem.id);
+                        this.player.inventory.splice(index, 1);
+                    }
+                    
+                    this.trades.push(newTrade);
+                    this.saveTrades();
+                    this.savePlayer();
+                    
+                    this.showNotification(`Item deposited successfully! Trade ID: ${newTrade.id}`, 'success');
+                    
+                    // Reset form
+                    this.selectedItem = null;
+                    this.tradeForm = { buyerName: '', quantity: 1, price: '', notes: '' };
+                    this.activeTab = 'my-trades';
+                },
+                
+                canPayForTrade(trade) {
+                    return this.player.credits >= trade.price && trade.status === 'pending';
+                },
+                
+                payForTrade(trade) {
+                    if (!this.canPayForTrade(trade)) return;
+                    
+                    this.player.credits -= trade.price;
+                    trade.status = 'paid';
+                    trade.paymentTime = Date.now();
+                    
+                    this.saveTrades();
+                    this.savePlayer();
+                    
+                    this.showNotification(`Payment successful! You now own the item. Pickup within 24 hours.`, 'success');
+                },
+                
+                pickupItem(trade) {
+                    if (trade.status === 'overdue') {
+                        const fees = this.calculateServiceFees(trade);
+                        if (this.player.credits < fees) {
+                            this.showNotification('Insufficient credits to pay overdue fees!', 'error');
+                            return;
+                        }
+                        this.player.credits -= fees;
+                    }
+                    
+                    // Add item to buyer's inventory
+                    const existingItem = this.player.inventory.find(item => item.id === trade.itemId);
+                    if (existingItem) {
+                        existingItem.quantity += trade.quantity;
+                    } else {
+                        this.player.inventory.push({
+                            id: trade.itemId,
+                            name: trade.itemName,
+                            quantity: trade.quantity,
+                            weight: 1 // Default weight
+                        });
+                    }
+                    
+                    trade.status = 'completed';
+                    trade.pickupTime = Date.now();
+                    
+                    this.saveTrades();
+                    this.savePlayer();
+                    
+                    this.showNotification(`Item picked up successfully!`, 'success');
+                },
+                
+                payOverdueFees(trade) {
+                    const fees = this.calculateServiceFees(trade);
+                    if (this.player.credits < fees) {
+                        this.showNotification('Insufficient credits to pay overdue fees!', 'error');
+                        return;
+                    }
+                    
+                    this.player.credits -= fees;
+                    trade.status = 'paid'; // Reset to paid status
+                    trade.paymentTime = Date.now(); // Reset grace period
+                    
+                    this.saveTrades();
+                    this.savePlayer();
+                    
+                    this.showNotification(`Overdue fees paid. You now have 24 hours to pickup.`, 'success');
+                },
+                
+                cancelTrade(trade) {
+                    if (!confirm('Are you sure you want to cancel this trade? The item will be returned to the seller.')) {
+                        return;
+                    }
+                    
+                    trade.status = 'cancelled';
+                    this.saveTrades();
+                    this.showNotification('Trade cancelled', 'success');
+                },
+                
+                refreshTrades() {
+                    this.updateTradeStatuses();
+                    this.lastUpdate = Date.now();
+                    this.showNotification('Trade data refreshed', 'success');
+                },
+                
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString();
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 4000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        style: {
+                            background: type === 'success' ? "#10B981" : "#EF4444"
+                        }
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

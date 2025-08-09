@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Specialists</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .specialist-card {
+            transition: all 0.3s ease;
+            background: rgba(17, 24, 39, 0.8);
+        }
+        .specialist-card:hover {
+            transform: translateY(-2px);
+            background: rgba(17, 24, 39, 0.95);
+        }
+        .specialist-available {
+            border: 2px solid #10B981;
+        }
+        .specialist-locked {
+            border: 2px solid #6B7280;
+            opacity: 0.6;
+        }
+        .specialist-active {
+            border: 2px solid #F59E0B;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+        .mission-item {
+            transition: all 0.2s ease;
+        }
+        .mission-item:hover {
+            background: rgba(31, 41, 55, 0.8);
+        }
+        .dialogue-box {
+            background: rgba(17, 24, 39, 0.95);
+            backdrop-filter: blur(10px);
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="specialistApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">👥 State Specialists</h1>
+                <div x-show="currentLocation" class="text-sm bg-blue-900 px-3 py-1 rounded-full">
+                    <span x-text="getLocationDisplayName(currentLocation)"></span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Reputation:</div>
+                    <div class="text-purple-400 font-mono text-lg" x-text="player.reputation || 0"></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-6 py-8">
+        <!-- Location Filter -->
+        <div class="mb-6">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-4 border border-gray-700">
+                <h2 class="text-lg font-bold mb-3 text-blue-400">📍 Filter by Location</h2>
+                <div class="flex flex-wrap gap-3">
+                    <button @click="filterLocation = 'all'" 
+                            :class="filterLocation === 'all' ? 'bg-blue-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-blue-500">
+                        All Locations
+                    </button>
+                    <button @click="filterLocation = 'nexus_station'" 
+                            :class="filterLocation === 'nexus_station' ? 'bg-blue-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-blue-500">
+                        🏭 Nexus Station
+                    </button>
+                    <button @click="filterLocation = 'edison_moon'" 
+                            :class="filterLocation === 'edison_moon' ? 'bg-purple-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-purple-500">
+                        🔬 Edison Moon
+                    </button>
+                    <button @click="filterLocation = 'mccormick_moon'" 
+                            :class="filterLocation === 'mccormick_moon' ? 'bg-green-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-green-500">
+                        🌾 McCormick Moon
+                    </button>
+                    <button @click="filterLocation = 'hoover_moon'" 
+                            :class="filterLocation === 'hoover_moon' ? 'bg-orange-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-orange-500">
+                        ⛏️ Hoover Moon
+                    </button>
+                    <button @click="filterLocation = 'research_satellite_archimedes'" 
+                            :class="filterLocation === 'research_satellite_archimedes' ? 'bg-cyan-600' : 'bg-gray-700'"
+                            class="px-4 py-2 rounded-md text-sm transition-colors hover:bg-cyan-500">
+                        🛰️ Archimedes
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Specialists Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+            <template x-for="specialist in getFilteredSpecialists()" :key="specialist.id">
+                <div @click="selectSpecialist(specialist)" 
+                     :class="getSpecialistCardClass(specialist)"
+                     class="specialist-card p-6 rounded-lg border-2 cursor-pointer">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-xl font-bold" :class="getSpecialistTitleColor(specialist.location)" x-text="specialist.name"></h3>
+                            <p class="text-sm text-gray-400" x-text="specialist.title"></p>
+                        </div>
+                        <div class="text-right">
+                            <div x-show="isSpecialistAccessible(specialist)" class="text-green-400 text-xs">Available</div>
+                            <div x-show="!isSpecialistAccessible(specialist)" class="text-red-400 text-xs">Locked</div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-300 mb-4" x-text="specialist.description"></p>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Location:</span>
+                            <span class="text-blue-400" x-text="getLocationDisplayName(specialist.location)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Department:</span>
+                            <span class="text-purple-400" x-text="formatDepartment(specialist.department)"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Reputation Req:</span>
+                            <span :class="(player.reputation || 0) >= specialist.requirements.reputation_min ? 'text-green-400' : 'text-red-400'" 
+                                  x-text="specialist.requirements.reputation_min"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-4 border-t border-gray-600">
+                        <div class="text-xs text-gray-400 mb-2">Available Missions:</div>
+                        <div class="flex flex-wrap gap-1">
+                            <template x-for="mission in specialist.missions.slice(0, 3)" :key="mission">
+                                <span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs" x-text="formatMissionName(mission)"></span>
+                            </template>
+                            <span x-show="specialist.missions.length > 3" class="text-gray-400 text-xs">+more</span>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- No specialists message -->
+        <div x-show="getFilteredSpecialists().length === 0" class="text-center py-12">
+            <div class="text-gray-400 text-lg">No specialists available at this location</div>
+            <div class="text-gray-500 text-sm mt-2">Try selecting a different location or check your reputation requirements</div>
+        </div>
+    </main>
+
+    <!-- Specialist Interaction Modal -->
+    <div x-show="selectedSpecialist" x-transition class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+        <div class="dialogue-box rounded-lg border border-gray-700 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div x-show="selectedSpecialist">
+                <!-- Header -->
+                <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold" x-text="selectedSpecialist?.name"></h2>
+                        <p class="text-gray-400" x-text="selectedSpecialist?.title"></p>
+                    </div>
+                    <button @click="closeSpecialistModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="p-6">
+                    <!-- Specialist Info -->
+                    <div class="mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <div class="bg-gray-800 p-4 rounded-md">
+                                <div class="text-sm text-gray-400">Specialization</div>
+                                <div class="text-white font-semibold" x-text="formatSpecialization(selectedSpecialist?.specialization)"></div>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-md">
+                                <div class="text-sm text-gray-400">Availability</div>
+                                <div class="text-green-400 font-semibold" x-text="formatAvailability(selectedSpecialist?.availability)"></div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-md">
+                            <div class="text-sm text-gray-400 mb-2">Description</div>
+                            <div class="text-gray-300" x-text="selectedSpecialist?.description"></div>
+                        </div>
+                    </div>
+
+                    <!-- Available Missions -->
+                    <div class="mb-6">
+                        <h3 class="text-xl font-bold mb-4 text-blue-400">📋 Available Missions</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <template x-for="mission in selectedSpecialist?.missions || []" :key="mission">
+                                <div class="mission-item bg-gray-800 p-4 rounded-md border border-gray-600 cursor-pointer"
+                                     @click="selectMission(mission)">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h4 class="font-semibold text-white" x-text="formatMissionName(mission)"></h4>
+                                        <div class="text-xs bg-blue-900 text-blue-200 px-2 py-1 rounded">Mission</div>
+                                    </div>
+                                    <p class="text-sm text-gray-300" x-text="getMissionDescription(mission)"></p>
+                                    <div class="mt-3 flex justify-between items-center">
+                                        <div class="text-xs text-gray-400">
+                                            Reputation: +<span x-text="getMissionReputationReward(mission)"></span>
+                                        </div>
+                                        <div class="text-xs text-yellow-400">
+                                            <span x-text="getMissionCreditReward(mission)"></span> CR
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Prerequisites Info -->
+                    <div x-show="selectedSpecialist?.requirements?.prerequisites?.length > 0" class="mb-6">
+                        <h3 class="text-lg font-bold mb-3 text-orange-400">⚠️ Prerequisites</h3>
+                        <div class="bg-gray-800 p-4 rounded-md">
+                            <div class="space-y-2">
+                                <template x-for="prereq in selectedSpecialist?.requirements?.prerequisites || []" :key="prereq">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-gray-300" x-text="formatPrerequisite(prereq)"></span>
+                                        <span :class="hasPrerequisite(prereq) ? 'text-green-400' : 'text-red-400'" 
+                                              x-text="hasPrerequisite(prereq) ? '✓' : '✗'"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex space-x-4">
+                        <button @click="startConversation()" 
+                                :disabled="!isSpecialistAccessible(selectedSpecialist)"
+                                class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed px-6 py-3 rounded-md font-semibold transition-colors">
+                            Start Conversation
+                        </button>
+                        <button @click="viewProgressionPath()" 
+                                class="flex-1 bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-md font-semibold transition-colors">
+                            View Skill Path
+                        </button>
+                        <button @click="closeSpecialistModal()" 
+                                class="px-6 py-3 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mission Details Modal -->
+    <div x-show="selectedMission" x-transition class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-60">
+        <div class="dialogue-box rounded-lg border border-gray-700 max-w-2xl w-full mx-4">
+            <div x-show="selectedMission">
+                <!-- Header -->
+                <div class="bg-gray-800 px-6 py-4 border-b border-gray-700 flex justify-between items-center">
+                    <h2 class="text-xl font-bold" x-text="formatMissionName(selectedMission)"></h2>
+                    <button @click="closeMissionModal()" class="text-gray-400 hover:text-white text-2xl">&times;</button>
+                </div>
+
+                <!-- Content -->
+                <div class="p-6">
+                    <div class="mb-4">
+                        <p class="text-gray-300 mb-4" x-text="getMissionDescription(selectedMission)"></p>
+                        <div class="grid grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-800 p-3 rounded-md">
+                                <div class="text-sm text-gray-400">Reputation Reward</div>
+                                <div class="text-purple-400 font-bold" x-text="`+${getMissionReputationReward(selectedMission)}`"></div>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded-md">
+                                <div class="text-sm text-gray-400">Credit Reward</div>
+                                <div class="text-yellow-400 font-bold" x-text="`${getMissionCreditReward(selectedMission)} CR`"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-4">
+                        <button @click="acceptMission()" 
+                                class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md transition-colors">
+                            Accept Mission
+                        </button>
+                        <button @click="closeMissionModal()" 
+                                class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-md transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="data/specialists-system.js"></script>
+    <script>
+        function specialistApp() {
+            return {
+                player: {},
+                currentLocation: 'nexus_station',
+                filterLocation: 'all',
+                selectedSpecialist: null,
+                selectedMission: null,
+                specialists: [],
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize reputation if it doesn't exist
+                    if (!this.player.reputation) {
+                        this.player.reputation = 0;
+                    }
+                    
+                    // Initialize completed missions if it doesn't exist
+                    if (!this.player.completedMissions) {
+                        this.player.completedMissions = [];
+                    }
+                    
+                    // Get current location
+                    this.currentLocation = this.player.currentLocation || 'nexus_station';
+                    
+                    // Load specialists data
+                    this.loadSpecialists();
+                    
+                    this.savePlayer();
+                },
+                
+                loadSpecialists() {
+                    // In a real implementation, this would load from specialists-system.json
+                    // For now, we'll use the data structure we defined
+                    this.specialists = [
+                        {
+                            id: 'spec_001',
+                            name: 'Commander Voss',
+                            title: 'Operations Coordinator',
+                            location: 'nexus_station',
+                            department: 'central_command',
+                            specialization: 'mission_coordination_and_system_orientation',
+                            description: 'First point of contact for new arrivals. Provides system overview, basic training assignments, and coordinates with other specialists.',
+                            missions: ['system_orientation', 'basic_navigation_training', 'specialist_introductions', 'initial_resource_allocation'],
+                            requirements: { reputation_min: 0, prerequisites: [] },
+                            dialogue_style: 'authoritative_but_helpful',
+                            availability: 'always_available'
+                        },
+                        {
+                            id: 'spec_002',
+                            name: 'Dr. Elena Morse',
+                            title: 'Research Director',
+                            location: 'edison_moon',
+                            department: 'research_and_development',
+                            specialization: 'advanced_research_methodologies',
+                            description: 'Leads research initiatives on Edison. Teaches players advanced research techniques, laboratory management, and scientific equipment operation.',
+                            missions: ['research_methodology_training', 'laboratory_equipment_certification', 'experimental_design_projects', 'data_analysis_techniques'],
+                            requirements: { reputation_min: 50, prerequisites: ['basic_navigation_training'] },
+                            dialogue_style: 'academic_and_precise',
+                            availability: 'business_hours_edison'
+                        },
+                        {
+                            id: 'spec_003',
+                            name: 'Chief Engineer Yamamoto',
+                            title: 'Industrial Operations Chief',
+                            location: 'edison_moon',
+                            department: 'industrial_engineering',
+                            specialization: 'manufacturing_and_precision_engineering',
+                            description: 'Oversees industrial operations on Edison. Trains players in manufacturing processes, quality control, and precision engineering techniques.',
+                            missions: ['manufacturing_process_training', 'quality_control_certification', 'precision_engineering_projects', 'industrial_safety_protocols'],
+                            requirements: { reputation_min: 75, prerequisites: ['research_methodology_training'] },
+                            dialogue_style: 'technical_and_methodical',
+                            availability: 'shift_based_edison'
+                        },
+                        {
+                            id: 'spec_004',
+                            name: 'Agricultural Coordinator Chen',
+                            title: 'Biosphere Manager',
+                            location: 'mccormick_moon',
+                            department: 'agricultural_sciences',
+                            specialization: 'sustainable_agriculture_and_biosystems',
+                            description: 'Manages McCormick\'s agricultural operations. Teaches sustainable farming, hydroponics, genetic optimization, and ecosystem management.',
+                            missions: ['sustainable_farming_techniques', 'hydroponics_system_management', 'crop_genetic_optimization', 'ecosystem_balance_projects'],
+                            requirements: { reputation_min: 50, prerequisites: ['basic_navigation_training'] },
+                            dialogue_style: 'nurturing_and_patient',
+                            availability: 'seasonal_schedule_mccormick'
+                        },
+                        {
+                            id: 'spec_005',
+                            name: 'Nutritionist Dr. Patel',
+                            title: 'Food Systems Specialist',
+                            location: 'mccormick_moon',
+                            department: 'food_science',
+                            specialization: 'nutritional_science_and_food_processing',
+                            description: 'Specializes in nutritional optimization and food processing. Trains players in food science, preservation techniques, and dietary planning for space missions.',
+                            missions: ['nutritional_analysis_training', 'food_preservation_techniques', 'dietary_optimization_projects', 'emergency_ration_development'],
+                            requirements: { reputation_min: 75, prerequisites: ['sustainable_farming_techniques'] },
+                            dialogue_style: 'health_focused_and_caring',
+                            availability: 'standard_hours_mccormick'
+                        },
+                        {
+                            id: 'spec_006',
+                            name: 'Mining Foreman Rodriguez',
+                            title: 'Deep Core Operations Chief',
+                            location: 'hoover_moon',
+                            department: 'mining_operations',
+                            specialization: 'deep_mining_and_resource_extraction',
+                            description: 'Leads deep core mining operations on Hoover. Teaches advanced mining techniques, geological assessment, and heavy equipment operation.',
+                            missions: ['deep_mining_certification', 'geological_survey_training', 'heavy_equipment_operation', 'safety_protocol_advancement'],
+                            requirements: { reputation_min: 50, prerequisites: ['basic_navigation_training'] },
+                            dialogue_style: 'gruff_but_experienced',
+                            availability: 'round_the_clock_hoover'
+                        },
+                        {
+                            id: 'spec_007',
+                            name: 'Metallurgist Dr. Kim',
+                            title: 'Materials Processing Director',
+                            location: 'hoover_moon',
+                            department: 'materials_engineering',
+                            specialization: 'advanced_metallurgy_and_material_science',
+                            description: 'Directs materials processing on Hoover. Trains players in metallurgy, alloy development, and advanced material properties.',
+                            missions: ['metallurgy_fundamentals', 'alloy_development_projects', 'material_property_analysis', 'advanced_processing_techniques'],
+                            requirements: { reputation_min: 100, prerequisites: ['deep_mining_certification', 'geological_survey_training'] },
+                            dialogue_style: 'scientific_and_detailed',
+                            availability: 'laboratory_schedule_hoover'
+                        },
+                        {
+                            id: 'spec_008',
+                            name: 'Navigator Captain Singh',
+                            title: 'Stellar Navigation Chief',
+                            location: 'nexus_station',
+                            department: 'navigation_and_exploration',
+                            specialization: 'advanced_navigation_and_exploration_planning',
+                            description: 'Expert in stellar navigation and exploration planning. Teaches advanced navigation techniques, route optimization, and exploration protocols.',
+                            missions: ['advanced_navigation_training', 'stellar_cartography_projects', 'exploration_route_planning', 'emergency_navigation_protocols'],
+                            requirements: { reputation_min: 125, prerequisites: ['system_orientation', 'basic_navigation_training'] },
+                            dialogue_style: 'adventurous_and_precise',
+                            availability: 'bridge_duty_nexus'
+                        },
+                        {
+                            id: 'spec_009',
+                            name: 'Trade Commissioner Walsh',
+                            title: 'Economic Development Officer',
+                            location: 'nexus_station',
+                            department: 'economic_development',
+                            specialization: 'trade_economics_and_market_analysis',
+                            description: 'Oversees economic development and trade relationships. Teaches market analysis, trade negotiations, and economic planning.',
+                            missions: ['market_analysis_training', 'trade_negotiation_certification', 'economic_planning_projects', 'financial_transparency_protocols'],
+                            requirements: { reputation_min: 100, prerequisites: ['system_orientation'] },
+                            dialogue_style: 'business_focused_and_diplomatic',
+                            availability: 'market_hours_nexus'
+                        },
+                        {
+                            id: 'spec_010',
+                            name: 'Security Chief Martinez',
+                            title: 'System Security Coordinator',
+                            location: 'nexus_station',
+                            department: 'security_and_law_enforcement',
+                            specialization: 'security_protocols_and_law_enforcement',
+                            description: 'Manages system security and law enforcement. Teaches security protocols, conflict resolution, and law enforcement procedures.',
+                            missions: ['security_protocol_training', 'conflict_resolution_certification', 'law_enforcement_procedures', 'emergency_response_coordination'],
+                            requirements: { reputation_min: 150, prerequisites: ['system_orientation', 'basic_navigation_training'] },
+                            dialogue_style: 'professional_and_stern',
+                            availability: 'security_rotation_nexus'
+                        },
+                        {
+                            id: 'spec_011',
+                            name: 'Diplomatic Attaché Reynolds',
+                            title: 'Inter-Faction Relations Specialist',
+                            location: 'nexus_station',
+                            department: 'diplomatic_relations',
+                            specialization: 'faction_relations_and_diplomatic_protocols',
+                            description: 'Handles inter-faction relations and diplomatic protocols. Teaches diplomacy, faction politics, and conflict mediation.',
+                            missions: ['diplomatic_protocol_training', 'faction_politics_education', 'conflict_mediation_certification', 'inter_system_relations_projects'],
+                            requirements: { reputation_min: 175, prerequisites: ['trade_negotiation_certification', 'conflict_resolution_certification'] },
+                            dialogue_style: 'diplomatic_and_eloquent',
+                            availability: 'appointment_based_nexus'
+                        },
+                        {
+                            id: 'spec_012',
+                            name: 'Archive Keeper Morrison',
+                            title: 'Historical Research Specialist',
+                            location: 'research_satellite_archimedes',
+                            department: 'historical_research',
+                            specialization: 'historical_analysis_and_cultural_preservation',
+                            description: 'Maintains historical records and cultural archives. Teaches historical research, cultural analysis, and knowledge preservation techniques.',
+                            missions: ['historical_research_methodology', 'cultural_analysis_projects', 'archive_management_training', 'knowledge_preservation_protocols'],
+                            requirements: { reputation_min: 200, prerequisites: ['research_methodology_training', 'data_analysis_techniques'] },
+                            dialogue_style: 'scholarly_and_reflective',
+                            availability: 'research_schedule_archimedes'
+                        }
+                    ];
+                },
+                
+                getFilteredSpecialists() {
+                    if (this.filterLocation === 'all') {
+                        return this.specialists;
+                    }
+                    return this.specialists.filter(s => s.location === this.filterLocation);
+                },
+                
+                getSpecialistCardClass(specialist) {
+                    if (!this.isSpecialistAccessible(specialist)) {
+                        return 'specialist-locked';
+                    } else if (this.selectedSpecialist?.id === specialist.id) {
+                        return 'specialist-active';
+                    } else {
+                        return 'specialist-available';
+                    }
+                },
+                
+                getSpecialistTitleColor(location) {
+                    const colors = {
+                        'nexus_station': 'text-blue-400',
+                        'edison_moon': 'text-purple-400',
+                        'mccormick_moon': 'text-green-400',
+                        'hoover_moon': 'text-orange-400',
+                        'research_satellite_archimedes': 'text-cyan-400'
+                    };
+                    return colors[location] || 'text-white';
+                },
+                
+                isSpecialistAccessible(specialist) {
+                    const hasReputation = (this.player.reputation || 0) >= specialist.requirements.reputation_min;
+                    const hasPrereqs = specialist.requirements.prerequisites.every(prereq => 
+                        this.hasPrerequisite(prereq)
+                    );
+                    return hasReputation && hasPrereqs;
+                },
+                
+                hasPrerequisite(prereq) {
+                    // Check if player has completed the prerequisite mission
+                    return this.player.completedMissions?.includes(prereq) || false;
+                },
+                
+                selectSpecialist(specialist) {
+                    this.selectedSpecialist = specialist;
+                },
+                
+                closeSpecialistModal() {
+                    this.selectedSpecialist = null;
+                },
+                
+                selectMission(mission) {
+                    this.selectedMission = mission;
+                },
+                
+                closeMissionModal() {
+                    this.selectedMission = null;
+                },
+                
+                acceptMission() {
+                    // Add mission to active missions
+                    if (!this.player.activeMissions) {
+                        this.player.activeMissions = [];
+                    }
+                    
+                    this.player.activeMissions.push({
+                        id: this.selectedMission,
+                        specialistId: this.selectedSpecialist.id,
+                        acceptedAt: Date.now(),
+                        status: 'active'
+                    });
+                    
+                    this.savePlayer();
+                    this.showNotification(`Mission "${this.formatMissionName(this.selectedMission)}" accepted!`, 'success');
+                    this.closeMissionModal();
+                },
+                
+                startConversation() {
+                    this.showNotification('Conversation system coming soon!', 'info');
+                },
+                
+                viewProgressionPath() {
+                    this.showNotification('Skill progression view coming soon!', 'info');
+                },
+                
+                // Utility functions
+                getLocationDisplayName(location) {
+                    const names = {
+                        'nexus_station': 'Nexus Station',
+                        'edison_moon': 'Edison Moon',
+                        'mccormick_moon': 'McCormick Moon',
+                        'hoover_moon': 'Hoover Moon',
+                        'research_satellite_archimedes': 'Archimedes Satellite'
+                    };
+                    return names[location] || location;
+                },
+                
+                formatDepartment(dept) {
+                    return dept.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                formatSpecialization(spec) {
+                    return spec.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                formatAvailability(availability) {
+                    return availability.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                formatMissionName(mission) {
+                    return mission.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                formatPrerequisite(prereq) {
+                    return prereq.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+                
+                getMissionDescription(mission) {
+                    const descriptions = {
+                        'system_orientation': 'Learn about the Keldar system, its history, and basic navigation.',
+                        'basic_navigation_training': 'Master fundamental space navigation and docking procedures.',
+                        'specialist_introductions': 'Meet other specialists and understand their roles.',
+                        'research_methodology_training': 'Learn scientific research methods and data collection.',
+                        'sustainable_farming_techniques': 'Study eco-friendly agricultural practices for space habitats.',
+                        'deep_mining_certification': 'Get certified in deep space mining operations.',
+                        'advanced_navigation_training': 'Master complex navigation techniques and route planning.',
+                        'market_analysis_training': 'Learn to analyze market trends and economic indicators.',
+                        'security_protocol_training': 'Understand security procedures and threat assessment.',
+                        'diplomatic_protocol_training': 'Learn proper diplomatic procedures and negotiation.',
+                        'historical_research_methodology': 'Study methods for historical research and preservation.'
+                    };
+                    return descriptions[mission] || 'Complete specialized training with this expert.';
+                },
+                
+                getMissionReputationReward(mission) {
+                    const rewards = {
+                        'system_orientation': 10,
+                        'basic_navigation_training': 15,
+                        'specialist_introductions': 5,
+                        'research_methodology_training': 20,
+                        'sustainable_farming_techniques': 20,
+                        'deep_mining_certification': 25,
+                        'advanced_navigation_training': 30,
+                        'market_analysis_training': 25,
+                        'security_protocol_training': 35,
+                        'diplomatic_protocol_training': 40,
+                        'historical_research_methodology': 50
+                    };
+                    return rewards[mission] || 15;
+                },
+                
+                getMissionCreditReward(mission) {
+                    const rewards = {
+                        'system_orientation': 1000,
+                        'basic_navigation_training': 1500,
+                        'specialist_introductions': 500,
+                        'research_methodology_training': 2000,
+                        'sustainable_farming_techniques': 2000,
+                        'deep_mining_certification': 2500,
+                        'advanced_navigation_training': 3000,
+                        'market_analysis_training': 2500,
+                        'security_protocol_training': 3500,
+                        'diplomatic_protocol_training': 4000,
+                        'historical_research_methodology': 5000
+                    };
+                    return rewards[mission] || 1500;
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    const colors = {
+                        success: "#10B981",
+                        error: "#EF4444",
+                        info: "#3B82F6"
+                    };
+                    
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: colors[type] || colors.success,
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

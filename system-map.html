@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - System Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .location-card {
+            transition: all 0.3s ease;
+            background: rgba(17, 24, 39, 0.8);
+        }
+        .location-card:hover {
+            transform: translateY(-2px);
+            background: rgba(17, 24, 39, 0.95);
+        }
+        .location-available {
+            border: 2px solid #10B981;
+        }
+        .location-locked {
+            border: 2px solid #6B7280;
+            opacity: 0.6;
+        }
+        .location-current {
+            border: 2px solid #F59E0B;
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="systemMapApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">🗺️ Keldar System Map</h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Current Location:</div>
+                    <div class="text-blue-400 font-semibold" x-text="currentLocation?.name || 'Unknown'"></div>
+                </div>
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- System Overview -->
+    <main class="container mx-auto px-6 py-8">
+        <div class="mb-8">
+            <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+                <h2 class="text-xl font-bold mb-4 text-blue-400">☀️ Keldar System Overview</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div class="bg-gray-800 p-4 rounded-md">
+                        <div class="font-semibold text-yellow-400">Star: Prime</div>
+                        <div class="text-gray-300">G2V Main Sequence</div>
+                        <div class="text-gray-400">5,800K Surface Temperature</div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-md">
+                        <div class="font-semibold text-green-400">Current Year: 5150</div>
+                        <div class="text-gray-300">2,062 years post-arrival</div>
+                        <div class="text-gray-400">Post-War Reconstruction Era</div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-md">
+                        <div class="font-semibold text-purple-400">Total Population</div>
+                        <div class="text-gray-300" x-text="systemData.systemInfo.currentPopulation.toLocaleString()"></div>
+                        <div class="text-gray-400">Across all locations</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Locations Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            <!-- Nexus Station -->
+            <div @click="selectLocation('nexus')" 
+                 :class="getLocationCardClass('nexus')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-blue-400">🏭 Nexus Station</h3>
+                    <span x-show="currentLocation?.id === 'nexus'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Multi-purpose hub station orbiting Keldar. Training center and commercial district.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">125,000</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-green-400">Training Hub</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Services:</span>
+                        <span class="text-blue-400">All Available</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Available Specialists: 6</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">Command</span>
+                        <span class="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">Navigation</span>
+                        <span class="bg-green-900 text-green-200 px-2 py-1 rounded text-xs">Trade</span>
+                        <span class="bg-red-900 text-red-200 px-2 py-1 rounded text-xs">Security</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keldar Planet -->
+            <div @click="selectLocation('keldar')" 
+                 :class="getLocationCardClass('keldar')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-emerald-400">🌍 Keldar</h3>
+                    <span x-show="currentLocation?.id === 'keldar'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Massive habitable planet, 10x Earth size. Multiple biomes under development.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">1,423,810</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-green-400">Colonization</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Travel Time:</span>
+                        <span class="text-yellow-400">2.5 hours</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Mixed Biomes Available</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-green-900 text-green-200 px-2 py-1 rounded text-xs">Forests</span>
+                        <span class="bg-yellow-900 text-yellow-200 px-2 py-1 rounded text-xs">Deserts</span>
+                        <span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">Oceans</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edison Moon -->
+            <div @click="selectLocation('edison')" 
+                 :class="getLocationCardClass('edison')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-purple-400">🔬 Edison</h3>
+                    <span x-show="currentLocation?.id === 'edison'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Research and industrial moon. Advanced laboratories and manufacturing facilities.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">474,605</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-purple-400">Research & Industry</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Travel Time:</span>
+                        <span class="text-yellow-400">4.2 hours</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Available Specialists: 2</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">Research</span>
+                        <span class="bg-gray-900 text-gray-200 px-2 py-1 rounded text-xs">Engineering</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- McCormick Moon -->
+            <div @click="selectLocation('mccormick')" 
+                 :class="getLocationCardClass('mccormick')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-green-400">🌾 McCormick</h3>
+                    <span x-show="currentLocation?.id === 'mccormick'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Agricultural moon. Hydroponics facilities and food production centers.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">474,605</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-green-400">Agriculture</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Travel Time:</span>
+                        <span class="text-yellow-400">4.8 hours</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Available Specialists: 2</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-green-900 text-green-200 px-2 py-1 rounded text-xs">Agriculture</span>
+                        <span class="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">Nutrition</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hoover Moon -->
+            <div @click="selectLocation('hoover')" 
+                 :class="getLocationCardClass('hoover')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-orange-400">⛏️ Hoover</h3>
+                    <span x-show="currentLocation?.id === 'hoover'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Mining moon. Deep core operations and materials processing facilities.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">474,600</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-orange-400">Mining</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Travel Time:</span>
+                        <span class="text-yellow-400">3.8 hours</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Available Specialists: 2</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-orange-900 text-orange-200 px-2 py-1 rounded text-xs">Mining</span>
+                        <span class="bg-red-900 text-red-200 px-2 py-1 rounded text-xs">Metallurgy</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Research Satellite -->
+            <div @click="selectLocation('archimedes')" 
+                 :class="getLocationCardClass('archimedes')"
+                 class="location-card p-6 rounded-lg border-2 cursor-pointer">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 class="text-xl font-bold text-cyan-400">🛰️ Archimedes</h3>
+                    <span x-show="currentLocation?.id === 'archimedes'" class="text-yellow-400 text-sm">CURRENT</span>
+                </div>
+                <p class="text-gray-300 mb-4">Research satellite. Advanced laboratories and deep space sensors.</p>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Population:</span>
+                        <span class="text-white">150</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Specialization:</span>
+                        <span class="text-cyan-400">Historical Research</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Access Level:</span>
+                        <span class="text-red-400">Restricted</span>
+                    </div>
+                </div>
+                <div class="mt-4 pt-4 border-t border-gray-600">
+                    <div class="text-xs text-gray-400">Reputation Required: 200+</div>
+                    <div class="flex flex-wrap gap-1 mt-2">
+                        <span class="bg-cyan-900 text-cyan-200 px-2 py-1 rounded text-xs">Archives</span>
+                        <span class="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">History</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Travel Confirmation Modal -->
+        <div x-show="showTravelModal" x-transition class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-gray-900 p-6 rounded-lg border border-gray-700 max-w-md w-full mx-4">
+                <h3 class="text-xl font-bold mb-4">Confirm Travel</h3>
+                <div x-show="selectedLocation">
+                    <p class="text-gray-300 mb-4">Travel to <span class="text-blue-400" x-text="selectedLocation?.name"></span>?</p>
+                    <div class="space-y-2 text-sm mb-6">
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Travel Time:</span>
+                            <span class="text-yellow-400" x-text="selectedLocation?.travelTime"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-400">Fuel Cost:</span>
+                            <span class="text-red-400" x-text="`${selectedLocation?.fuelCost || 0} CR`"></span>
+                        </div>
+                    </div>
+                    <div class="flex space-x-4">
+                        <button @click="confirmTravel()" class="flex-1 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors">
+                            Confirm Travel
+                        </button>
+                        <button @click="cancelTravel()" class="flex-1 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function systemMapApp() {
+            return {
+                player: {},
+                currentLocation: null,
+                selectedLocation: null,
+                showTravelModal: false,
+                systemData: {},
+                
+                locations: {
+                    nexus: {
+                        id: 'nexus',
+                        name: 'Nexus Station',
+                        travelTime: 'Current Location',
+                        fuelCost: 0,
+                        accessible: true,
+                        reputation_required: 0
+                    },
+                    keldar: {
+                        id: 'keldar',
+                        name: 'Keldar Planet',
+                        travelTime: '2.5 hours',
+                        fuelCost: 500,
+                        accessible: true,
+                        reputation_required: 0
+                    },
+                    edison: {
+                        id: 'edison',
+                        name: 'Edison Moon',
+                        travelTime: '4.2 hours',
+                        fuelCost: 800,
+                        accessible: true,
+                        reputation_required: 50
+                    },
+                    mccormick: {
+                        id: 'mccormick',
+                        name: 'McCormick Moon',
+                        travelTime: '4.8 hours',
+                        fuelCost: 900,
+                        accessible: true,
+                        reputation_required: 50
+                    },
+                    hoover: {
+                        id: 'hoover',
+                        name: 'Hoover Moon',
+                        travelTime: '3.8 hours',
+                        fuelCost: 750,
+                        accessible: true,
+                        reputation_required: 50
+                    },
+                    archimedes: {
+                        id: 'archimedes',
+                        name: 'Research Satellite Archimedes',
+                        travelTime: '6.0 hours',
+                        fuelCost: 1200,
+                        accessible: false,
+                        reputation_required: 200
+                    }
+                },
+                
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize reputation if it doesn't exist
+                    if (!this.player.reputation) {
+                        this.player.reputation = 0;
+                    }
+                    
+                    // Set current location (default to Nexus)
+                    this.currentLocation = this.locations[this.player.currentLocation || 'nexus'];
+                    
+                    // Load system data (in a real implementation, this would be from keldar-system.json)
+                    this.systemData = {
+                        systemInfo: {
+                            currentPopulation: 2847620
+                        }
+                    };
+                    
+                    this.savePlayer();
+                },
+                
+                getLocationCardClass(locationId) {
+                    const location = this.locations[locationId];
+                    if (this.currentLocation?.id === locationId) {
+                        return 'location-current';
+                    } else if (this.isLocationAccessible(location)) {
+                        return 'location-available';
+                    } else {
+                        return 'location-locked';
+                    }
+                },
+                
+                isLocationAccessible(location) {
+                    return location.accessible && (this.player.reputation || 0) >= location.reputation_required;
+                },
+                
+                selectLocation(locationId) {
+                    const location = this.locations[locationId];
+                    
+                    if (!this.isLocationAccessible(location)) {
+                        this.showNotification('Location not accessible. Check reputation requirements.', 'error');
+                        return;
+                    }
+                    
+                    if (this.currentLocation?.id === locationId) {
+                        this.showNotification('You are already at this location.', 'info');
+                        return;
+                    }
+                    
+                    this.selectedLocation = location;
+                    this.showTravelModal = true;
+                },
+                
+                confirmTravel() {
+                    if (this.player.credits < this.selectedLocation.fuelCost) {
+                        this.showNotification('Insufficient credits for fuel!', 'error');
+                        this.cancelTravel();
+                        return;
+                    }
+                    
+                    // Deduct fuel cost
+                    this.player.credits -= this.selectedLocation.fuelCost;
+                    
+                    // Update current location
+                    this.currentLocation = this.selectedLocation;
+                    this.player.currentLocation = this.selectedLocation.id;
+                    
+                    this.savePlayer();
+                    this.showNotification(`Traveled to ${this.selectedLocation.name}`, 'success');
+                    this.cancelTravel();
+                },
+                
+                cancelTravel() {
+                    this.selectedLocation = null;
+                    this.showTravelModal = false;
+                },
+                
+                goBack() {
+                    window.location.href = 'game.html';
+                },
+                
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'index.html';
+                },
+                
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+                
+                showNotification(message, type = 'success') {
+                    const colors = {
+                        success: "#10B981",
+                        error: "#EF4444",
+                        info: "#3B82F6"
+                    };
+                    
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: colors[type] || colors.success,
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
