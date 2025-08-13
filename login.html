@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Welcome to the Fleet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="page-template.js"></script>
+    <script src="game-data-manager.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            animation: rotate 20s linear infinite;
+            opacity: 0.3;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .auth-card {
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .system-info-card {
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .system-info-card:hover {
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .input-field {
+            background: rgba(31, 41, 55, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.6);
+            transition: all 0.2s ease;
+        }
+        
+        .input-field:focus {
+            background: rgba(31, 41, 55, 0.95);
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563EB, #1E40AF);
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4);
+        }
+        
+        .floating-element {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .slide-in-left {
+            animation: slideInLeft 0.6s ease-out;
+        }
+        
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        .slide-in-right {
+            animation: slideInRight 0.6s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <!-- Animated background -->
+    <div class="star-field" id="starField"></div>
+    
+    <!-- Main container -->
+    <div x-data="authApp()" class="relative z-10 w-full max-w-6xl">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            
+            <!-- Left Side: System Information -->
+            <div class="space-y-6 slide-in-left">
+                <!-- Main Title -->
+                <div class="text-center lg:text-left">
+                    <h1 class="text-5xl lg:text-6xl font-bold text-white mb-4 floating-element">
+                        🚀 <span class="bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Space Explorer</span>
+                    </h1>
+                    <p class="text-xl text-gray-300 mb-6">
+                        Join the Keldar System's most ambitious space exploration initiative
+                    </p>
+                    <p class="text-gray-400">
+                        Forge entire solar systems with revolutionary Genisys Torpedo technology
+                    </p>
+                </div>
+                
+                <!-- System Status Cards -->
+                <div class="space-y-4" x-show="systemInfo" x-transition>
+                    <div class="system-info-card bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-blue-400 mb-3">🌟 Current System Status</h3>
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">System:</span>
+                                <span class="text-white ml-2" x-text="systemInfo.name || 'Keldar System'"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Population:</span>
+                                <span class="text-green-400 ml-2" x-text="formatNumber(systemInfo.currentPopulation || 2847620)"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Year:</span>
+                                <span class="text-purple-400 ml-2" x-text="systemInfo.currentYear || 5150"></span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Status:</span>
+                                <span class="text-green-400 ml-2">Peaceful Zone</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="system-info-card bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-cyan-400 mb-3">🏢 Available Locations</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">🚀 Nexus Station</span>
+                                <span class="text-green-400">Training Hub</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">🔬 Edison Moon</span>
+                                <span class="text-blue-400">Research & Industry</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">🌱 McCormick Moon</span>
+                                <span class="text-green-400">Agriculture</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">⛏️ Hoover Moon</span>
+                                <span class="text-orange-400">Mining Operations</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="system-info-card bg-gray-900 bg-opacity-60 rounded-lg p-6">
+                        <h3 class="text-lg font-semibold text-yellow-400 mb-3">⚡ Fleet Features</h3>
+                        <ul class="space-y-2 text-sm text-gray-300">
+                            <li class="flex items-center">
+                                <span class="text-green-400 mr-2">✓</span>
+                                Genisys Torpedo System - Create entire planets
+                            </li>
+                            <li class="flex items-center">
+                                <span class="text-green-400 mr-2">✓</span>
+                                12 State Specialists - Expert training available
+                            </li>
+                            <li class="flex items-center">
+                                <span class="text-green-400 mr-2">✓</span>
+                                Dynamic Commerce - Real-time market systems
+                            </li>
+                            <li class="flex items-center">
+                                <span class="text-green-400 mr-2">✓</span>
+                                Professional Licensing - 8 career specializations
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Side: Authentication Form -->
+            <div class="slide-in-right">
+                <div class="auth-card bg-gray-900 bg-opacity-80 rounded-2xl shadow-2xl p-8">
+                    <!-- Form Header -->
+                    <div class="text-center mb-8">
+                        <h2 class="text-3xl font-bold text-white mb-2">
+                            <span x-text="isLogin ? 'Welcome Back, Commander' : 'Join the Fleet'"></span>
+                        </h2>
+                        <p class="text-gray-400">
+                            <span x-text="isLogin ? 'Ready to continue your mission?' : 'Begin your cosmic adventure today'"></span>
+                        </p>
+                    </div>
+                    
+                    <!-- Tab Navigation -->
+                    <div class="flex mb-6 bg-gray-800 bg-opacity-50 rounded-lg p-1">
+                        <button 
+                            @click="isLogin = true" 
+                            :class="isLogin ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'"
+                            class="flex-1 py-3 px-4 rounded-md transition-all duration-200 font-medium">
+                            <span class="mr-2">🚀</span>
+                            Launch Mission
+                        </button>
+                        <button 
+                            @click="isLogin = false" 
+                            :class="!isLogin ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-400 hover:text-white'"
+                            class="flex-1 py-3 px-4 rounded-md transition-all duration-200 font-medium">
+                            <span class="mr-2">⭐</span>
+                            Join Fleet
+                        </button>
+                    </div>
+                    
+                    <!-- Form -->
+                    <form @submit.prevent="handleSubmit" class="space-y-6">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="username" class="block text-sm font-medium text-gray-300 mb-2">
+                                    Commander Callsign
+                                </label>
+                                <input 
+                                    type="text" 
+                                    id="username"
+                                    x-model="username"
+                                    required
+                                    class="input-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none"
+                                    placeholder="Enter your callsign">
+                            </div>
+                            
+                            <div>
+                                <label for="password" class="block text-sm font-medium text-gray-300 mb-2">
+                                    Security Code
+                                </label>
+                                <input 
+                                    type="password" 
+                                    id="password"
+                                    x-model="password"
+                                    required
+                                    class="input-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none"
+                                    placeholder="Enter security code">
+                            </div>
+                            
+                            <div x-show="!isLogin" x-transition class="space-y-4">
+                                <div>
+                                    <label for="confirmPassword" class="block text-sm font-medium text-gray-300 mb-2">
+                                        Confirm Security Code
+                                    </label>
+                                    <input 
+                                        type="password" 
+                                        id="confirmPassword"
+                                        x-model="confirmPassword"
+                                        :required="!isLogin"
+                                        class="input-field w-full px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none"
+                                        placeholder="Confirm security code">
+                                </div>
+                                
+                                <!-- Starting Ship Selection -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-300 mb-3">
+                                        Select Starting Vessel
+                                    </label>
+                                    <div class="grid grid-cols-1 gap-3">
+                                        <template x-for="ship in availableShips" :key="ship.id">
+                                            <label class="cursor-pointer">
+                                                <input type="radio" :value="ship.id" x-model="selectedShip" class="sr-only">
+                                                <div class="flex items-center p-3 rounded-lg border-2 transition-all duration-200"
+                                                     :class="selectedShip === ship.id ? 'border-blue-500 bg-blue-500 bg-opacity-20' : 'border-gray-600 bg-gray-800 bg-opacity-50 hover:border-gray-500'">
+                                                    <div class="flex-1">
+                                                        <div class="font-medium text-white" x-text="ship.name"></div>
+                                                        <div class="text-sm text-gray-400" x-text="`${ship.class} - ${ship.role}`"></div>
+                                                        <div class="text-xs text-gray-500 mt-1" x-text="ship.special_bonus"></div>
+                                                    </div>
+                                                    <div class="text-blue-400" x-show="selectedShip === ship.id">✓</div>
+                                                </div>
+                                            </label>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Button -->
+                        <button 
+                            type="submit"
+                            :disabled="loading || (!isLogin && password !== confirmPassword)"
+                            class="btn-primary w-full font-bold py-4 px-6 rounded-lg text-white transition-all duration-200 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span x-show="!loading" class="flex items-center">
+                                <span x-text="isLogin ? '🚀 Launch Mission' : '⭐ Join Fleet'"></span>
+                            </span>
+                            <span x-show="loading" class="flex items-center">
+                                <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="isLogin ? 'Launching...' : 'Enrolling...'"></span>
+                            </span>
+                        </button>
+                        
+                        <!-- Password Match Indicator -->
+                        <div x-show="!isLogin && confirmPassword" class="text-center">
+                            <span x-show="password === confirmPassword" class="text-green-400 text-sm">✓ Security codes match</span>
+                            <span x-show="password !== confirmPassword" class="text-red-400 text-sm">⚠ Security codes do not match</span>
+                        </div>
+                    </form>
+                    
+                    <!-- Footer Info -->
+                    <div class="mt-8 pt-6 border-t border-gray-700">
+                        <div class="text-center text-sm text-gray-400">
+                            <p x-show="isLogin">
+                                New to the fleet? 
+                                <button @click="isLogin = false" class="text-blue-400 hover:text-blue-300 underline">
+                                    Join today
+                                </button>
+                            </p>
+                            <p x-show="!isLogin">
+                                Already enlisted? 
+                                <button @click="isLogin = true" class="text-blue-400 hover:text-blue-300 underline">
+                                    Launch mission
+                                </button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced background animation
+        function createStars() {
+            const starField = document.getElementById('starField');
+            const numStars = 150;
+            
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starField.appendChild(star);
+            }
+            
+            // Add planets
+            for (let i = 0; i < 4; i++) {
+                const planet = document.createElement('div');
+                planet.className = 'planet';
+                planet.style.left = Math.random() * 90 + '%';
+                planet.style.top = Math.random() * 90 + '%';
+                const size = Math.random() * 60 + 20;
+                planet.style.width = size + 'px';
+                planet.style.height = size + 'px';
+                planet.style.animationDuration = (Math.random() * 20 + 10) + 's';
+                starField.appendChild(planet);
+            }
+        }
+        
+        // Alpine.js component
+        function authApp() {
+            return {
+                isLogin: true,
+                username: '',
+                password: '',
+                confirmPassword: '',
+                selectedShip: 'scout_explorer_01',
+                loading: false,
+                systemInfo: null,
+                availableShips: [],
+                
+                async init() {
+                    // Load system data for display
+                    await this.loadSystemData();
+                    this.loadAvailableShips();
+                },
+                
+                async loadSystemData() {
+                    try {
+                        const response = await fetch('./data/keldar-system.json');
+                        this.systemInfo = await response.json().then(data => data.systemInfo);
+                    } catch (error) {
+                        console.log('Could not load system data:', error);
+                        this.systemInfo = {
+                            name: 'Keldar System',
+                            currentYear: 5150,
+                            currentPopulation: 2847620
+                        };
+                    }
+                },
+                
+                async loadAvailableShips() {
+                    try {
+                        const response = await fetch('./ships.json');
+                        const allShips = await response.json();
+                        // Filter to starter ships only
+                        this.availableShips = allShips.filter(ship => 
+                            ship.availability === 'very common' || ship.class === 'Scout'
+                        );
+                    } catch (error) {
+                        console.log('Could not load ships data:', error);
+                        this.availableShips = [{
+                            id: 'scout_explorer_01',
+                            name: 'Starling Explorer',
+                            class: 'Scout',
+                            role: 'Explorer',
+                            special_bonus: 'Enhanced sensor range'
+                        }];
+                    }
+                },
+                
+                handleSubmit() {
+                    if (!this.isLogin && this.password !== this.confirmPassword) {
+                        this.showToast('Security codes do not match!', 'error');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    
+                    // Enhanced loading simulation
+                    setTimeout(() => {
+                        if (this.isLogin) {
+                            this.login();
+                        } else {
+                            this.register();
+                        }
+                        this.loading = false;
+                    }, 1500);
+                },
+                
+                login() {
+                    const players = JSON.parse(localStorage.getItem('players') || '[]');
+                    const player = players.find(p => p.username === this.username && p.password === this.password);
+                    
+                    if (player) {
+                        localStorage.setItem('currentPlayer', JSON.stringify(player));
+                        this.showToast(`Welcome back, Commander ${this.username}!`, 'success');
+                        setTimeout(() => {
+                            window.location.href = 'game.html';
+                        }, 2000);
+                    } else {
+                        this.showToast('Invalid credentials. Access denied, Commander!', 'error');
+                    }
+                },
+                
+                register() {
+                    const players = JSON.parse(localStorage.getItem('players') || '[]');
+                    
+                    if (players.find(p => p.username === this.username)) {
+                        this.showToast('Callsign already registered in the fleet!', 'error');
+                        return;
+                    }
+                    
+                    const selectedShipData = this.availableShips.find(s => s.id === this.selectedShip);
+                    
+                    const newPlayer = {
+                        id: Date.now(),
+                        username: this.username,
+                        password: this.password,
+                        createdAt: new Date().toISOString(),
+                        level: 1,
+                        credits: 1000000,
+                        experience: 0,
+                        currentLocation: 'nexus_station',
+                        hullIntegrity: 100,
+                        shieldStrength: 100,
+                        fuel: 75,
+                        powerLevel: 90,
+                        starterShip: {
+                            id: this.selectedShip,
+                            name: selectedShipData?.name || 'Starling Explorer',
+                            customName: `${this.username}'s ${selectedShipData?.name || 'Explorer'}`,
+                            instanceId: 'starter_' + Date.now(),
+                            purchaseDate: new Date().toISOString(),
+                            isPrimaryShip: true
+                        },
+                        inventory: [],
+                        licenses: {},
+                        violations: 0,
+                        legalStanding: 'Good'
+                    };
+                    
+                    players.push(newPlayer);
+                    localStorage.setItem('players', JSON.stringify(players));
+                    localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
+                    
+                    // Initialize ship data
+                    this.initializeStarterShip(newPlayer);
+                    
+                    this.showToast(`Welcome to the fleet, Commander ${this.username}!`, 'success');
+                    setTimeout(() => {
+                        window.location.href = 'game.html';
+                    }, 2000);
+                },
+                
+                initializeStarterShip(player) {
+                    const shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
+                    
+                    const playerShipsMap = new Map(shipData.playerShips);
+                    playerShipsMap.set(player.username, [player.starterShip.instanceId]);
+                    
+                    const shipInstancesMap = new Map(shipData.shipInstances);
+                    shipInstancesMap.set(player.starterShip.instanceId, {
+                        instanceId: player.starterShip.instanceId,
+                        shipId: player.starterShip.id,
+                        playerId: player.username,
+                        customName: player.starterShip.customName,
+                        purchaseDate: player.starterShip.purchaseDate,
+                        currentCondition: 100,
+                        upgrades: [],
+                        modifications: {},
+                        operatingHours: 0,
+                        maintenanceLog: [],
+                        location: { x: 0, y: 0, z: 0 },
+                        isPrimaryShip: true
+                    });
+                    
+                    const updatedShipData = {
+                        playerShips: Array.from(playerShipsMap.entries()),
+                        shipInstances: Array.from(shipInstancesMap.entries())
+                    };
+                    localStorage.setItem('ship_data', JSON.stringify(updatedShipData));
+                },
+                
+                formatNumber(num) {
+                    return num?.toLocaleString() || '0';
+                },
+                
+                showToast(message, type) {
+                    Toastify({
+                        text: message,
+                        duration: 4000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                        stopOnFocus: true,
+                        style: {
+                            borderRadius: "8px",
+                            fontFamily: "'Inter', sans-serif"
+                        }
+                    }).showToast();
+                }
+            }
+        }
+        
+        // Initialize background animation
+        document.addEventListener('DOMContentLoaded', () => {
+            createStars();
+        });
+    </script>
+</body>
+</html>

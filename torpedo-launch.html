@@ -416,6 +416,20 @@
                         if (typeof GenisysTorpedoSystem !== 'undefined') {
                             this.torpedoSystem = new GenisysTorpedoSystem();
                             console.log('GenisysTorpedoSystem initialized successfully');
+                            
+                            // Set up elimination callback to trigger Alpine.js updates
+                            this.torpedoSystem.setEliminationCallback((formation, category, eliminated) => {
+                                console.log(`UI Update: Eliminated ${eliminated} from ${category}`);
+                                // Force Alpine.js to detect the change by reassigning the reference
+                                if (this.selectedFormation && this.selectedFormation.id === formation.id) {
+                                    this.selectedFormation = { ...formation };
+                                }
+                                // Update active formations array
+                                const index = this.activeFormations.findIndex(f => f.id === formation.id);
+                                if (index !== -1) {
+                                    this.activeFormations[index] = formation;
+                                }
+                            });
                         } else {
                             console.error('GenisysTorpedoSystem class not found');
                             this.showNotification('Torpedo system not available. Please refresh the page.', 'error');
@@ -570,7 +584,7 @@
                     );
                 },
                 
-                launchTorpedo() {
+                async launchTorpedo() {
                     console.log('Launch torpedo called');
                     console.log('Can launch:', this.canLaunch());
                     console.log('Selected torpedo:', this.selectedTorpedo);
@@ -602,7 +616,7 @@
                     console.log('Launch data:', launchData);
                     
                     try {
-                        const formation = this.torpedoSystem.launchGenisysTorpedo(launchData);
+                        const formation = await this.torpedoSystem.launchGenisysTorpedo(launchData);
                         console.log('Formation created:', formation);
                         
                         // Add to active formations
@@ -895,6 +909,21 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                     try {
                         if (typeof GenisysTorpedoSystem !== 'undefined') {
                             this.torpedoSystem = new GenisysTorpedoSystem();
+                            
+                            // Set up elimination callback to trigger Alpine.js updates
+                            this.torpedoSystem.setEliminationCallback((formation, category, eliminated) => {
+                                console.log(`UI Update: Eliminated ${eliminated} from ${category}`);
+                                // Force Alpine.js to detect the change by reassigning the reference
+                                if (this.selectedFormation && this.selectedFormation.id === formation.id) {
+                                    this.selectedFormation = { ...formation };
+                                }
+                                // Update active formations array
+                                const index = this.activeFormations.findIndex(f => f.id === formation.id);
+                                if (index !== -1) {
+                                    this.activeFormations[index] = formation;
+                                }
+                            });
+                            
                             this.showNotification('Torpedo system reinitialized successfully', 'success');
                         } else {
                             this.showNotification('GenisysTorpedoSystem class not found. Check if genisys-torpedo-algorithm.js is loaded.', 'error');

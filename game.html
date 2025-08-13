@@ -7,24 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="ship-manager.js"></script>
-    <script src="ship-status-bar.js"></script>
-    <script src="unified-header.js"></script>
+    <script src="page-template.js"></script>
+    <script src="game-data-manager.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <style>
-        .game-bg {
-            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
-            min-height: 100vh;
-        }
-        /* Alpine.js handles show/hide with x-show directive */
-        .scanner-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1rem;
-        }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="game-bg text-white" x-data="stationApp()">
+<body x-data="stationApp()" class="text-white">
     <!-- Header -->
     <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
         <div class="flex justify-between items-center">

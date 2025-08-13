@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Nexus Station</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="page-template.js"></script>
+    <script src="game-data-manager.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body x-data="stationApp()" class="text-white">
+    <!-- Header -->
+    <div id="pageHeader"></div>
+
+    <!-- Status Bar -->
+    <div id="statusBar"></div>
+
+    <!-- Main Interface -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel - Navigation Dropdowns -->
+            <div id="navigationPanel"></div>
+
+            <!-- Main Content Area -->
+            <div id="mainContent"></div>
+        </div>
+    </div>
+
+    <script>
+        function stationApp() {
+            return {
+                player: {},
+                currentView: {
+                    title: 'Welcome to Nexus Station',
+                    content: ''
+                },
+
+                async init() {
+                    // Check authentication
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    this.initializePlayerDefaults();
+                    this.savePlayer();
+                    
+                    // Wait for page template to load
+                    await this.waitForTemplate();
+                    
+                    // Generate UI
+                    this.generateUI();
+                    
+                    // Setup event listeners
+                    this.setupEventListeners();
+                },
+
+                async waitForTemplate() {
+                    // Wait for page template to be ready
+                    let attempts = 0;
+                    while (!window.pageTemplate && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (window.pageTemplate) {
+                        // Update page template with current player data
+                        window.pageTemplate.data.player = this.player;
+                        window.pageTemplate.updatePlayerLocation();
+                    }
+                },
+
+                generateUI() {
+                    if (!window.pageTemplate) {
+                        console.warn('Page template not available');
+                        return;
+                    }
+
+                    // Generate header
+                    document.getElementById('pageHeader').innerHTML = 
+                        window.pageTemplate.generatePageHeader('Nexus Station', 'Central Hub of the Keldar System');
+
+                    // Generate status bar
+                    document.getElementById('statusBar').innerHTML = 
+                        window.pageTemplate.generateStatusBar();
+
+                    // Generate navigation panel
+                    document.getElementById('navigationPanel').innerHTML = 
+                        window.pageTemplate.generateNavigationDropdowns();
+
+                    // Generate main content
+                    document.getElementById('mainContent').innerHTML = 
+                        window.pageTemplate.generateMainContentArea(
+                            this.currentView.title,
+                            this.generateWelcomeContent()
+                        );
+                },
+
+                generateWelcomeContent() {
+                    const location = window.pageTemplate?.data?.location;
+                    const systemInfo = window.pageTemplate?.data?.keldarSystem?.systemInfo;
+                    
+                    return `
+                        <div class="space-y-6">
+                            <div class="text-center mb-8">
+                                <p class="text-lg text-gray-300 mb-4">
+                                    Welcome aboard Nexus Station, Commander ${this.player.username}. 
+                                    You are now part of the most ambitious space exploration initiative in the Keldar System.
+                                </p>
+                                <div class="inline-flex items-center px-4 py-2 bg-blue-600 bg-opacity-20 border border-blue-500 rounded-lg">
+                                    <span class="text-blue-400 mr-2">🎯</span>
+                                    <span class="text-white">Mission Status: Training Phase Active</span>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
+                                <!-- Station Status -->
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                                    <h4 class="font-semibold text-blue-400 mb-3 flex items-center">
+                                        <span class="mr-2">🚀</span>
+                                        Station Operations
+                                    </h4>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Docking Status:</span>
+                                            <span class="text-green-400">Secure</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Life Support:</span>
+                                            <span class="text-green-400">Optimal</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Artificial Gravity:</span>
+                                            <span class="text-blue-400">0.85 G</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Station Population:</span>
+                                            <span class="text-purple-400">${location?.population?.toLocaleString() || '125,000'}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- System Information -->
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                                    <h4 class="font-semibold text-green-400 mb-3 flex items-center">
+                                        <span class="mr-2">🌍</span>
+                                        Keldar System
+                                    </h4>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Current Year:</span>
+                                            <span class="text-yellow-400">${systemInfo?.currentYear || '5150'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Total Population:</span>
+                                            <span class="text-cyan-400">${systemInfo?.currentPopulation?.toLocaleString() || '2,847,620'}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Security Level:</span>
+                                            <span class="text-green-400">Peaceful Zone</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300">Government:</span>
+                                            <span class="text-purple-400">The State</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Available Services -->
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                                    <h4 class="font-semibold text-purple-400 mb-3 flex items-center">
+                                        <span class="mr-2">🔧</span>
+                                        Station Services
+                                    </h4>
+                                    <ul class="space-y-2 text-sm text-gray-300">
+                                        <li class="flex items-center">
+                                            <span class="text-green-400 mr-2">✓</span>
+                                            Full shipyard and repair facilities
+                                        </li>
+                                        <li class="flex items-center">
+                                            <span class="text-green-400 mr-2">✓</span>
+                                            Advanced marketplace trading
+                                        </li>
+                                        <li class="flex items-center">
+                                            <span class="text-green-400 mr-2">✓</span>
+                                            Professional licensing bureau
+                                        </li>
+                                        <li class="flex items-center">
+                                            <span class="text-green-400 mr-2">✓</span>
+                                            12 State specialists available
+                                        </li>
+                                        <li class="flex items-center">
+                                            <span class="text-green-400 mr-2">✓</span>
+                                            Genisys torpedo manufacturing
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <!-- Quick Actions -->
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700 hover:border-gray-600 transition-colors">
+                                    <h4 class="font-semibold text-yellow-400 mb-3 flex items-center">
+                                        <span class="mr-2">⚡</span>
+                                        Recommended Actions
+                                    </h4>
+                                    <div class="space-y-3">
+                                        <button onclick="window.pageTemplate.showCargoManifest()" 
+                                                class="w-full text-left px-3 py-2 bg-blue-600 bg-opacity-20 border border-blue-500 rounded text-blue-300 hover:bg-opacity-30 transition-colors text-sm">
+                                            📦 Check Ship Cargo Status
+                                        </button>
+                                        <button onclick="window.location.href='specialists.html'" 
+                                                class="w-full text-left px-3 py-2 bg-green-600 bg-opacity-20 border border-green-500 rounded text-green-300 hover:bg-opacity-30 transition-colors text-sm">
+                                            👥 Meet State Specialists
+                                        </button>
+                                        <button onclick="window.location.href='torpedo-launch.html'" 
+                                                class="w-full text-left px-3 py-2 bg-red-600 bg-opacity-20 border border-red-500 rounded text-red-300 hover:bg-opacity-30 transition-colors text-sm">
+                                            🚀 Launch Genisys Torpedo
+                                        </button>
+                                        <button onclick="window.location.href='shipyard.html'" 
+                                                class="w-full text-left px-3 py-2 bg-purple-600 bg-opacity-20 border border-purple-500 rounded text-purple-300 hover:bg-opacity-30 transition-colors text-sm">
+                                            🏭 Visit Shipyard
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- System Map Preview -->
+                            <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700">
+                                <h4 class="font-semibold text-cyan-400 mb-4 flex items-center">
+                                    <span class="mr-2">🗺️</span>
+                                    Keldar System Overview
+                                </h4>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                                    <div class="p-3 bg-yellow-600 bg-opacity-20 border border-yellow-500 rounded">
+                                        <div class="text-2xl mb-1">⭐</div>
+                                        <div class="text-sm font-medium text-yellow-300">Prime Star</div>
+                                        <div class="text-xs text-gray-400">G2V Class</div>
+                                    </div>
+                                    <div class="p-3 bg-blue-600 bg-opacity-20 border border-blue-500 rounded">
+                                        <div class="text-2xl mb-1">🔬</div>
+                                        <div class="text-sm font-medium text-blue-300">Edison Moon</div>
+                                        <div class="text-xs text-gray-400">Research</div>
+                                    </div>
+                                    <div class="p-3 bg-green-600 bg-opacity-20 border border-green-500 rounded">
+                                        <div class="text-2xl mb-1">🌱</div>
+                                        <div class="text-sm font-medium text-green-300">McCormick</div>
+                                        <div class="text-xs text-gray-400">Agriculture</div>
+                                    </div>
+                                    <div class="p-3 bg-orange-600 bg-opacity-20 border border-orange-500 rounded">
+                                        <div class="text-2xl mb-1">⛏️</div>
+                                        <div class="text-sm font-medium text-orange-300">Hoover Moon</div>
+                                        <div class="text-xs text-gray-400">Mining</div>
+                                    </div>
+                                </div>
+                                <div class="mt-4 text-center">
+                                    <a href="system-map.html" class="inline-flex items-center px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-white text-sm transition-colors">
+                                        🗺️ Open Full System Map
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                setupEventListeners() {
+                    // Listen for UI refresh events
+                    window.addEventListener('uiRefreshRequested', () => {
+                        this.generateUI();
+                    });
+
+                    // Setup page template global reference
+                    window.stationAppInstance = this;
+                },
+
+                initializePlayerDefaults() {
+                    // Ensure all required player properties exist
+                    if (!this.player.currentShip) {
+                        if (this.player.starterShip && this.player.starterShip.customName) {
+                            this.player.currentShip = this.player.starterShip.customName;
+                        } else {
+                            this.player.currentShip = 'Standard Explorer';
+                        }
+                    }
+                    
+                    if (!this.player.hullIntegrity) this.player.hullIntegrity = 100;
+                    if (!this.player.shieldStrength) this.player.shieldStrength = 100;
+                    if (!this.player.fuel) this.player.fuel = 75;
+                    if (!this.player.powerLevel) this.player.powerLevel = 90;
+                    if (!this.player.currentLocation) this.player.currentLocation = 'nexus_station';
+                    if (!this.player.licenses) this.player.licenses = {};
+                    if (!this.player.violations) this.player.violations = 0;
+                    if (!this.player.legalStanding) this.player.legalStanding = 'Good';
+                    if (!this.player.inventory) this.player.inventory = [];
+                },
+
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    
+                    // Trigger page template update
+                    if (window.pageTemplate) {
+                        window.pageTemplate.data.player = this.player;
+                        window.dispatchEvent(new CustomEvent('playerDataChanged'));
+                    }
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                        style: {
+                            borderRadius: "8px",
+                            fontFamily: "'Inter', sans-serif"
+                        }
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - {{PAGE_TITLE}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="page-template.js"></script>
+    <script src="game-data-manager.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body x-data="{{APP_FUNCTION}}()" class="text-white">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold">{{PAGE_HEADER_ICON}} {{PAGE_HEADER_TITLE}} - <span x-text="player.currentLocation || '{{DEFAULT_LOCATION}}'"></span></h1>
+            </div>
+            <div class="flex items-center space-x-6">
+                <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Logout
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Unified Status Bar -->
+    <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
+        <div class="container mx-auto">
+            <div class="flex items-center justify-between">
+                <!-- Left Side: Ship and Pilot Information -->
+                <div class="flex items-center space-x-6">
+                    <!-- Ship Icon and Name -->
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">🚀</span>
+                        </div>
+                        <div>
+                            <div class="text-white font-semibold text-sm" x-text="getPilotInfo()"></div>
+                            <div class="text-blue-400 font-medium text-sm" x-text="getCurrentShipLabel()"></div>
+                            <div class="text-gray-400 text-xs" x-text="'Location: ' + getCurrentLocation()"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Ship Status Indicators -->
+                    <div class="hidden md:flex items-center space-x-4 text-sm">
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Hull:</span>
+                            <span class="text-cyan-400 font-semibold" x-text="getHullIntegrity() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Shields:</span>
+                            <span class="text-purple-400 font-semibold" x-text="getShieldStrength() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Fuel:</span>
+                            <span class="text-orange-400 font-semibold" x-text="getFuelLevel() + '%'"></span>
+                        </div>
+                        <div class="flex items-center space-x-1">
+                            <span class="text-gray-400">Power:</span>
+                            <span class="text-red-400 font-semibold" x-text="getPowerLevel() + '%'"></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Side: Status and Credits -->
+                <div class="text-right">
+                    <div class="text-sm font-semibold" :class="getSystemStatus().color" x-text="getSystemStatus().status"></div>
+                    <div class="text-yellow-400 font-mono text-sm" x-text="'Credits: ' + getCredits().toLocaleString()"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Interface -->
+    <div class="container mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Left Panel - Navigation Dropdowns -->
+            <div class="lg:col-span-1 space-y-4">
+                <!-- Ship Information Dropdown (Always Available) -->
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                    <div class="dropdown">
+                        <button @click="toggleDropdown('shipInfo')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
+                            <span class="font-semibold text-blue-400">🚀 Ship Information</span>
+                            <span x-text="dropdowns.shipInfo ? '▼' : '▶'" class="text-gray-400"></span>
+                        </button>
+                        <div x-show="dropdowns.shipInfo" class="dropdown-menu border-t border-gray-700">
+                            <a href="#" @click.prevent="showCargoManifest()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Manifest</a>
+                            <a href="#" @click.prevent="showCrewInfo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 Crew Information</a>
+                            <a href="#" @click.prevent="showUpgrades()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ List Upgrades</a>
+                            <a href="#" @click.prevent="showShipLogs()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Ship Logs</a>
+                            <a href="inventory.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Complete Ship Status</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Navigation Panel -->
+                <div id="navigationPanel"></div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div id="mainContent">
+                <!-- Dynamic content will be generated here -->
+                {{MAIN_CONTENT}}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function {{APP_FUNCTION}}() {
+            return {
+                player: {},
+                dropdowns: {
+                    shipInfo: false
+                },
+                currentView: {
+                    title: '{{DEFAULT_TITLE}}',
+                    content: ''
+                },
+
+                async init() {
+                    // Check authentication
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                    
+                    this.player = JSON.parse(currentPlayer);
+                    this.initializePlayerDefaults();
+                    this.savePlayer();
+                    
+                    // Wait for page template to load
+                    await this.waitForTemplate();
+                    
+                    // Generate UI
+                    this.generateUI();
+                    
+                    // Setup event listeners
+                    this.setupEventListeners();
+                    
+                    // Page-specific initialization
+                    this.pageSpecificInit();
+                },
+
+                async waitForTemplate() {
+                    // Wait for page template to be ready
+                    let attempts = 0;
+                    while (!window.pageTemplate && attempts < 50) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        attempts++;
+                    }
+                    
+                    if (window.pageTemplate) {
+                        // Update page template with current player data
+                        window.pageTemplate.data.player = this.player;
+                        window.pageTemplate.updatePlayerLocation();
+                    }
+                },
+
+                generateUI() {
+                    if (!window.pageTemplate) {
+                        console.warn('Page template not available');
+                        return;
+                    }
+
+                    // Generate navigation panel
+                    document.getElementById('navigationPanel').innerHTML = 
+                        window.pageTemplate.generateNavigationDropdowns();
+
+                    // Generate main content
+                    document.getElementById('mainContent').innerHTML = 
+                        window.pageTemplate.generateMainContentArea(
+                            this.currentView.title,
+                            this.generatePageContent()
+                        );
+                },
+
+                generatePageContent() {
+                    // This method should be overridden in each page
+                    return `
+                        <div class="space-y-6">
+                            <div class="text-center mb-8">
+                                <p class="text-lg text-gray-300 mb-4">
+                                    {{DEFAULT_CONTENT}}
+                                </p>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700">
+                                    <h4 class="font-semibold text-blue-400 mb-3">📋 Information</h4>
+                                    <p class="text-sm text-gray-300">Page-specific information will be displayed here.</p>
+                                </div>
+                                
+                                <div class="bg-gray-800 bg-opacity-60 p-6 rounded-lg border border-gray-700">
+                                    <h4 class="font-semibold text-green-400 mb-3">⚡ Actions</h4>
+                                    <p class="text-sm text-gray-300">Available actions will be shown here.</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                pageSpecificInit() {
+                    // Override this method in each page for specific initialization
+                    console.log('{{PAGE_TITLE}} page initialized');
+                },
+
+                setupEventListeners() {
+                    // Listen for UI refresh events
+                    window.addEventListener('uiRefreshRequested', () => {
+                        this.generateUI();
+                    });
+
+                    // Setup page template global reference
+                    window.{{APP_FUNCTION}}Instance = this;
+                },
+
+                initializePlayerDefaults() {
+                    // Ensure all required player properties exist
+                    if (!this.player.currentShip) {
+                        if (this.player.starterShip && this.player.starterShip.customName) {
+                            this.player.currentShip = this.player.starterShip.customName;
+                        } else {
+                            this.player.currentShip = 'Standard Explorer';
+                        }
+                    }
+                    
+                    if (!this.player.hullIntegrity) this.player.hullIntegrity = 100;
+                    if (!this.player.shieldStrength) this.player.shieldStrength = 100;
+                    if (!this.player.fuel) this.player.fuel = 75;
+                    if (!this.player.powerLevel) this.player.powerLevel = 90;
+                    if (!this.player.currentLocation) this.player.currentLocation = '{{DEFAULT_LOCATION}}';
+                    if (!this.player.licenses) this.player.licenses = {};
+                    if (!this.player.violations) this.player.violations = 0;
+                    if (!this.player.legalStanding) this.player.legalStanding = 'Good';
+                    if (!this.player.inventory) this.player.inventory = [];
+                },
+
+                savePlayer() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    
+                    // Trigger page template update
+                    if (window.pageTemplate) {
+                        window.pageTemplate.data.player = this.player;
+                        window.dispatchEvent(new CustomEvent('playerDataChanged'));
+                    }
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                        style: {
+                            borderRadius: "8px",
+                            fontFamily: "'Inter', sans-serif"
+                        }
+                    }).showToast();
+                },
+
+                // Navigation methods
+                navigateTo(page) {
+                    window.location.href = page;
+                },
+
+                logout() {
+                    localStorage.removeItem('currentPlayer');
+                    window.location.href = 'login.html';
+                },
+
+                // Common utility methods that can be used across pages
+                formatCredits(amount) {
+                    return new Intl.NumberFormat().format(amount);
+                },
+
+                formatDate(date) {
+                    return new Date(date).toLocaleDateString();
+                },
+
+                getCurrentSystemTime() {
+                    return new Date().toLocaleString();
+                },
+
+                // Status Bar Methods
+                getPilotInfo() {
+                    return `Commander ${this.player.username || 'Unknown'}`;
+                },
+
+                getCurrentShipLabel() {
+                    return this.player.currentShip || 'Standard Explorer';
+                },
+
+                getCurrentLocation() {
+                    return this.player.currentLocation || '{{DEFAULT_LOCATION}}';
+                },
+
+                getHullIntegrity() {
+                    return this.player.hullIntegrity || 100;
+                },
+
+                getShieldStrength() {
+                    return this.player.shieldStrength || 100;
+                },
+
+                getFuelLevel() {
+                    return this.player.fuel || 75;
+                },
+
+                getPowerLevel() {
+                    return this.player.powerLevel || 90;
+                },
+
+                getSystemStatus() {
+                    const hull = this.getHullIntegrity();
+                    const shields = this.getShieldStrength();
+                    const fuel = this.getFuelLevel();
+                    const power = this.getPowerLevel();
+                    
+                    if (hull < 25 || shields < 25) {
+                        return { status: 'CRITICAL', color: 'text-red-400' };
+                    } else if (hull < 50 || shields < 50 || fuel < 25 || power < 25) {
+                        return { status: 'WARNING', color: 'text-yellow-400' };
+                    } else {
+                        return { status: 'NOMINAL', color: 'text-green-400' };
+                    }
+                },
+
+                getCredits() {
+                    return this.player.credits || 0;
+                },
+
+                // Dropdown Management
+                toggleDropdown(dropdown) {
+                    this.dropdowns[dropdown] = !this.dropdowns[dropdown];
+                },
+
+                // Ship Information Methods
+                showCargoManifest() {
+                    this.currentView = {
+                        title: '📦 Cargo Manifest',
+                        content: this.generateCargoManifest()
+                    };
+                    this.refreshMainContent();
+                },
+
+                showCrewInfo() {
+                    this.currentView = {
+                        title: '👥 Crew Information',
+                        content: this.generateCrewInfo()
+                    };
+                    this.refreshMainContent();
+                },
+
+                showUpgrades() {
+                    this.currentView = {
+                        title: '⚡ Ship Upgrades',
+                        content: this.generateUpgradesList()
+                    };
+                    this.refreshMainContent();
+                },
+
+                showShipLogs() {
+                    this.currentView = {
+                        title: '📋 Ship Logs',
+                        content: this.generateShipLogs()
+                    };
+                    this.refreshMainContent();
+                },
+
+                // Ship Information Content Generators
+                generateCargoManifest() {
+                    const inventory = this.player.inventory || [];
+                    if (inventory.length === 0) {
+                        return '<p class="text-gray-400">Cargo bay is empty.</p>';
+                    }
+                    
+                    let manifest = '<div class="space-y-2">';
+                    inventory.forEach(item => {
+                        manifest += `
+                            <div class="bg-gray-800 p-3 rounded flex justify-between items-center">
+                                <div>
+                                    <span class="font-semibold">${item.name}</span>
+                                    <span class="text-sm text-gray-400 ml-2">Qty: ${item.quantity}</span>
+                                </div>
+                                <div class="text-xs text-gray-400">${item.description || 'No description'}</div>
+                            </div>
+                        `;
+                    });
+                    manifest += '</div>';
+                    return manifest;
+                },
+
+                generateCrewInfo() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-blue-400 mb-2">👨‍✈️ Captain</h4>
+                                <p class="text-sm text-gray-300">${this.player.username} (You)</p>
+                                <p class="text-xs text-gray-400">Ship Command, Navigation, Combat</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">🔧 Engineering</h4>
+                                <p class="text-sm text-gray-300">Currently hiring - Visit Station Personnel</p>
+                                <p class="text-xs text-gray-400">Ship Maintenance, Power Management</p>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-purple-400 mb-2">📡 Communications</h4>
+                                <p class="text-sm text-gray-300">AI Assistant Online</p>
+                                <p class="text-xs text-gray-400">Scanner Operations, Data Analysis</p>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateUpgradesList() {
+                    return `
+                        <div class="space-y-4">
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-green-400 mb-2">✅ Installed Upgrades</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Basic Life Support System</li>
+                                    <li>• Standard Navigation Computer</li>
+                                    <li>• Emergency Backup Power</li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-800 p-4 rounded-lg">
+                                <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Available Slots</h4>
+                                <ul class="text-sm text-gray-300 space-y-1">
+                                    <li>• Weapon Hardpoint (2 available)</li>
+                                    <li>• Utility Module (3 available)</li>
+                                    <li>• Engine Enhancement (1 available)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                generateShipLogs() {
+                    return `
+                        <div class="space-y-2">
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-green-400">[${new Date().toLocaleString()}]</span>
+                                <span class="text-gray-300"> - Current location: ${this.getCurrentLocation()}</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-blue-400">[Previous Session]</span>
+                                <span class="text-gray-300"> - All systems checked, ready for operations</span>
+                            </div>
+                            <div class="bg-gray-800 p-3 rounded text-sm">
+                                <span class="text-purple-400">[System Boot]</span>
+                                <span class="text-gray-300"> - Ship AI initialized successfully</span>
+                            </div>
+                        </div>
+                    `;
+                },
+
+                // UI Helper Methods
+                refreshMainContent() {
+                    if (document.getElementById('mainContent')) {
+                        document.getElementById('mainContent').innerHTML = 
+                            window.pageTemplate.generateMainContentArea(
+                                this.currentView.title,
+                                this.currentView.content
+                            );
+                    }
+                }
+
+                // {{ADDITIONAL_METHODS}} - Placeholder for page-specific methods
+            }
+        }
+    </script>
+
+    <!-- {{ADDITIONAL_SCRIPTS}} - Placeholder for page-specific scripts -->
+</body>
+</html>

@@ -1,0 +1,1061 @@
+{
+  "planetCharacteristics": {
+    "planetTypes": [
+      {
+        "name": "Rocky",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": ["dust_storms"],
+          "spatialEffects": ["mineral_deposits"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Gas Giant",
+        "effects": {
+          "playerEffects": ["crushing_gravity"],
+          "atmosphereEffects": ["toxic_clouds", "electromagnetic_interference"],
+          "spatialEffects": ["gravity_well"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Ice World",
+        "effects": {
+          "playerEffects": ["extreme_cold"],
+          "atmosphereEffects": ["frozen_atmosphere"],
+          "spatialEffects": ["ice_mining_opportunity"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Volcanic",
+        "effects": {
+          "playerEffects": ["heat_damage"],
+          "atmosphereEffects": ["ash_clouds", "sulfur_emissions"],
+          "spatialEffects": ["geothermal_energy"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Earth-like",
+        "effects": {
+          "playerEffects": ["life_support_bonus"],
+          "atmosphereEffects": ["breathable_air"],
+          "spatialEffects": ["biodiversity"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Desert",
+        "effects": {
+          "playerEffects": ["water_scarcity"],
+          "atmosphereEffects": ["sandstorms"],
+          "spatialEffects": ["solar_energy_bonus"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Ocean World",
+        "effects": {
+          "playerEffects": ["underwater_exploration"],
+          "atmosphereEffects": ["high_humidity"],
+          "spatialEffects": ["tidal_forces"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Lava Planet",
+        "effects": {
+          "playerEffects": ["extreme_heat_damage"],
+          "atmosphereEffects": ["molten_atmosphere"],
+          "spatialEffects": ["rare_metal_formation"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Crystal World",
+        "effects": {
+          "playerEffects": ["enhanced_sensors"],
+          "atmosphereEffects": ["crystal_resonance"],
+          "spatialEffects": ["energy_amplification"],
+          "timeEffects": ["time_crystal_effects"]
+        }
+      },
+      {
+        "name": "Metal Core",
+        "effects": {
+          "playerEffects": ["magnetic_interference"],
+          "atmosphereEffects": ["metallic_particles"],
+          "spatialEffects": ["electromagnetic_fields"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Frozen Gas",
+        "effects": {
+          "playerEffects": ["extreme_cold"],
+          "atmosphereEffects": ["frozen_volatiles"],
+          "spatialEffects": ["fuel_harvesting"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Radioactive",
+        "effects": {
+          "playerEffects": ["radiation_damage", "mutation_risk"],
+          "atmosphereEffects": ["radioactive_fallout"],
+          "spatialEffects": ["nuclear_decay_energy"],
+          "timeEffects": ["half_life_effects"]
+        }
+      },
+      {
+        "name": "Plasma Storm",
+        "effects": {
+          "playerEffects": ["electrical_damage"],
+          "atmosphereEffects": ["ionized_atmosphere"],
+          "spatialEffects": ["electromagnetic_chaos"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Dark Matter",
+        "effects": {
+          "playerEffects": ["reality_distortion"],
+          "atmosphereEffects": ["invisible_forces"],
+          "spatialEffects": ["gravity_anomalies"],
+          "timeEffects": ["temporal_echoes"]
+        }
+      },
+      {
+        "name": "Quantum Fluctuation",
+        "effects": {
+          "playerEffects": ["quantum_uncertainty"],
+          "atmosphereEffects": ["probability_fields"],
+          "spatialEffects": ["dimensional_rifts"],
+          "timeEffects": ["causality_loops"]
+        }
+      }
+    ],
+    "sizeClasses": [
+      {
+        "name": "Asteroid (100-500 km)",
+        "effects": {
+          "playerEffects": ["low_gravity"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["easy_orbital_mechanics"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Dwarf Planet (500-2000 km)",
+        "effects": {
+          "playerEffects": ["weak_gravity"],
+          "atmosphereEffects": ["thin_atmosphere"],
+          "spatialEffects": ["stable_orbit"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Small Planet (2000-8000 km)",
+        "effects": {
+          "playerEffects": ["moderate_gravity"],
+          "atmosphereEffects": ["variable_atmosphere"],
+          "spatialEffects": ["standard_conditions"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Medium Planet (8000-15000 km)",
+        "effects": {
+          "playerEffects": ["earth_like_gravity"],
+          "atmosphereEffects": ["substantial_atmosphere"],
+          "spatialEffects": ["complex_weather"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Large Planet (15000-30000 km)",
+        "effects": {
+          "playerEffects": ["high_gravity"],
+          "atmosphereEffects": ["dense_atmosphere"],
+          "spatialEffects": ["extreme_weather"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Super Planet (30000-50000 km)",
+        "effects": {
+          "playerEffects": ["crushing_gravity"],
+          "atmosphereEffects": ["super_dense_atmosphere"],
+          "spatialEffects": ["massive_storms"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Gas Dwarf (5000-12000 km)",
+        "effects": {
+          "playerEffects": ["atmospheric_pressure"],
+          "atmosphereEffects": ["gas_layers"],
+          "spatialEffects": ["floating_platforms"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Gas Giant (20000-80000 km)",
+        "effects": {
+          "playerEffects": ["extreme_pressure"],
+          "atmosphereEffects": ["deep_atmosphere"],
+          "spatialEffects": ["storm_systems"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Super Giant (80000+ km)",
+        "effects": {
+          "playerEffects": ["impossible_conditions"],
+          "atmosphereEffects": ["stellar_atmosphere"],
+          "spatialEffects": ["mini_star_effects"],
+          "timeEffects": ["gravitational_time_dilation"]
+        }
+      }
+    ],
+    "moonCounts": [
+      {
+        "name": "0 moons",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["simple_tidal_forces"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "1 moon",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["stable_tides"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "2-3 moons",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["complex_tides"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "4-6 moons",
+        "effects": {
+          "playerEffects": ["navigation_complexity"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["orbital_resonance"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "7-12 moons",
+        "effects": {
+          "playerEffects": ["gravitational_stress"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["chaotic_orbits"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "13-25 moons",
+        "effects": {
+          "playerEffects": ["extreme_navigation"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["unstable_system"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "26-50 moons",
+        "effects": {
+          "playerEffects": ["impossible_navigation"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["system_collapse_risk"],
+          "timeEffects": ["orbital_time_variance"]
+        }
+      }
+    ],
+    "atmosphereTypes": [
+      {
+        "name": "None (Vacuum)",
+        "effects": {
+          "playerEffects": ["life_support_critical"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["no_weather"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Thin Oxygen",
+        "effects": {
+          "playerEffects": ["breathing_difficulty"],
+          "atmosphereEffects": ["low_pressure"],
+          "spatialEffects": ["weak_weather"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Dense Oxygen",
+        "effects": {
+          "playerEffects": ["enhanced_healing"],
+          "atmosphereEffects": ["high_pressure"],
+          "spatialEffects": ["intense_weather"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Methane",
+        "effects": {
+          "playerEffects": ["toxic_environment"],
+          "atmosphereEffects": ["flammable_air"],
+          "spatialEffects": ["hydrocarbon_resources"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Ammonia",
+        "effects": {
+          "playerEffects": ["corrosive_damage"],
+          "atmosphereEffects": ["chemical_reactions"],
+          "spatialEffects": ["industrial_potential"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Carbon Dioxide",
+        "effects": {
+          "playerEffects": ["greenhouse_heat"],
+          "atmosphereEffects": ["dense_clouds"],
+          "spatialEffects": ["terraforming_potential"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Hydrogen",
+        "effects": {
+          "playerEffects": ["fuel_abundance"],
+          "atmosphereEffects": ["explosive_risk"],
+          "spatialEffects": ["fusion_reactions"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Noble Gases",
+        "effects": {
+          "playerEffects": ["inert_safety"],
+          "atmosphereEffects": ["stable_conditions"],
+          "spatialEffects": ["technology_enhancement"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Toxic Sulfur",
+        "effects": {
+          "playerEffects": ["poison_damage"],
+          "atmosphereEffects": ["acid_rain"],
+          "spatialEffects": ["mineral_formation"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Corrosive Acid",
+        "effects": {
+          "playerEffects": ["equipment_damage"],
+          "atmosphereEffects": ["material_breakdown"],
+          "spatialEffects": ["extreme_erosion"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Plasma Field",
+        "effects": {
+          "playerEffects": ["energy_absorption"],
+          "atmosphereEffects": ["ionized_matter"],
+          "spatialEffects": ["electromagnetic_storms"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Quantum Mist",
+        "effects": {
+          "playerEffects": ["reality_shifts"],
+          "atmosphereEffects": ["probability_distortion"],
+          "spatialEffects": ["dimensional_portals"],
+          "timeEffects": ["temporal_displacement"]
+        }
+      },
+      {
+        "name": "Dark Energy",
+        "effects": {
+          "playerEffects": ["consciousness_effects"],
+          "atmosphereEffects": ["invisible_phenomena"],
+          "spatialEffects": ["space_expansion"],
+          "timeEffects": ["accelerated_aging"]
+        }
+      }
+    ],
+    "temperatures": [
+      {
+        "name": "Absolute Zero (-273°C)",
+        "effects": {
+          "playerEffects": ["instant_death"],
+          "atmosphereEffects": ["molecular_stillness"],
+          "spatialEffects": ["quantum_effects"],
+          "timeEffects": ["time_slowdown"]
+        }
+      },
+      {
+        "name": "Frozen (-200 to -100°C)",
+        "effects": {
+          "playerEffects": ["extreme_cold_damage"],
+          "atmosphereEffects": ["frozen_gases"],
+          "spatialEffects": ["brittle_materials"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Cold (-100 to 0°C)",
+        "effects": {
+          "playerEffects": ["cold_damage"],
+          "atmosphereEffects": ["ice_formation"],
+          "spatialEffects": ["thermal_contraction"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Temperate (0 to 50°C)",
+        "effects": {
+          "playerEffects": ["comfortable_conditions"],
+          "atmosphereEffects": ["stable_weather"],
+          "spatialEffects": ["optimal_operations"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Hot (50 to 200°C)",
+        "effects": {
+          "playerEffects": ["heat_stress"],
+          "atmosphereEffects": ["thermal_currents"],
+          "spatialEffects": ["thermal_expansion"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Scorching (200 to 1000°C)",
+        "effects": {
+          "playerEffects": ["heat_damage"],
+          "atmosphereEffects": ["superheated_air"],
+          "spatialEffects": ["material_stress"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Molten (1000 to 5000°C)",
+        "effects": {
+          "playerEffects": ["extreme_heat_damage"],
+          "atmosphereEffects": ["plasma_formation"],
+          "spatialEffects": ["metal_melting"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Plasma (5000°C+)",
+        "effects": {
+          "playerEffects": ["instant_vaporization"],
+          "atmosphereEffects": ["ionized_matter"],
+          "spatialEffects": ["nuclear_reactions"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Solar Core (Millions°C)",
+        "effects": {
+          "playerEffects": ["impossible_survival"],
+          "atmosphereEffects": ["stellar_conditions"],
+          "spatialEffects": ["fusion_reactions"],
+          "timeEffects": ["relativistic_effects"]
+        }
+      }
+    ],
+    "surfaceFeatures": [
+      {
+        "name": "Smooth Plains",
+        "effects": {
+          "playerEffects": ["easy_travel"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["construction_sites"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Mountain Ranges",
+        "effects": {
+          "playerEffects": ["difficult_terrain"],
+          "atmosphereEffects": ["weather_barriers"],
+          "spatialEffects": ["mining_opportunities"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Deep Canyons",
+        "effects": {
+          "playerEffects": ["navigation_hazards"],
+          "atmosphereEffects": ["wind_tunnels"],
+          "spatialEffects": ["shelter_locations"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Crater Fields",
+        "effects": {
+          "playerEffects": ["rough_terrain"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["impact_materials"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Volcanic Activity",
+        "effects": {
+          "playerEffects": ["heat_hazards"],
+          "atmosphereEffects": ["ash_clouds"],
+          "spatialEffects": ["geothermal_energy"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Ice Caps",
+        "effects": {
+          "playerEffects": ["cold_zones"],
+          "atmosphereEffects": ["humidity_control"],
+          "spatialEffects": ["water_reserves"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Liquid Oceans",
+        "effects": {
+          "playerEffects": ["underwater_exploration"],
+          "atmosphereEffects": ["humidity"],
+          "spatialEffects": ["tidal_energy"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Methane Lakes",
+        "effects": {
+          "playerEffects": ["toxic_exposure"],
+          "atmosphereEffects": ["hydrocarbon_vapors"],
+          "spatialEffects": ["fuel_resources"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Crystal Formations",
+        "effects": {
+          "playerEffects": ["enhanced_sensors"],
+          "atmosphereEffects": ["light_refraction"],
+          "spatialEffects": ["energy_focusing"],
+          "timeEffects": ["time_distortion"]
+        }
+      },
+      {
+        "name": "Metal Veins",
+        "effects": {
+          "playerEffects": ["magnetic_interference"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["rich_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Floating Islands",
+        "effects": {
+          "playerEffects": ["aerial_navigation"],
+          "atmosphereEffects": ["unique_ecosystems"],
+          "spatialEffects": ["anti_gravity_effects"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Quantum Rifts",
+        "effects": {
+          "playerEffects": ["reality_distortion"],
+          "atmosphereEffects": ["probability_fields"],
+          "spatialEffects": ["dimensional_gates"],
+          "timeEffects": ["temporal_anomalies"]
+        }
+      },
+      {
+        "name": "Temporal Anomalies",
+        "effects": {
+          "playerEffects": ["time_sickness"],
+          "atmosphereEffects": ["chronoton_particles"],
+          "spatialEffects": ["causality_loops"],
+          "timeEffects": ["time_acceleration", "time_deceleration"]
+        }
+      },
+      {
+        "name": "Gravity Wells",
+        "effects": {
+          "playerEffects": ["movement_restriction"],
+          "atmosphereEffects": ["compressed_atmosphere"],
+          "spatialEffects": ["tidal_forces"],
+          "timeEffects": ["gravitational_time_dilation"]
+        }
+      },
+      {
+        "name": "Energy Storms",
+        "effects": {
+          "playerEffects": ["electrical_damage"],
+          "atmosphereEffects": ["ionized_particles"],
+          "spatialEffects": ["power_surges"],
+          "timeEffects": []
+        }
+      }
+    ],
+    "mineralWealth": [
+      {
+        "name": "Barren",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["no_mining_value"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Poor",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["minimal_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Modest",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["basic_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Moderate",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": ["profitable_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Rich",
+        "effects": {
+          "playerEffects": ["wealth_generation"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["valuable_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Very Rich",
+        "effects": {
+          "playerEffects": ["significant_wealth"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["high_value_mining"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Extremely Rich",
+        "effects": {
+          "playerEffects": ["massive_wealth"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["rare_elements"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Legendary Deposits",
+        "effects": {
+          "playerEffects": ["legendary_wealth"],
+          "atmosphereEffects": [],
+          "spatialEffects": ["unique_materials"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Exotic Materials",
+        "effects": {
+          "playerEffects": ["technology_boost"],
+          "atmosphereEffects": ["material_effects"],
+          "spatialEffects": ["advanced_manufacturing"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Unique Elements",
+        "effects": {
+          "playerEffects": ["scientific_discovery"],
+          "atmosphereEffects": ["elemental_reactions"],
+          "spatialEffects": ["breakthrough_technology"],
+          "timeEffects": ["temporal_materials"]
+        }
+      }
+    ],
+    "habitability": [
+      {
+        "name": "Completely Hostile",
+        "effects": {
+          "playerEffects": ["constant_damage"],
+          "atmosphereEffects": ["lethal_environment"],
+          "spatialEffects": ["infrastructure_damage"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Barely Survivable",
+        "effects": {
+          "playerEffects": ["survival_difficulty"],
+          "atmosphereEffects": ["harsh_conditions"],
+          "spatialEffects": ["equipment_stress"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Harsh Environment",
+        "effects": {
+          "playerEffects": ["increased_costs"],
+          "atmosphereEffects": ["challenging_weather"],
+          "spatialEffects": ["difficult_construction"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Challenging",
+        "effects": {
+          "playerEffects": ["skill_requirements"],
+          "atmosphereEffects": ["variable_conditions"],
+          "spatialEffects": ["complex_operations"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Liveable with Equipment",
+        "effects": {
+          "playerEffects": ["equipment_dependent"],
+          "atmosphereEffects": ["manageable_conditions"],
+          "spatialEffects": ["standard_operations"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Naturally Habitable",
+        "effects": {
+          "playerEffects": ["comfort_bonus"],
+          "atmosphereEffects": ["pleasant_conditions"],
+          "spatialEffects": ["easy_operations"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Paradise World",
+        "effects": {
+          "playerEffects": ["health_bonus", "happiness_boost"],
+          "atmosphereEffects": ["perfect_conditions"],
+          "spatialEffects": ["optimal_efficiency"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Utopian Conditions",
+        "effects": {
+          "playerEffects": ["perfection_bonus"],
+          "atmosphereEffects": ["ideal_environment"],
+          "spatialEffects": ["maximum_efficiency"],
+          "timeEffects": ["time_healing"]
+        }
+      }
+    ],
+    "magneticField": [
+      {
+        "name": "None",
+        "effects": {
+          "playerEffects": ["radiation_exposure"],
+          "atmosphereEffects": ["atmospheric_loss"],
+          "spatialEffects": ["no_protection"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Weak",
+        "effects": {
+          "playerEffects": ["minor_radiation"],
+          "atmosphereEffects": ["slight_protection"],
+          "spatialEffects": ["minimal_shielding"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Moderate",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": ["standard_protection"],
+          "spatialEffects": ["normal_conditions"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Strong",
+        "effects": {
+          "playerEffects": ["compass_interference"],
+          "atmosphereEffects": ["enhanced_protection"],
+          "spatialEffects": ["magnetic_anomalies"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Extreme",
+        "effects": {
+          "playerEffects": ["equipment_malfunction"],
+          "atmosphereEffects": ["auroras"],
+          "spatialEffects": ["electromagnetic_storms"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Fluctuating",
+        "effects": {
+          "playerEffects": ["navigation_confusion"],
+          "atmosphereEffects": ["variable_protection"],
+          "spatialEffects": ["unstable_conditions"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Reversed Polarity",
+        "effects": {
+          "playerEffects": ["disorientation"],
+          "atmosphereEffects": ["unusual_phenomena"],
+          "spatialEffects": ["magnetic_confusion"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Multi-Polar",
+        "effects": {
+          "playerEffects": ["complex_navigation"],
+          "atmosphereEffects": ["multiple_protection_zones"],
+          "spatialEffects": ["magnetic_maze"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Quantum Entangled",
+        "effects": {
+          "playerEffects": ["quantum_effects"],
+          "atmosphereEffects": ["entangled_particles"],
+          "spatialEffects": ["instant_communication"],
+          "timeEffects": ["quantum_tunneling"]
+        }
+      }
+    ],
+    "specialProperties": [
+      {
+        "name": "Standard Physics",
+        "effects": {
+          "playerEffects": [],
+          "atmosphereEffects": [],
+          "spatialEffects": [],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Time Dilation Effects",
+        "effects": {
+          "playerEffects": ["aging_variance"],
+          "atmosphereEffects": ["temporal_particles"],
+          "spatialEffects": ["relativistic_effects"],
+          "timeEffects": ["time_slowdown", "time_acceleration"]
+        }
+      },
+      {
+        "name": "Gravity Anomalies",
+        "effects": {
+          "playerEffects": ["movement_difficulty"],
+          "atmosphereEffects": ["atmospheric_compression"],
+          "spatialEffects": ["structural_stress"],
+          "timeEffects": ["gravitational_time_effects"]
+        }
+      },
+      {
+        "name": "Dimensional Rifts",
+        "effects": {
+          "playerEffects": ["dimensional_travel"],
+          "atmosphereEffects": ["interdimensional_leakage"],
+          "spatialEffects": ["portal_access"],
+          "timeEffects": ["temporal_displacement"]
+        }
+      },
+      {
+        "name": "Quantum Tunneling",
+        "effects": {
+          "playerEffects": ["phase_shifting"],
+          "atmosphereEffects": ["probability_fields"],
+          "spatialEffects": ["matter_penetration"],
+          "timeEffects": ["causality_violations"]
+        }
+      },
+      {
+        "name": "Anti-Matter Traces",
+        "effects": {
+          "playerEffects": ["annihilation_risk"],
+          "atmosphereEffects": ["matter_antimatter_reactions"],
+          "spatialEffects": ["energy_production"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Dark Matter Influence",
+        "effects": {
+          "playerEffects": ["reality_distortion"],
+          "atmosphereEffects": ["invisible_forces"],
+          "spatialEffects": ["gravitational_lensing"],
+          "timeEffects": ["temporal_echoes"]
+        }
+      },
+      {
+        "name": "Psionic Resonance",
+        "effects": {
+          "playerEffects": ["mental_enhancement", "telepathic_abilities"],
+          "atmosphereEffects": ["psychic_fields"],
+          "spatialEffects": ["consciousness_amplification"],
+          "timeEffects": ["precognition"]
+        }
+      },
+      {
+        "name": "Life Signs",
+        "effects": {
+          "playerEffects": ["biological_interaction"],
+          "atmosphereEffects": ["living_atmosphere"],
+          "spatialEffects": ["ecosystem_development"],
+          "timeEffects": []
+        }
+      },
+      {
+        "name": "Ancient Artifacts",
+        "effects": {
+          "playerEffects": ["technology_discovery"],
+          "atmosphereEffects": ["energy_emanations"],
+          "spatialEffects": ["archaeological_sites"],
+          "timeEffects": ["temporal_recordings"]
+        }
+      },
+      {
+        "name": "Energy Beings",
+        "effects": {
+          "playerEffects": ["consciousness_contact"],
+          "atmosphereEffects": ["living_energy"],
+          "spatialEffects": ["energy_manipulation"],
+          "timeEffects": ["temporal_awareness"]
+        }
+      },
+      {
+        "name": "Sentient Planet",
+        "effects": {
+          "playerEffects": ["planetary_communication"],
+          "atmosphereEffects": ["conscious_weather"],
+          "spatialEffects": ["intelligent_geography"],
+          "timeEffects": ["planetary_memory"]
+        }
+      }
+    ]
+  },
+  "effectDescriptions": {
+    "playerEffects": {
+      "low_gravity": "Player movement speed increased by 50%, jump height doubled",
+      "crushing_gravity": "Player movement speed reduced by 75%, constant health drain",
+      "extreme_cold": "Health slowly decreases, movement speed reduced by 25%",
+      "heat_damage": "Gradual health loss, equipment degrades faster",
+      "life_support_bonus": "Health regeneration increased, oxygen consumption reduced",
+      "water_scarcity": "Must carry extra water supplies, increased supply costs",
+      "underwater_exploration": "Unlocks submarine operations, requires diving equipment",
+      "enhanced_sensors": "Scanner range increased by 100%, detection accuracy improved",
+      "magnetic_interference": "Navigation accuracy reduced, electronic equipment malfunctions",
+      "radiation_damage": "Continuous health loss, requires radiation shielding",
+      "electrical_damage": "Random equipment failures, energy weapons more effective",
+      "reality_distortion": "Random teleportation events, unpredictable physics",
+      "quantum_uncertainty": "Actions have random success modifiers",
+      "impossible_survival": "Instant death without specialized protection",
+      "consciousness_effects": "Temporary ability enhancement or confusion",
+      "instant_death": "Immediate fatality without extreme protection",
+      "comfortable_conditions": "Health regeneration bonus, reduced supply costs",
+      "fuel_abundance": "Ship fuel costs reduced by 50%",
+      "technology_boost": "Research speed increased, equipment efficiency improved",
+      "wealth_generation": "Passive credit income from mining operations",
+      "health_bonus": "Increased health regeneration rate",
+      "happiness_boost": "Morale bonus affecting all activities",
+      "perfection_bonus": "All activities receive efficiency bonuses"
+    },
+    "atmosphereEffects": {
+      "dust_storms": "Visibility reduced periodically, equipment requires more maintenance",
+      "toxic_clouds": "Atmospheric processors required, increased environmental costs",
+      "frozen_atmosphere": "Limited weather patterns, ice harvesting opportunities",
+      "ash_clouds": "Reduced solar energy, air filtration systems required",
+      "breathable_air": "No atmospheric processing required, outdoor activities possible",
+      "sandstorms": "Periodic visibility loss, abrasive damage to equipment",
+      "high_humidity": "Corrosion risk, but enhanced plant growth",
+      "molten_atmosphere": "Extreme environmental protection required",
+      "crystal_resonance": "Enhanced communication range, sonic amplification",
+      "radioactive_fallout": "Atmospheric contamination, long-term health risks",
+      "ionized_atmosphere": "Enhanced electrical phenomena, communication interference"
+    },
+    "spatialEffects": {
+      "mineral_deposits": "Enhanced mining yield, geological survey bonuses",
+      "gravity_well": "Affects orbital mechanics, influences nearby objects",
+      "ice_mining_opportunity": "Water production possible, ice export potential",
+      "geothermal_energy": "Renewable energy source, power generation bonus",
+      "biodiversity": "Research opportunities, biological resource harvesting",
+      "solar_energy_bonus": "Enhanced solar panel efficiency",
+      "tidal_forces": "Tidal energy generation possible, coastal effects",
+      "rare_metal_formation": "Unique materials for advanced technology",
+      "energy_amplification": "Power systems operate at increased efficiency",
+      "electromagnetic_fields": "Advanced technology possible, but interference risks",
+      "fuel_harvesting": "Starship fuel extraction opportunities",
+      "nuclear_decay_energy": "Radioisotope power sources available",
+      "electromagnetic_chaos": "Electronic systems unreliable but energy abundant",
+      "gravity_anomalies": "Unusual orbital mechanics, potential for exotic physics",
+      "dimensional_rifts": "Access to other dimensions, reality instability"
+    },
+    "timeEffects": {
+      "time_crystal_effects": "Temporal manipulation possible, chronoton harvesting",
+      "half_life_effects": "Predictable decay patterns useful for timing",
+      "temporal_echoes": "Past and future events sometimes visible",
+      "causality_loops": "Actions may affect past events",
+      "gravitational_time_dilation": "Time passes differently relative to normal space",
+      "temporal_displacement": "Random time travel events",
+      "accelerated_aging": "Biological processes speed up",
+      "time_slowdown": "Local time passes more slowly",
+      "time_acceleration": "Local time passes more quickly",
+      "time_deceleration": "Time effects can be controlled",
+      "quantum_tunneling": "Temporal barriers can be bypassed",
+      "time_healing": "Injuries heal by reversing time",
+      "temporal_recordings": "Historical events can be observed",
+      "temporal_awareness": "Future events partially predictable",
+      "planetary_memory": "Planet remembers all past events"
+    }
+  }
+}
