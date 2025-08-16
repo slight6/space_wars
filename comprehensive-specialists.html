@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Specialist System - Space Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="unified-header.js"></script>
+    <script src="ship-status-bar.js"></script>
+    <script src="comprehensive-specialist-system.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .tutorial-step {
+            border-left: 4px solid #3b82f6;
+            transition: all 0.3s ease;
+        }
+        .tutorial-step.completed {
+            border-left-color: #10b981;
+            opacity: 0.7;
+        }
+        .quest-stage {
+            position: relative;
+        }
+        .quest-stage::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 40px;
+            height: calc(100% - 40px);
+            width: 2px;
+            background: #374151;
+        }
+        .quest-stage.completed::before {
+            background: #10b981;
+        }
+        .quest-stage.active::before {
+            background: #3b82f6;
+        }
+        .achievement-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .achievement-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .certification-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .mentorship-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="comprehensiveSpecialistApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <h1 class="text-2xl font-bold">🎓 Comprehensive Specialist System</h1>
+                <div class="flex space-x-2">
+                    <span class="bg-blue-600 text-blue-200 px-3 py-1 rounded-full text-sm" x-text="'Level ' + calculatePlayerLevel()"></span>
+                    <span class="bg-purple-600 text-purple-200 px-3 py-1 rounded-full text-sm" x-text="'Rep: ' + (player.reputation || 0)"></span>
+                </div>
+            </div>
+            <div class="flex items-center space-x-4">
+                <button @click="currentView = 'overview'" :class="currentView === 'overview' ? 'bg-blue-600' : 'bg-gray-600'" class="px-4 py-2 rounded-md text-sm transition-colors">
+                    Overview
+                </button>
+                <button @click="currentView = 'tutorials'" :class="currentView === 'tutorials' ? 'bg-blue-600' : 'bg-gray-600'" class="px-4 py-2 rounded-md text-sm transition-colors">
+                    Tutorials
+                </button>
+                <button @click="currentView = 'missions'" :class="currentView === 'missions' ? 'bg-blue-600' : 'bg-gray-600'" class="px-4 py-2 rounded-md text-sm transition-colors">
+                    Missions
+                </button>
+                <button @click="currentView = 'quests'" :class="currentView === 'quests' ? 'bg-blue-600' : 'bg-gray-600'" class="px-4 py-2 rounded-md text-sm transition-colors">
+                    Quest Chains
+                </button>
+                <button @click="currentView = 'achievements'" :class="currentView === 'achievements' ? 'bg-blue-600' : 'bg-gray-600'" class="px-4 py-2 rounded-md text-sm transition-colors">
+                    Achievements
+                </button>
+                <button @click="window.location.href = 'game.html'" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded-md text-sm transition-colors">
+                    Back to Station
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Progress Overview Bar -->
+    <div class="bg-gray-800 bg-opacity-90 backdrop-blur-sm border-b border-gray-600 px-6 py-3">
+        <div class="container mx-auto">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-green-400" x-text="tutorialsCompleted.length"></div>
+                    <div class="text-xs text-gray-400">Tutorials Complete</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-blue-400" x-text="activeMissions.length"></div>
+                    <div class="text-xs text-gray-400">Active Missions</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-purple-400" x-text="activeQuestChains.length"></div>
+                    <div class="text-xs text-gray-400">Active Quests</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-yellow-400" x-text="achievementsEarned.length"></div>
+                    <div class="text-xs text-gray-400">Achievements</div>
+                </div>
+                <div class="bg-gray-700 rounded-lg p-3">
+                    <div class="text-2xl font-bold text-orange-400" x-text="certificationsEarned.length"></div>
+                    <div class="text-xs text-gray-400">Certifications</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto px-6 py-8">
+
+        <!-- OVERVIEW TAB -->
+        <div x-show="currentView === 'overview'" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Player Progress Summary -->
+                <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                    <h3 class="text-xl font-bold mb-4 text-white">🎯 Progress Summary</h3>
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Player Level</span>
+                            <span class="text-white font-semibold" x-text="calculatePlayerLevel()"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Total Reputation</span>
+                            <span class="text-yellow-400 font-semibold" x-text="(player.reputation || 0).toLocaleString()"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Tutorial Progress</span>
+                            <span class="text-green-400 font-semibold" x-text="tutorialsCompleted.length + '/' + Object.keys(specialistSystem.tutorials.tutorials).length"></span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-300">Skill Certifications</span>
+                            <span class="text-blue-400 font-semibold" x-text="certificationsEarned.length + '/' + Object.keys(specialistSystem.skillCertification.certifications).length"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activities -->
+                <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                    <h3 class="text-xl font-bold mb-4 text-white">📋 Recent Activities</h3>
+                    <div class="space-y-3">
+                        <template x-for="activity in recentActivities" :key="activity.id">
+                            <div class="flex items-center space-x-3 p-3 bg-gray-700 rounded-lg">
+                                <div class="w-2 h-2 bg-green-400 rounded-full"></div>
+                                <div class="flex-1">
+                                    <div class="text-white text-sm" x-text="activity.title"></div>
+                                    <div class="text-gray-400 text-xs" x-text="activity.timestamp"></div>
+                                </div>
+                                <div class="text-green-400 text-sm" x-text="'+' + activity.reputation + ' rep'"></div>
+                            </div>
+                        </template>
+                        <div x-show="recentActivities.length === 0" class="text-center py-8 text-gray-400">
+                            No recent activities. Start a tutorial to begin your journey!
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Opportunities -->
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">🌟 Available Opportunities</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Available Tutorials -->
+                    <div class="bg-blue-900 bg-opacity-30 rounded-lg p-4 border border-blue-700">
+                        <h4 class="text-blue-400 font-semibold mb-2">📚 Tutorials Ready</h4>
+                        <div class="text-2xl font-bold text-white mb-1" x-text="availableTutorials.length"></div>
+                        <div class="text-blue-300 text-sm">New learning opportunities</div>
+                        <button @click="currentView = 'tutorials'" class="mt-3 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                            View Tutorials
+                        </button>
+                    </div>
+
+                    <!-- Available Missions -->
+                    <div class="bg-green-900 bg-opacity-30 rounded-lg p-4 border border-green-700">
+                        <h4 class="text-green-400 font-semibold mb-2">⚡ Missions Available</h4>
+                        <div class="text-2xl font-bold text-white mb-1" x-text="availableMissions.length"></div>
+                        <div class="text-green-300 text-sm">Ready for action</div>
+                        <button @click="currentView = 'missions'" class="mt-3 bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-sm transition-colors">
+                            View Missions
+                        </button>
+                    </div>
+
+                    <!-- Available Quest Chains -->
+                    <div class="bg-purple-900 bg-opacity-30 rounded-lg p-4 border border-purple-700">
+                        <h4 class="text-purple-400 font-semibold mb-2">🎯 Quest Chains</h4>
+                        <div class="text-2xl font-bold text-white mb-1" x-text="availableQuestChains.length"></div>
+                        <div class="text-purple-300 text-sm">Epic journeys await</div>
+                        <button @click="currentView = 'quests'" class="mt-3 bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded text-sm transition-colors">
+                            View Quests
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TUTORIALS TAB -->
+        <div x-show="currentView === 'tutorials'" class="space-y-6">
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">📚 Tutorial System</h3>
+                <p class="text-gray-300 mb-6">Guided learning experiences to master Space Explorer systems. Complete tutorials to unlock advanced features and opportunities.</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <template x-for="tutorial in Object.values(specialistSystem.tutorials.tutorials)" :key="tutorial.id">
+                        <div class="bg-gray-700 rounded-lg border border-gray-600 p-6" :class="tutorialsCompleted.includes(tutorial.id) ? 'opacity-60' : ''">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-semibold text-white" x-text="tutorial.title"></h4>
+                                <div class="flex items-center space-x-2">
+                                    <span x-show="tutorialsCompleted.includes(tutorial.id)" class="bg-green-600 text-white px-2 py-1 rounded-full text-xs">
+                                        ✓ Complete
+                                    </span>
+                                    <span x-show="!tutorialsCompleted.includes(tutorial.id) && isTutorialAvailable(tutorial)" class="bg-blue-600 text-white px-2 py-1 rounded-full text-xs">
+                                        Available
+                                    </span>
+                                    <span x-show="!tutorialsCompleted.includes(tutorial.id) && !isTutorialAvailable(tutorial)" class="bg-gray-600 text-gray-300 px-2 py-1 rounded-full text-xs">
+                                        Locked
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-300 text-sm mb-4" x-text="tutorial.description"></p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Difficulty:</span>
+                                    <span class="text-white capitalize" x-text="tutorial.difficulty"></span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Time:</span>
+                                    <span class="text-white" x-text="tutorial.estimatedTime"></span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Specialist:</span>
+                                    <span class="text-blue-400" x-text="getSpecialistName(tutorial.specialist)"></span>
+                                </div>
+                            </div>
+
+                            <!-- Tutorial Steps -->
+                            <div class="space-y-2 mb-4">
+                                <h5 class="text-sm font-semibold text-gray-300">Tutorial Steps:</h5>
+                                <template x-for="(step, index) in tutorial.steps" :key="step.id">
+                                    <div class="tutorial-step bg-gray-600 p-3 rounded-md" :class="isStepCompleted(tutorial.id, step.id) ? 'completed' : ''">
+                                        <div class="flex items-center space-x-2">
+                                            <span class="text-sm text-gray-400" x-text="'Step ' + (index + 1) + ':'"></span>
+                                            <span class="text-white text-sm" x-text="step.title"></span>
+                                            <span x-show="isStepCompleted(tutorial.id, step.id)" class="text-green-400 text-xs">✓</span>
+                                        </div>
+                                        <p class="text-gray-300 text-xs mt-1" x-text="step.description"></p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Completion Rewards -->
+                            <div class="bg-gray-600 rounded-lg p-3 mb-4">
+                                <h5 class="text-sm font-semibold text-gray-300 mb-2">Completion Rewards:</h5>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="bg-yellow-600 text-yellow-200 px-2 py-1 rounded text-xs" x-text="'+' + tutorial.completion_reward.reputation + ' Rep'"></span>
+                                    <span class="bg-green-600 text-green-200 px-2 py-1 rounded text-xs" x-text="'+' + tutorial.completion_reward.credits.toLocaleString() + ' Credits'"></span>
+                                    <template x-for="unlock in (tutorial.completion_reward.unlock || [])" :key="unlock">
+                                        <span class="bg-purple-600 text-purple-200 px-2 py-1 rounded text-xs" x-text="'Unlocks: ' + unlock"></span>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <button 
+                                x-show="!tutorialsCompleted.includes(tutorial.id) && isTutorialAvailable(tutorial)"
+                                @click="startTutorial(tutorial.id)" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-md transition-colors">
+                                Start Tutorial
+                            </button>
+                            <button 
+                                x-show="tutorialsCompleted.includes(tutorial.id)"
+                                class="w-full bg-gray-600 text-gray-300 py-2 rounded-md cursor-not-allowed">
+                                Tutorial Completed
+                            </button>
+                            <button 
+                                x-show="!tutorialsCompleted.includes(tutorial.id) && !isTutorialAvailable(tutorial)"
+                                class="w-full bg-gray-600 text-gray-300 py-2 rounded-md cursor-not-allowed">
+                                Prerequisites Required
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- MISSIONS TAB -->
+        <div x-show="currentView === 'missions'" class="space-y-6">
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">⚡ Mission System</h3>
+                <p class="text-gray-300 mb-6">Dynamic missions that adapt to your skills and progress. Complete missions to earn reputation, credits, and unlock new opportunities.</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <template x-for="mission in availableMissions" :key="mission.id">
+                        <div class="bg-gray-700 rounded-lg border border-gray-600 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-semibold text-white" x-text="mission.title"></h4>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-orange-600 text-white px-2 py-1 rounded-full text-xs capitalize" x-text="mission.difficulty"></span>
+                                    <span class="bg-blue-600 text-white px-2 py-1 rounded-full text-xs capitalize" x-text="mission.type"></span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-300 text-sm mb-4" x-text="mission.description"></p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Time Estimate:</span>
+                                    <span class="text-white" x-text="mission.timeEstimate"></span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Player Level:</span>
+                                    <span class="text-white" x-text="mission.playerLevel"></span>
+                                </div>
+                            </div>
+
+                            <!-- Mission Steps -->
+                            <div class="space-y-2 mb-4">
+                                <h5 class="text-sm font-semibold text-gray-300">Mission Objectives:</h5>
+                                <template x-for="(step, index) in mission.steps" :key="index">
+                                    <div class="flex items-center space-x-2 text-sm">
+                                        <span class="text-gray-400" x-text="(index + 1) + '.'"></span>
+                                        <span class="text-gray-300" x-text="step"></span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Rewards -->
+                            <div class="bg-gray-600 rounded-lg p-3 mb-4">
+                                <h5 class="text-sm font-semibold text-gray-300 mb-2">Mission Rewards:</h5>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="bg-yellow-600 text-yellow-200 px-2 py-1 rounded text-xs" x-text="'+' + mission.dynamicRewards.reputation + ' Rep'"></span>
+                                    <span class="bg-green-600 text-green-200 px-2 py-1 rounded text-xs" x-text="'+' + mission.dynamicRewards.credits.toLocaleString() + ' Credits'"></span>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <button 
+                                @click="acceptMission(mission.id)" 
+                                class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-md transition-colors">
+                                Accept Mission
+                            </button>
+                        </div>
+                    </template>
+                    
+                    <div x-show="availableMissions.length === 0" class="col-span-full text-center py-12">
+                        <div class="text-gray-400 text-lg">No missions available</div>
+                        <div class="text-gray-500 text-sm mt-2">Complete more tutorials to unlock mission opportunities</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Missions -->
+            <div x-show="activeMissions.length > 0" class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">🎯 Active Missions</h3>
+                <div class="space-y-4">
+                    <template x-for="mission in activeMissions" :key="mission.id">
+                        <div class="bg-gray-700 rounded-lg border border-gray-600 p-4">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-white font-semibold" x-text="mission.title"></h4>
+                                <button @click="completeMission(mission.id)" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors">
+                                    Complete
+                                </button>
+                            </div>
+                            <p class="text-gray-300 text-sm mt-2" x-text="mission.description"></p>
+                            <div class="text-gray-400 text-xs mt-2" x-text="'Accepted: ' + new Date(mission.acceptedAt).toLocaleString()"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- QUEST CHAINS TAB -->
+        <div x-show="currentView === 'quests'" class="space-y-6">
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">🎯 Quest Chain System</h3>
+                <p class="text-gray-300 mb-6">Epic multi-stage journeys that define your path in the Keldar system. Each quest chain offers unique rewards and character development.</p>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <template x-for="questChain in Object.values(specialistSystem.questChains.questChains)" :key="questChain.id">
+                        <div class="bg-gray-700 rounded-lg border border-gray-600 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-lg font-semibold text-white" x-text="questChain.title"></h4>
+                                <span class="bg-purple-600 text-purple-200 px-2 py-1 rounded-full text-xs capitalize" x-text="questChain.category"></span>
+                            </div>
+                            
+                            <p class="text-gray-300 text-sm mb-4" x-text="questChain.description"></p>
+                            
+                            <div class="space-y-2 mb-4">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Total Stages:</span>
+                                    <span class="text-white" x-text="questChain.totalStages"></span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-400">Duration:</span>
+                                    <span class="text-white" x-text="questChain.estimatedDuration"></span>
+                                </div>
+                            </div>
+
+                            <!-- Quest Stages -->
+                            <div class="space-y-3 mb-4">
+                                <h5 class="text-sm font-semibold text-gray-300">Quest Stages:</h5>
+                                <template x-for="(stage, index) in questChain.stages" :key="stage.id">
+                                    <div class="quest-stage flex items-start space-x-3 relative">
+                                        <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1" 
+                                             :class="isQuestStageCompleted(questChain.id, stage.id) ? 'bg-green-600' : 
+                                                    isQuestStageActive(questChain.id, stage.id) ? 'bg-blue-600' : 'bg-gray-600'">
+                                            <span class="text-white text-xs" x-text="index + 1"></span>
+                                        </div>
+                                        <div class="flex-1">
+                                            <h6 class="text-white text-sm font-medium" x-text="stage.title"></h6>
+                                            <p class="text-gray-400 text-xs" x-text="stage.description"></p>
+                                            <div class="flex flex-wrap gap-1 mt-1">
+                                                <span class="bg-yellow-600 text-yellow-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + stage.rewards.reputation + ' Rep'"></span>
+                                                <span class="bg-green-600 text-green-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + stage.rewards.credits.toLocaleString() + ' Credits'"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Action Button -->
+                            <button 
+                                x-show="isQuestChainAvailable(questChain) && !isQuestChainActive(questChain.id)"
+                                @click="startQuestChain(questChain.id)" 
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md transition-colors">
+                                Begin Quest Chain
+                            </button>
+                            <button 
+                                x-show="isQuestChainActive(questChain.id)"
+                                class="w-full bg-blue-600 text-white py-2 rounded-md">
+                                Quest Chain Active
+                            </button>
+                            <button 
+                                x-show="isQuestChainCompleted(questChain.id)"
+                                class="w-full bg-green-600 text-white py-2 rounded-md">
+                                Quest Chain Completed
+                            </button>
+                            <button 
+                                x-show="!isQuestChainAvailable(questChain) && !isQuestChainActive(questChain.id) && !isQuestChainCompleted(questChain.id)"
+                                class="w-full bg-gray-600 text-gray-300 py-2 rounded-md cursor-not-allowed">
+                                Prerequisites Required
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- ACHIEVEMENTS TAB -->
+        <div x-show="currentView === 'achievements'" class="space-y-6">
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">🏆 Achievement System</h3>
+                <p class="text-gray-300 mb-6">Recognition for your accomplishments and milestones in space exploration. Achievements unlock special rewards and titles.</p>
+                
+                <!-- Achievement Categories -->
+                <div class="flex flex-wrap gap-2 mb-6">
+                    <button @click="achievementFilter = 'all'" :class="achievementFilter === 'all' ? 'bg-blue-600' : 'bg-gray-600'" class="px-3 py-1 rounded text-sm transition-colors">
+                        All
+                    </button>
+                    <button @click="achievementFilter = 'exploration'" :class="achievementFilter === 'exploration' ? 'bg-blue-600' : 'bg-gray-600'" class="px-3 py-1 rounded text-sm transition-colors">
+                        Exploration
+                    </button>
+                    <button @click="achievementFilter = 'technology'" :class="achievementFilter === 'technology' ? 'bg-blue-600' : 'bg-gray-600'" class="px-3 py-1 rounded text-sm transition-colors">
+                        Technology
+                    </button>
+                    <button @click="achievementFilter = 'industrial'" :class="achievementFilter === 'industrial' ? 'bg-blue-600' : 'bg-gray-600'" class="px-3 py-1 rounded text-sm transition-colors">
+                        Industrial
+                    </button>
+                    <button @click="achievementFilter = 'social'" :class="achievementFilter === 'social' ? 'bg-blue-600' : 'bg-gray-600'" class="px-3 py-1 rounded text-sm transition-colors">
+                        Social
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="achievement in getFilteredAchievements()" :key="achievement.id">
+                        <div class="achievement-card bg-gray-700 rounded-lg border border-gray-600 p-4" 
+                             :class="achievementsEarned.includes(achievement.id) ? 'bg-opacity-60 border-green-500' : 
+                                    achievement.hidden && !achievementsEarned.includes(achievement.id) ? 'bg-opacity-30' : ''">
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-white font-semibold" x-text="achievement.hidden && !achievementsEarned.includes(achievement.id) ? '???' : achievement.title"></h4>
+                                <div class="flex items-center space-x-1">
+                                    <span x-show="achievementsEarned.includes(achievement.id)" class="text-green-400 text-lg">🏆</span>
+                                    <span class="px-2 py-1 rounded-full text-xs" 
+                                          :class="achievement.difficulty === 'bronze' ? 'bg-orange-600 text-orange-200' :
+                                                 achievement.difficulty === 'silver' ? 'bg-gray-500 text-gray-200' :
+                                                 achievement.difficulty === 'gold' ? 'bg-yellow-600 text-yellow-200' :
+                                                 achievement.difficulty === 'platinum' ? 'bg-purple-600 text-purple-200' :
+                                                 'bg-red-600 text-red-200'" 
+                                          x-text="achievement.difficulty"></span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-300 text-sm mb-3" x-text="achievement.hidden && !achievementsEarned.includes(achievement.id) ? 'Hidden achievement - complete to reveal' : achievement.description"></p>
+                            
+                            <!-- Achievement Rewards -->
+                            <div x-show="!achievement.hidden || achievementsEarned.includes(achievement.id)" class="bg-gray-600 rounded-lg p-3">
+                                <h5 class="text-xs font-semibold text-gray-300 mb-2">Rewards:</h5>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-yellow-600 text-yellow-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + achievement.rewards.reputation + ' Rep'"></span>
+                                    <span class="bg-green-600 text-green-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + achievement.rewards.credits.toLocaleString() + ' Credits'"></span>
+                                    <span x-show="achievement.rewards.title" class="bg-purple-600 text-purple-200 px-1.5 py-0.5 rounded text-xs" x-text="'Title: ' + achievement.rewards.title"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Certification System -->
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">📜 Skill Certifications</h3>
+                <p class="text-gray-300 mb-6">Professional certifications that enhance your abilities and unlock advanced opportunities.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="certification in Object.values(specialistSystem.skillCertification.certifications)" :key="certification.id">
+                        <div class="certification-badge rounded-lg border border-purple-500 p-4" 
+                             :class="certificationsEarned.includes(certification.id) ? 'bg-opacity-60' : 'bg-opacity-30'">
+                            <div class="flex justify-between items-start mb-3">
+                                <h4 class="text-white font-semibold" x-text="certification.title"></h4>
+                                <div class="flex items-center space-x-1">
+                                    <span x-show="certificationsEarned.includes(certification.id)" class="text-green-400 text-lg">✓</span>
+                                    <span class="bg-purple-700 text-purple-200 px-2 py-1 rounded-full text-xs" x-text="'Level ' + certification.level"></span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-200 text-sm mb-3" x-text="certification.description"></p>
+                            
+                            <!-- Certification Benefits -->
+                            <div class="bg-purple-800 bg-opacity-50 rounded-lg p-3 mb-3">
+                                <h5 class="text-xs font-semibold text-purple-200 mb-2">Benefits:</h5>
+                                <div class="space-y-1">
+                                    <template x-for="(value, key) in certification.benefits" :key="key">
+                                        <div x-show="typeof value === 'number'" class="text-purple-200 text-xs" x-text="formatBenefit(key, value)"></div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <button 
+                                x-show="!certificationsEarned.includes(certification.id) && isCertificationAvailable(certification)"
+                                @click="pursueC ertification(certification.id)" 
+                                class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded-md transition-colors text-sm">
+                                Pursue Certification
+                            </button>
+                            <button 
+                                x-show="certificationsEarned.includes(certification.id)"
+                                class="w-full bg-green-600 text-white py-2 rounded-md text-sm">
+                                Certification Earned
+                            </button>
+                            <button 
+                                x-show="!certificationsEarned.includes(certification.id) && !isCertificationAvailable(certification)"
+                                class="w-full bg-gray-600 text-gray-300 py-2 rounded-md cursor-not-allowed text-sm">
+                                Prerequisites Required
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Mentorship Programs -->
+            <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+                <h3 class="text-xl font-bold mb-4 text-white">🎓 Mentorship Programs</h3>
+                <p class="text-gray-300 mb-6">Advanced training programs with master specialists. Unlock leadership abilities and exclusive content.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <template x-for="program in Object.values(specialistSystem.mentorshipProgram.mentorPrograms)" :key="program.id">
+                        <div class="mentorship-card rounded-lg border border-pink-500 p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <h4 class="text-white font-semibold" x-text="program.title"></h4>
+                                <span class="bg-pink-700 text-pink-200 px-2 py-1 rounded-full text-xs" x-text="program.duration"></span>
+                            </div>
+                            
+                            <p class="text-gray-200 text-sm mb-4" x-text="program.description"></p>
+                            
+                            <!-- Mentorship Sessions -->
+                            <div class="space-y-2 mb-4">
+                                <h5 class="text-sm font-semibold text-pink-200">Training Sessions:</h5>
+                                <template x-for="(session, index) in program.sessions" :key="session.id">
+                                    <div class="bg-pink-800 bg-opacity-30 rounded-lg p-3">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-pink-200 text-sm font-medium" x-text="session.title"></span>
+                                            <span class="text-pink-300 text-xs" x-text="session.duration"></span>
+                                        </div>
+                                        <p class="text-pink-100 text-xs mt-1" x-text="session.description"></p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <!-- Completion Rewards -->
+                            <div class="bg-pink-800 bg-opacity-50 rounded-lg p-3 mb-4">
+                                <h5 class="text-xs font-semibold text-pink-200 mb-2">Completion Rewards:</h5>
+                                <div class="flex flex-wrap gap-1">
+                                    <span class="bg-yellow-600 text-yellow-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + program.completion_rewards.reputation + ' Rep'"></span>
+                                    <span class="bg-green-600 text-green-200 px-1.5 py-0.5 rounded text-xs" x-text="'+' + program.completion_rewards.credits.toLocaleString() + ' Credits'"></span>
+                                    <span class="bg-purple-600 text-purple-200 px-1.5 py-0.5 rounded text-xs" x-text="'Title: ' + program.completion_rewards.title"></span>
+                                </div>
+                            </div>
+
+                            <!-- Action Button -->
+                            <button 
+                                x-show="isMentorshipAvailable(program)"
+                                @click="enrollInMentorship(program.id)" 
+                                class="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 rounded-md transition-colors">
+                                Enroll in Program
+                            </button>
+                            <button 
+                                x-show="!isMentorshipAvailable(program)"
+                                class="w-full bg-gray-600 text-gray-300 py-2 rounded-md cursor-not-allowed">
+                                Prerequisites Required
+                            </button>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function comprehensiveSpecialistApp() {
+            return {
+                player: {},
+                specialistSystem: null,
+                currentView: 'overview',
+                achievementFilter: 'all',
+                
+                // Data arrays
+                tutorialsCompleted: [],
+                activeMissions: [],
+                activeQuestChains: [],
+                achievementsEarned: [],
+                certificationsEarned: [],
+                recentActivities: [],
+                availableTutorials: [],
+                availableMissions: [],
+                availableQuestChains: [],
+
+                init() {
+                    // Check if user is logged in
+                    const currentPlayer = localStorage.getItem('currentPlayer');
+                    if (!currentPlayer) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+
+                    this.player = JSON.parse(currentPlayer);
+                    
+                    // Initialize comprehensive specialist system
+                    this.specialistSystem = new ComprehensiveSpecialistSystem();
+                    this.specialistSystem.initialize(this.player);
+                    
+                    // Load player progress
+                    this.loadPlayerProgress();
+                    
+                    // Generate available content
+                    this.loadAvailableContent();
+                    
+                    // Generate recent activities
+                    this.generateRecentActivities();
+                },
+
+                loadPlayerProgress() {
+                    const progress = this.player.specialistProgress || {};
+                    this.tutorialsCompleted = progress.tutorialsCompleted || [];
+                    this.activeMissions = progress.activeMissions || [];
+                    this.activeQuestChains = progress.questChainsActive || [];
+                    this.achievementsEarned = progress.achievements || [];
+                    this.certificationsEarned = progress.certifications || [];
+                },
+
+                loadAvailableContent() {
+                    this.availableTutorials = this.specialistSystem.tutorials.getAvailableTutorials(this.player);
+                    this.availableMissions = this.specialistSystem.missions.generateAvailableMissions(this.player);
+                    this.availableQuestChains = this.specialistSystem.questChains.getAvailableQuestChains(this.player);
+                },
+
+                generateRecentActivities() {
+                    // Generate sample recent activities
+                    this.recentActivities = [
+                        {
+                            id: 1,
+                            title: 'Completed System Basics Tutorial',
+                            timestamp: '2 hours ago',
+                            reputation: 25
+                        },
+                        {
+                            id: 2,
+                            title: 'Accepted Navigation Training Mission',
+                            timestamp: '1 day ago',
+                            reputation: 15
+                        }
+                    ];
+                },
+
+                calculatePlayerLevel() {
+                    return Math.floor((this.player.reputation || 0) / 50) + 1;
+                },
+
+                // Tutorial Methods
+                isTutorialAvailable(tutorial) {
+                    return this.specialistSystem.tutorials.isTutorialAvailable(tutorial, this.player);
+                },
+
+                startTutorial(tutorialId) {
+                    this.showNotification(`Starting tutorial: ${this.specialistSystem.tutorials.tutorials[tutorialId].title}`, 'info');
+                    // Implementation would start the actual tutorial
+                },
+
+                isStepCompleted(tutorialId, stepId) {
+                    // Check if specific tutorial step is completed
+                    return false; // Placeholder
+                },
+
+                getSpecialistName(specialistId) {
+                    const specialists = {
+                        'spec_001': 'Commander Voss',
+                        'spec_002': 'Dr. Elena Morse',
+                        'spec_006': 'Mining Foreman Rodriguez',
+                        'spec_008': 'Navigator Captain Singh'
+                    };
+                    return specialists[specialistId] || 'Unknown Specialist';
+                },
+
+                // Mission Methods
+                acceptMission(missionId) {
+                    const mission = this.availableMissions.find(m => m.id === missionId);
+                    if (mission) {
+                        this.activeMissions.push({
+                            ...mission,
+                            acceptedAt: Date.now(),
+                            status: 'active'
+                        });
+                        this.saveProgress();
+                        this.showNotification(`Mission accepted: ${mission.title}`, 'success');
+                    }
+                },
+
+                completeMission(missionId) {
+                    const missionIndex = this.activeMissions.findIndex(m => m.id === missionId);
+                    if (missionIndex !== -1) {
+                        const mission = this.activeMissions[missionIndex];
+                        this.activeMissions.splice(missionIndex, 1);
+                        
+                        // Award rewards
+                        this.player.reputation = (this.player.reputation || 0) + mission.dynamicRewards.reputation;
+                        this.player.credits = (this.player.credits || 0) + mission.dynamicRewards.credits;
+                        
+                        this.saveProgress();
+                        this.showNotification(`Mission completed! +${mission.dynamicRewards.reputation} reputation, +${mission.dynamicRewards.credits} credits`, 'success');
+                    }
+                },
+
+                // Quest Chain Methods
+                isQuestChainAvailable(questChain) {
+                    return this.specialistSystem.questChains.isQuestChainAvailable(questChain, this.player);
+                },
+
+                isQuestChainActive(questChainId) {
+                    return this.activeQuestChains.some(chain => chain.chainId === questChainId);
+                },
+
+                isQuestChainCompleted(questChainId) {
+                    return this.player.specialistProgress.questChainsCompleted?.includes(questChainId) || false;
+                },
+
+                isQuestStageCompleted(questChainId, stageId) {
+                    // Check if specific quest stage is completed
+                    return false; // Placeholder
+                },
+
+                isQuestStageActive(questChainId, stageId) {
+                    // Check if specific quest stage is active
+                    return false; // Placeholder
+                },
+
+                startQuestChain(questChainId) {
+                    if (this.specialistSystem.questChains.startQuestChain(questChainId, this.player)) {
+                        this.loadPlayerProgress();
+                        this.showNotification(`Quest chain started: ${this.specialistSystem.questChains.questChains[questChainId].title}`, 'success');
+                    }
+                },
+
+                // Achievement Methods
+                getFilteredAchievements() {
+                    const achievements = Object.values(this.specialistSystem.achievements.achievements);
+                    if (this.achievementFilter === 'all') {
+                        return achievements;
+                    }
+                    return achievements.filter(achievement => achievement.category === this.achievementFilter);
+                },
+
+                // Certification Methods
+                isCertificationAvailable(certification) {
+                    return this.specialistSystem.skillCertification.meetsCertificationRequirements(certification, this.player);
+                },
+
+                pursueCertification(certificationId) {
+                    this.showNotification('Certification pursuit system coming soon!', 'info');
+                },
+
+                formatBenefit(key, value) {
+                    const benefitNames = {
+                        fuel_efficiency: 'Fuel Efficiency',
+                        travel_time_reduction: 'Travel Time Reduction',
+                        scan_speed: 'Scan Speed',
+                        scan_accuracy: 'Scan Accuracy',
+                        extraction_efficiency: 'Extraction Efficiency',
+                        ore_quality_bonus: 'Ore Quality Bonus'
+                    };
+                    return `${benefitNames[key] || key}: +${value}%`;
+                },
+
+                // Mentorship Methods
+                isMentorshipAvailable(program) {
+                    return this.specialistSystem.mentorshipProgram.isMentorshipAvailable(program, this.player);
+                },
+
+                enrollInMentorship(programId) {
+                    if (this.specialistSystem.mentorshipProgram.enrollInMentorship(programId, this.player)) {
+                        this.showNotification('Enrolled in mentorship program!', 'success');
+                    }
+                },
+
+                // Utility Methods
+                saveProgress() {
+                    localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                },
+
+                showNotification(message, type = 'info') {
+                    const colors = {
+                        'success': '#10b981',
+                        'error': '#ef4444',
+                        'info': '#3b82f6',
+                        'warning': '#f59e0b'
+                    };
+                    
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        style: {
+                            background: colors[type] || colors.info,
+                        }
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

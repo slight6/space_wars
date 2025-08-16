@@ -1,0 +1,166 @@
+{
+  "ship_blueprints": {
+    "basic_scout": {
+      "ship_class": "basic_scout",
+      "display_name": "Basic Scout Vessel",
+      "description": "A simple, reliable starter ship for new space explorers",
+      "base_specifications": {
+        "hull_integrity": 100,
+        "max_hull": 100,
+        "shields": 50,
+        "max_shields": 50,
+        "cargo_capacity": 100,
+        "crew_capacity": 1,
+        "fuel_capacity": 100,
+        "power_output": 50,
+        "max_speed": 5,
+        "jump_range": 10,
+        "sensor_range": 15
+      },
+      "capabilities": {
+        "can_carry_colonists": false,
+        "can_mine_asteroids": false,
+        "can_conduct_research": false,
+        "can_carry_fighters": false,
+        "can_cloak": false,
+        "can_use_jump_gates": true,
+        "can_land_on_planets": true,
+        "can_dock_with_stations": true
+      },
+      "upgrade_slots": {
+        "engine_slots": 1,
+        "weapon_slots": 1,
+        "utility_slots": 1,
+        "cargo_slots": 1,
+        "special_slots": 0,
+        "heavy_weapon_slots": 0
+      },
+      "upgrade_compatibility": {
+        "has_upgraded_ion_pulse_engine": false,
+        "has_quantum_drive": false,
+        "has_stealth_systems": false,
+        "has_advanced_shields": false,
+        "has_weapon_targeting_computer": false,
+        "has_long_range_sensors": false,
+        "has_automated_mining_system": false,
+        "has_diplomatic_quarters": false
+      },
+      "special_features": {
+        "has_secret_cargo_bay": false,
+        "secret_cargo_capacity": 0,
+        "has_hidden_weapon_mounts": false,
+        "has_emergency_jump_drive": false,
+        "has_self_destruct": true,
+        "has_escape_pods": true,
+        "has_black_box_recorder": true
+      },
+      "construction_requirements": {
+        "metal": 50,
+        "energy_cells": 25,
+        "rare_minerals": 5,
+        "construction_time_hours": 2,
+        "credits_cost": 1500,
+        "blueprint_required": false
+      },
+      "modification_rules": {
+        "max_cargo_upgrade": 200,
+        "max_shield_upgrade": 100,
+        "max_hull_upgrade": 150,
+        "can_add_weapon_slots": true,
+        "max_additional_weapon_slots": 1,
+        "can_modify_hull": false,
+        "requires_shipyard_level": 1
+      }
+    }
+  },
+  "ship_template": {
+    "ship_id": 0,
+    "owner_player_id": 0,
+    "ship_name": "Template Ship",
+    "ship_class": "basic_scout",
+    "blueprint_id": "basic_scout",
+    "status": "active",
+    "location": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "created_timestamp": "2025-08-14T00:00:00Z",
+    "last_modified_timestamp": "2025-08-14T00:00:00Z",
+    "current_specifications": {
+      "hull_integrity": 100,
+      "max_hull": 100,
+      "shields": 50,
+      "max_shields": 50,
+      "cargo_capacity": 100,
+      "cargo_used": 0,
+      "crew_capacity": 1,
+      "crew_current": 1,
+      "fuel_capacity": 100,
+      "fuel_current": 100,
+      "power_output": 50,
+      "power_usage": 25,
+      "max_speed": 5,
+      "jump_range": 10,
+      "sensor_range": 15
+    },
+    "current_capabilities": {
+      "can_carry_colonists": false,
+      "can_mine_asteroids": false,
+      "can_conduct_research": false,
+      "can_carry_fighters": false,
+      "can_cloak": false,
+      "can_use_jump_gates": true,
+      "can_land_on_planets": true,
+      "can_dock_with_stations": true
+    },
+    "installed_upgrades": {
+      "has_upgraded_ion_pulse_engine": false,
+      "has_quantum_drive": false,
+      "has_stealth_systems": false,
+      "has_advanced_shields": false,
+      "has_weapon_targeting_computer": false,
+      "has_long_range_sensors": false,
+      "has_automated_mining_system": false,
+      "has_diplomatic_quarters": false
+    },
+    "special_features": {
+      "has_secret_cargo_bay": false,
+      "secret_cargo_capacity": 0,
+      "secret_cargo_used": 0,
+      "has_hidden_weapon_mounts": false,
+      "has_emergency_jump_drive": false,
+      "has_self_destruct": true,
+      "has_escape_pods": true,
+      "has_black_box_recorder": true
+    },
+    "equipment": {
+      "engines": ["basic_ion_drive"],
+      "weapons": ["basic_laser_cannon"],
+      "utilities": ["life_support_system"],
+      "cargo_modules": [],
+      "special_modules": []
+    },
+    "cargo_inventory": {},
+    "modification_history": [],
+    "combat_history": {
+      "battles_fought": 0,
+      "battles_won": 0,
+      "damage_taken": 0,
+      "damage_dealt": 0,
+      "ships_destroyed": 0
+    },
+    "travel_history": {
+      "total_distance": 0,
+      "jumps_made": 0,
+      "planets_visited": [],
+      "systems_explored": []
+    }
+  },
+  "system_info": {
+    "created": "2025-08-14T00:00:00Z",
+    "last_updated": "2025-08-14T00:00:00Z",
+    "total_blueprints": 1,
+    "available_classes": ["basic_scout"]
+  }
+}

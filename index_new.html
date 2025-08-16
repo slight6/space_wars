@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keldar - Deep Space Trading Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="localStorage-player-manager.js"></script>
+    <script src="unified-header.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            z-index: -1;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        .planet {
+            position: absolute;
+            border-radius: 50%;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            animation: rotate 20s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Auth Overlay */
+        .auth-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-container {
+            background: rgba(17, 24, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.7);
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .auth-title {
+            color: white;
+            font-size: 2.5em;
+            text-align: center;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+
+        .auth-subtitle {
+            color: #9CA3AF;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 24px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            background: #374151;
+            color: #9CA3AF;
+        }
+
+        .auth-tab.active {
+            background: #2563EB;
+            color: white;
+        }
+
+        .auth-tab:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .auth-tab:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .input-field {
+            background: #1F2937;
+            border: 1px solid #4B5563;
+            border-radius: 6px;
+            padding: 12px;
+            width: 100%;
+            color: white;
+            margin-bottom: 16px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .input-field::placeholder {
+            color: #6B7280;
+        }
+
+        .btn-primary {
+            background: #2563EB;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            width: 100%;
+            margin-top: 8px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary:hover {
+            background: #1D4ED8;
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Game Interface */
+        .game-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 1;
+        }
+
+        .main-content {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .game-panel {
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            min-height: 400px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(75, 85, 99, 0.5);
+            padding-bottom: 12px;
+        }
+
+        .panel-title {
+            color: white;
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+
+        .location-indicator {
+            background: rgba(37, 99, 235, 0.2);
+            color: #60A5FA;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.9em;
+            border: 1px solid rgba(37, 99, 235, 0.3);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            background: rgba(31, 41, 55, 0.6);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(75, 85, 99, 0.5);
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #60A5FA;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #9CA3AF;
+            font-size: 0.9em;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            background: #2563EB;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: #1D4ED8;
+            transform: translateY(-1px);
+        }
+
+        .action-btn:disabled {
+            background: rgba(75, 85, 99, 0.5);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #374151;
+            color: #D1D5DB;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #4B5563;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                padding: 15px;
+            }
+            
+            .auth-container {
+                padding: 24px;
+                margin: 20px;
+            }
+        }
+    </style>
+</head>
+<body x-data="gameApp()">
+    <!-- Animated background -->
+    <div class="star-field" id="starField"></div>
+
+    <!-- Authentication Overlay -->
+    <div x-show="!isAuthenticated" class="auth-overlay">
+        <div class="auth-container">
+            <div class="text-center mb-8">
+                <h1 class="auth-title">🚀 KELDAR</h1>
+                <p class="auth-subtitle">Deep Space Trading Game</p>
+            </div>
+            
+            <!-- Toggle between Login/Register -->
+            <div class="auth-tabs">
+                <button 
+                    @click="showRegister = false" 
+                    :class="!showRegister ? 'auth-tab active' : 'auth-tab'">
+                    Login
+                </button>
+                <button 
+                    @click="showRegister = true" 
+                    :class="showRegister ? 'auth-tab active' : 'auth-tab'">
+                    Register
+                </button>
+            </div>
+            
+            <!-- Login Form -->
+            <form x-show="!showRegister" @submit.prevent="loginPlayer()">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Commander Name</label>
+                    <input 
+                        type="text" 
+                        x-model="loginForm.playerName"
+                        class="input-field"
+                        placeholder="Enter your commander name"
+                        maxlength="20"
+                        required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Security Code</label>
+                    <input 
+                        type="password" 
+                        x-model="loginForm.password"
+                        class="input-field"
+                        placeholder="Enter your security code"
+                        required>
+                </div>
+                
+                <button 
+                    type="submit"
+                    :disabled="loginForm.loading"
+                    class="btn-primary">
+                    <span x-show="loginForm.loading" class="loading-spinner"></span>
+                    <span x-text="loginForm.loading ? 'Launching...' : '🎯 Launch Mission'"></span>
+                </button>
+            </form>
+
+            <!-- Register Form -->
+            <form x-show="showRegister" @submit.prevent="registerPlayer()">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Commander Name</label>
+                    <input 
+                        type="text" 
+                        x-model="registerForm.playerName"
+                        class="input-field"
+                        placeholder="Choose your commander name"
+                        maxlength="20"
+                        required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Security Code</label>
+                    <input 
+                        type="password" 
+                        x-model="registerForm.password"
+                        class="input-field"
+                        placeholder="Create security code"
+                        required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-2">Confirm Security Code</label>
+                    <input 
+                        type="password" 
+                        x-model="registerForm.confirmPassword"
+                        class="input-field"
+                        placeholder="Confirm security code"
+                        required>
+                </div>
+                
+                <button 
+                    type="submit"
+                    :disabled="registerForm.loading"
+                    class="btn-primary">
+                    <span x-show="registerForm.loading" class="loading-spinner"></span>
+                    <span x-text="registerForm.loading ? 'Joining Fleet...' : '🌟 Join Fleet'"></span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Game Interface -->
+    <div x-show="isAuthenticated" class="game-container">
+        <!-- Unified Header -->
+        <div id="unified-header"></div>
+
+        <!-- Main Game Content -->
+        <div class="main-content">
+            <!-- Left Panel: Ship Status & Location -->
+            <div class="game-panel">
+                <div class="panel-header">
+                    <div class="panel-title">🚢 Ship Status</div>
+                    <div class="location-indicator" x-text="currentLocation"></div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" x-text="playerData.credits || 0"></div>
+                        <div class="stat-label">Credits</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Hull Integrity</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">100%</div>
+                        <div class="stat-label">Fuel Level</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">0/50</div>
+                        <div class="stat-label">Cargo</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="action-btn" @click="navigateToLocation('shipyard')">
+                        🏭 Shipyard
+                    </button>
+                    <button class="action-btn" @click="navigateToLocation('trade-center')">
+                        💰 Trade Center
+                    </button>
+                    <button class="action-btn" @click="navigateToLocation('mission-log')">
+                        📋 Missions
+                    </button>
+                    <button class="action-btn" @click="navigateToLocation('space-navigation')">
+                        🌌 Navigate
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Dynamic Content -->
+            <div class="game-panel">
+                <div class="panel-header">
+                    <div class="panel-title" x-text="rightPanelTitle"></div>
+                    <button class="btn secondary" @click="refreshPanel()">🔄 Refresh</button>
+                </div>
+
+                <div id="dynamic-content">
+                    <!-- Content loaded dynamically based on location -->
+                    <div x-show="currentPanel === 'overview'">
+                        <h3 style="color: #22d3ee; margin-bottom: 15px;">🌟 Welcome, Commander!</h3>
+                        <p style="margin-bottom: 15px;">You are currently docked at <span style="color: #22d3ee;">Keldar Station</span>.</p>
+                        <p style="margin-bottom: 15px;">Your journey begins here. Use the navigation panel to explore the galaxy, trade resources, and build your reputation.</p>
+                        
+                        <div style="background: rgba(34, 211, 238, 0.1); padding: 15px; border-radius: 8px; border: 1px solid rgba(34, 211, 238, 0.3); margin-top: 20px;">
+                            <h4 style="color: #22d3ee; margin-bottom: 10px;">🎯 Getting Started:</h4>
+                            <ul style="color: #94a3b8; line-height: 1.6;">
+                                <li>• Visit the Trade Center to buy/sell resources</li>
+                                <li>• Check the Mission Log for available contracts</li>
+                                <li>• Upgrade your ship at the Shipyard</li>
+                                <li>• Explore space for new opportunities</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div x-show="currentPanel === 'loading'">
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="color: #22d3ee; font-size: 2em; margin-bottom: 15px;">⚡</div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create animated stars (matching original design)
+        function createStars() {
+            const starField = document.getElementById('starField');
+            const numStars = 100;
+            
+            for (let i = 0; i < numStars; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 3 + 's';
+                starField.appendChild(star);
+            }
+            
+            // Add a few planets
+            for (let i = 0; i < 3; i++) {
+                const planet = document.createElement('div');
+                planet.className = 'planet';
+                planet.style.left = Math.random() * 80 + '%';
+                planet.style.top = Math.random() * 80 + '%';
+                const size = Math.random() * 50 + 20;
+                planet.style.width = size + 'px';
+                planet.style.height = size + 'px';
+                planet.style.opacity = '0.3';
+                starField.appendChild(planet);
+            }
+        }
+
+        function gameApp() {
+            return {
+                // Authentication State
+                isAuthenticated: false,
+                showRegister: false,
+                authMessage: '',
+                authMessageType: 'info',
+                
+                // Player Data
+                playerData: {},
+                playerShips: [],
+                
+                // Game State
+                currentLocation: 'Keldar Station',
+                currentPanel: 'overview',
+                rightPanelTitle: '🏠 Station Overview',
+                
+                // Forms
+                loginForm: {
+                    playerName: '',
+                    password: '',
+                    loading: false
+                },
+                registerForm: {
+                    playerName: '',
+                    password: '',
+                    confirmPassword: '',
+                    loading: false
+                },
+
+                init() {
+                    console.log('🎮 Game initializing...');
+                    this.checkAuthentication();
+                    // Initialize stars when component loads
+                    this.$nextTick(() => {
+                        createStars();
+                    });
+                },
+
+                checkAuthentication() {
+                    const currentPlayer = window.playerManager.getCurrentPlayer();
+                    if (currentPlayer) {
+                        this.isAuthenticated = true;
+                        this.playerData = currentPlayer;
+                        this.loadPlayerShips();
+                        console.log('✅ Player authenticated:', currentPlayer.display_name);
+                    }
+                },
+
+                loginPlayer() {
+                    this.loginForm.loading = true;
+                    
+                    // Simulate network delay for authenticity
+                    setTimeout(() => {
+                        const result = window.playerManager.loginPlayer(
+                            this.loginForm.playerName, 
+                            this.loginForm.password
+                        );
+                        
+                        if (result.success) {
+                            this.showToast('Welcome back, Commander!', 'success');
+                            this.playerData = result.player;
+                            this.loadPlayerShips();
+                            
+                            setTimeout(() => {
+                                this.isAuthenticated = true;
+                            }, 1500);
+                        } else {
+                            this.showToast(result.error, 'error');
+                        }
+                        
+                        this.loginForm.loading = false;
+                    }, 1000);
+                },
+
+                registerPlayer() {
+                    if (this.registerForm.password !== this.registerForm.confirmPassword) {
+                        this.showToast('Security codes do not match!', 'error');
+                        return;
+                    }
+
+                    this.registerForm.loading = true;
+                    
+                    // Simulate network delay
+                    setTimeout(() => {
+                        const result = window.playerManager.registerPlayer(
+                            this.registerForm.playerName, 
+                            this.registerForm.password
+                        );
+                        
+                        if (result.success) {
+                            this.showToast('Welcome to the fleet, Commander!', 'success');
+                            this.playerData = result.player;
+                            this.loadPlayerShips();
+                            
+                            setTimeout(() => {
+                                this.isAuthenticated = true;
+                            }, 1500);
+                        } else {
+                            this.showToast(result.error, 'error');
+                        }
+                        
+                        this.registerForm.loading = false;
+                    }, 1000);
+                },
+
+                loadPlayerShips() {
+                    const allShips = window.playerManager.getPlayerShips();
+                    this.playerShips = allShips[this.playerData.player_id] || [];
+                },
+
+                navigateToLocation(location) {
+                    this.currentPanel = 'loading';
+                    this.rightPanelTitle = '⚡ Loading...';
+                    
+                    // Simulate navigation delay
+                    setTimeout(() => {
+                        switch(location) {
+                            case 'shipyard':
+                                this.currentLocation = 'Shipyard Complex';
+                                this.rightPanelTitle = '🏭 Shipyard';
+                                this.loadShipyardPanel();
+                                break;
+                            case 'trade-center':
+                                this.currentLocation = 'Trade Center';
+                                this.rightPanelTitle = '💰 Trade Center';
+                                this.loadTradeCenterPanel();
+                                break;
+                            case 'mission-log':
+                                this.currentLocation = 'Mission Command';
+                                this.rightPanelTitle = '📋 Mission Log';
+                                this.loadMissionPanel();
+                                break;
+                            case 'space-navigation':
+                                this.currentLocation = 'Deep Space';
+                                this.rightPanelTitle = '🌌 Space Navigation';
+                                this.loadNavigationPanel();
+                                break;
+                            default:
+                                this.currentLocation = 'Keldar Station';
+                                this.rightPanelTitle = '🏠 Station Overview';
+                                this.currentPanel = 'overview';
+                        }
+                    }, 800);
+                },
+
+                loadShipyardPanel() {
+                    document.getElementById('dynamic-content').innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="color: #22d3ee; font-size: 2em; margin-bottom: 15px;">🏭</div>
+                            <h3 style="color: #22d3ee; margin-bottom: 15px;">Shipyard Complex</h3>
+                            <p style="margin-bottom: 20px;">Ship management and upgrade systems will be integrated here.</p>
+                            <button class="btn" onclick="window.open('shipyard.html', '_blank')">🔧 Open Full Shipyard</button>
+                        </div>
+                    `;
+                    this.currentPanel = 'custom';
+                },
+
+                loadTradeCenterPanel() {
+                    document.getElementById('dynamic-content').innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="color: #22d3ee; font-size: 2em; margin-bottom: 15px;">💰</div>
+                            <h3 style="color: #22d3ee; margin-bottom: 15px;">Trade Center</h3>
+                            <p style="margin-bottom: 20px;">Resource trading systems will be integrated here.</p>
+                            <button class="btn" onclick="window.open('trade-center.html', '_blank')">📊 Open Full Trade Center</button>
+                        </div>
+                    `;
+                    this.currentPanel = 'custom';
+                },
+
+                loadMissionPanel() {
+                    document.getElementById('dynamic-content').innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="color: #22d3ee; font-size: 2em; margin-bottom: 15px;">📋</div>
+                            <h3 style="color: #22d3ee; margin-bottom: 15px;">Mission Command</h3>
+                            <p style="margin-bottom: 20px;">Mission and contract systems will be integrated here.</p>
+                            <button class="btn" onclick="window.open('mission-log.html', '_blank')">🎯 Open Full Mission Log</button>
+                        </div>
+                    `;
+                    this.currentPanel = 'custom';
+                },
+
+                loadNavigationPanel() {
+                    document.getElementById('dynamic-content').innerHTML = `
+                        <div style="text-align: center; padding: 50px;">
+                            <div style="color: #22d3ee; font-size: 2em; margin-bottom: 15px;">🌌</div>
+                            <h3 style="color: #22d3ee; margin-bottom: 15px;">Space Navigation</h3>
+                            <p style="margin-bottom: 20px;">3D space navigation system will be integrated here.</p>
+                            <button class="btn" onclick="window.open('space-navigation.html', '_blank')">🚀 Open Full Navigation</button>
+                        </div>
+                    `;
+                    this.currentPanel = 'custom';
+                },
+
+                refreshPanel() {
+                    this.currentPanel = 'loading';
+                    setTimeout(() => {
+                        this.currentPanel = 'overview';
+                        this.rightPanelTitle = '🏠 Station Overview';
+                        this.currentLocation = 'Keldar Station';
+                    }, 500);
+                },
+
+                logout() {
+                    localStorage.removeItem('keldar_current_player');
+                    this.isAuthenticated = false;
+                    this.playerData = {};
+                    this.loginForm = { playerName: '', password: '', loading: false };
+                    this.registerForm = { playerName: '', password: '', confirmPassword: '', loading: false };
+                    this.showToast('Logged out successfully', 'success');
+                    console.log('👋 Player logged out');
+                },
+
+                showToast(message, type) {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : "#EF4444",
+                        stopOnFocus: true
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

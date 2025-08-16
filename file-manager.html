@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keldar File Manager - Development Tools</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #0c1426 0%, #1a2332 50%, #0f1419 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #22d3ee;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .file-selector {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        .btn.danger {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .btn.danger:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
+        }
+
+        .btn.success {
+            background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .btn.success:hover {
+            background: linear-gradient(135deg, #047857 0%, #059669 100%);
+            box-shadow: 0 4px 20px rgba(5, 150, 105, 0.4);
+        }
+
+        select {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            color: #e2e8f0;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .editor-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            min-height: 600px;
+        }
+
+        .editor-panel {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+            padding-bottom: 10px;
+        }
+
+        .panel-title {
+            color: #22d3ee;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            height: 500px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .message.info {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        .localStorage-panel {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+            resize: vertical;
+            overflow: auto;
+            min-height: 200px;
+        }
+
+        .localStorage-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .json-tree {
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(148, 163, 184, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            max-height: 500px;
+            overflow-y: auto;
+            resize: vertical;
+        }
+
+        .json-node {
+            margin: 0;
+            padding: 0;
+        }
+
+        .json-key {
+            color: #22d3ee;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .json-key:hover {
+            color: #0891b2;
+        }
+
+        .json-value {
+            color: #a3e635;
+        }
+
+        .json-string {
+            color: #fbbf24;
+        }
+
+        .json-number {
+            color: #f472b6;
+        }
+
+        .json-boolean {
+            color: #8b5cf6;
+        }
+
+        .json-null {
+            color: #6b7280;
+        }
+
+        .json-toggle {
+            color: #94a3b8;
+            margin-right: 5px;
+            display: inline-block;
+            width: 12px;
+            text-align: center;
+        }
+
+        .json-collapsed {
+            display: none;
+        }
+
+        .json-indent {
+            margin-left: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .editor-container {
+                grid-template-columns: 1fr;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body x-data="fileManager()">
+    <div class="container">
+        <div class="header">
+            <h1>🛠️ Keldar Development File Manager</h1>
+            <p>Edit static JSON files and manage localStorage data</p>
+        </div>
+
+        <div class="controls">
+            <div class="file-selector">
+                <select x-model="selectedFile" @change="loadFile()">
+                    <option value="">Select a file to edit...</option>
+                    <option value="data/keldar-system.json">Keldar System Data</option>
+                    <option value="data/specialists-system.json">Specialists System</option>
+                    <option value="ships.json">Ship Blueprints (if recreated)</option>
+                    <option value="data/ship_master.json">Ship Master Registry</option>
+                </select>
+            </div>
+            
+            <button class="btn success" @click="saveFile()" :disabled="!selectedFile || !hasChanges">
+                💾 Save File
+            </button>
+            
+            <button class="btn" @click="formatJSON()">
+                ✨ Format JSON
+            </button>
+            
+            <button class="btn danger" @click="validateJSON()">
+                🔍 Validate JSON
+            </button>
+        </div>
+
+        <div x-show="message" class="message" :class="messageType" x-text="message"></div>
+
+        <div class="editor-container">
+            <!-- File Editor Panel -->
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <div class="panel-title">📄 File Editor</div>
+                    <div x-show="selectedFile" class="stats">
+                        <span x-text="'Lines: ' + (fileContent.split('\\n').length)"></span>
+                        <span x-text="'Characters: ' + fileContent.length"></span>
+                    </div>
+                </div>
+                
+                <textarea 
+                    x-model="fileContent" 
+                    placeholder="Select a file to start editing..."
+                    @input="hasChanges = true">
+                </textarea>
+            </div>
+
+            <!-- Preview Panel -->
+            <div class="editor-panel">
+                <div class="panel-header">
+                    <div class="panel-title">👁️ JSON Preview</div>
+                    <button class="btn" @click="refreshPreview()">🔄 Refresh</button>
+                </div>
+                
+                <textarea 
+                    x-model="previewContent" 
+                    placeholder="JSON preview will appear here..."
+                    readonly>
+                </textarea>
+            </div>
+        </div>
+
+        <!-- LocalStorage Management Panel -->
+        <div class="editor-panel localStorage-panel">
+            <div class="panel-header">
+                <div class="panel-title">💾 LocalStorage Manager</div>
+                <div class="localStorage-controls">
+                    <button class="btn" @click="loadPlayerData()">📥 Load Player Data</button>
+                    <button class="btn success" @click="exportLocalStorage()">📤 Export All</button>
+                    <button class="btn" @click="importLocalStorage()">📥 Import</button>
+                    <button class="btn danger" @click="clearLocalStorage()">🗑️ Clear All</button>
+                    <button class="btn" @click="toggleJsonView()">
+                        <span x-text="showRawJson ? '🌲 Tree View' : '📄 Raw JSON'"></span>
+                    </button>
+                </div>
+            </div>
+            
+            <div x-show="!showRawJson" class="json-tree" x-html="formatJsonTree(localStorageContent)"></div>
+            
+            <textarea 
+                x-show="showRawJson"
+                x-model="localStorageContent" 
+                placeholder="LocalStorage content will appear here..."
+                style="height: 400px; resize: vertical;">
+            </textarea>
+        </div>
+    </div>
+
+    <script>
+        // Global function for toggling JSON nodes
+        window.toggleNode = function(nodeId) {
+            const node = document.getElementById(nodeId);
+            const toggle = node.previousElementSibling;
+            
+            if (node.style.display === 'none') {
+                node.style.display = 'block';
+                toggle.textContent = '▼';
+            } else {
+                node.style.display = 'none';
+                toggle.textContent = '▶';
+            }
+        };
+
+        function fileManager() {
+            return {
+                selectedFile: '',
+                fileContent: '',
+                previewContent: '',
+                localStorageContent: '',
+                originalContent: '',
+                hasChanges: false,
+                message: '',
+                messageType: 'info',
+                showRawJson: false,
+                collapsedNodes: new Set(),
+
+                async loadFile() {
+                    if (!this.selectedFile) {
+                        this.fileContent = '';
+                        this.previewContent = '';
+                        this.hasChanges = false;
+                        return;
+                    }
+
+                    try {
+                        // For browser security, we'll simulate file loading
+                        // In a real implementation, you'd fetch from a server
+                        this.showMessage('Note: File loading simulated. In production, implement server-side file reading.', 'info');
+                        
+                        // Load sample content based on file type
+                        const sampleContent = this.getSampleContent(this.selectedFile);
+                        this.fileContent = sampleContent;
+                        this.originalContent = sampleContent;
+                        this.hasChanges = false;
+                        this.refreshPreview();
+                        
+                    } catch (error) {
+                        this.showMessage('Error loading file: ' + error.message, 'error');
+                    }
+                },
+
+                getSampleContent(fileName) {
+                    const samples = {
+                        'data/keldar-system.json': JSON.stringify({
+                            "system_name": "Keldar System",
+                            "coordinates": { "x": 0, "y": 0, "z": 0 },
+                            "planets": [],
+                            "stations": [],
+                            "asteroid_fields": [],
+                            "trade_routes": []
+                        }, null, 2),
+                        
+                        'data/specialists-system.json': JSON.stringify({
+                            "specialists": [],
+                            "specialist_types": ["engineer", "trader", "pilot", "scientist"],
+                            "rarity_levels": ["common", "uncommon", "rare", "legendary"]
+                        }, null, 2),
+                        
+                        'data/ship_master.json': JSON.stringify({
+                            "ships": [],
+                            "next_ship_id": 1,
+                            "system_info": {
+                                "version": "1.0.0",
+                                "last_updated": new Date().toISOString(),
+                                "total_ships_created": 0
+                            }
+                        }, null, 2)
+                    };
+
+                    return samples[fileName] || '{\n  "placeholder": "Add your content here"\n}';
+                },
+
+                async saveFile() {
+                    if (!this.selectedFile) return;
+
+                    try {
+                        // Validate JSON first
+                        JSON.parse(this.fileContent);
+                        
+                        // In a real implementation, save to server
+                        this.showMessage('Note: File saving simulated. In production, implement server-side file writing.', 'info');
+                        
+                        // Simulate save delay
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        this.originalContent = this.fileContent;
+                        this.hasChanges = false;
+                        this.showMessage('File saved successfully!', 'success');
+                        
+                    } catch (error) {
+                        this.showMessage('Save failed: ' + error.message, 'error');
+                    }
+                },
+
+                formatJSON() {
+                    try {
+                        const parsed = JSON.parse(this.fileContent);
+                        this.fileContent = JSON.stringify(parsed, null, 2);
+                        this.hasChanges = true;
+                        this.refreshPreview();
+                        this.showMessage('JSON formatted successfully!', 'success');
+                    } catch (error) {
+                        this.showMessage('Invalid JSON: ' + error.message, 'error');
+                    }
+                },
+
+                validateJSON() {
+                    try {
+                        JSON.parse(this.fileContent);
+                        this.showMessage('✅ JSON is valid!', 'success');
+                    } catch (error) {
+                        this.showMessage('❌ Invalid JSON: ' + error.message, 'error');
+                    }
+                },
+
+                refreshPreview() {
+                    try {
+                        const parsed = JSON.parse(this.fileContent);
+                        this.previewContent = JSON.stringify(parsed, null, 2);
+                    } catch (error) {
+                        this.previewContent = 'Invalid JSON: ' + error.message;
+                    }
+                },
+
+                loadPlayerData() {
+                    try {
+                        const playerData = {
+                            players: JSON.parse(localStorage.getItem('keldar_players') || '[]'),
+                            currentPlayer: JSON.parse(localStorage.getItem('keldar_current_player') || 'null'),
+                            playerShips: JSON.parse(localStorage.getItem('keldar_player_ships') || '{}'),
+                            shipCounter: localStorage.getItem('keldar_ship_counter') || '0'
+                        };
+                        
+                        this.localStorageContent = JSON.stringify(playerData, null, 2);
+                        this.showMessage('Player data loaded from localStorage', 'success');
+                    } catch (error) {
+                        this.showMessage('Error loading player data: ' + error.message, 'error');
+                    }
+                },
+
+                exportLocalStorage() {
+                    try {
+                        const allData = {};
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (key.startsWith('keldar_')) {
+                                try {
+                                    allData[key] = JSON.parse(localStorage.getItem(key));
+                                } catch {
+                                    allData[key] = localStorage.getItem(key);
+                                }
+                            }
+                        }
+                        
+                        this.localStorageContent = JSON.stringify(allData, null, 2);
+                        
+                        // Download as file
+                        const blob = new Blob([this.localStorageContent], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'keldar-localStorage-backup.json';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        this.showMessage('LocalStorage exported and downloaded!', 'success');
+                    } catch (error) {
+                        this.showMessage('Export failed: ' + error.message, 'error');
+                    }
+                },
+
+                importLocalStorage() {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                try {
+                                    const data = JSON.parse(e.target.result);
+                                    
+                                    // Import data to localStorage
+                                    Object.keys(data).forEach(key => {
+                                        if (key.startsWith('keldar_')) {
+                                            localStorage.setItem(key, JSON.stringify(data[key]));
+                                        }
+                                    });
+                                    
+                                    this.localStorageContent = JSON.stringify(data, null, 2);
+                                    this.showMessage('LocalStorage imported successfully!', 'success');
+                                } catch (error) {
+                                    this.showMessage('Import failed: ' + error.message, 'error');
+                                }
+                            };
+                            reader.readAsText(file);
+                        }
+                    };
+                    input.click();
+                },
+
+                clearLocalStorage() {
+                    if (confirm('Are you sure you want to clear all Keldar data from localStorage? This cannot be undone!')) {
+                        const keysToRemove = [];
+                        for (let i = 0; i < localStorage.length; i++) {
+                            const key = localStorage.key(i);
+                            if (key.startsWith('keldar_')) {
+                                keysToRemove.push(key);
+                            }
+                        }
+                        
+                        keysToRemove.forEach(key => localStorage.removeItem(key));
+                        this.localStorageContent = '';
+                        this.showMessage('LocalStorage cleared!', 'success');
+                    }
+                },
+
+                showMessage(text, type = 'info') {
+                    this.message = text;
+                    this.messageType = type;
+                    setTimeout(() => {
+                        this.message = '';
+                    }, 5000);
+                },
+
+                toggleJsonView() {
+                    this.showRawJson = !this.showRawJson;
+                },
+
+                formatJsonTree(jsonString) {
+                    if (!jsonString) return '';
+                    
+                    try {
+                        const data = JSON.parse(jsonString);
+                        return this.renderJsonNode(data, '', 0);
+                    } catch (error) {
+                        return `<span class="json-value" style="color: #ef4444;">Invalid JSON: ${error.message}</span>`;
+                    }
+                },
+
+                renderJsonNode(value, key, depth) {
+                    const indent = '  '.repeat(depth);
+                    const nodeId = `node_${key}_${depth}_${Math.random()}`;
+                    
+                    if (value === null) {
+                        return `${indent}<span class="json-key">"${key}"</span>: <span class="json-null">null</span>`;
+                    }
+                    
+                    if (typeof value === 'string') {
+                        const truncated = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                        return `${indent}<span class="json-key">"${key}"</span>: <span class="json-string">"${this.escapeHtml(truncated)}"</span>`;
+                    }
+                    
+                    if (typeof value === 'number') {
+                        return `${indent}<span class="json-key">"${key}"</span>: <span class="json-number">${value}</span>`;
+                    }
+                    
+                    if (typeof value === 'boolean') {
+                        return `${indent}<span class="json-key">"${key}"</span>: <span class="json-boolean">${value}</span>`;
+                    }
+                    
+                    if (Array.isArray(value)) {
+                        if (value.length === 0) {
+                            return `${indent}<span class="json-key">"${key}"</span>: []`;
+                        }
+                        
+                        let result = `${indent}<span class="json-toggle" onclick="window.toggleNode('${nodeId}')">▼</span><span class="json-key" onclick="window.toggleNode('${nodeId}')">"${key}"</span>: [<span style="color: #6b7280;"> ${value.length} items</span>\n`;
+                        result += `<div id="${nodeId}" class="json-indent">`;
+                        
+                        value.forEach((item, index) => {
+                            result += this.renderJsonNode(item, index.toString(), depth + 1);
+                            if (index < value.length - 1) result += ',';
+                            result += '\n';
+                        });
+                        
+                        result += `</div>${indent}]`;
+                        return result;
+                    }
+                    
+                    if (typeof value === 'object') {
+                        const keys = Object.keys(value);
+                        if (keys.length === 0) {
+                            return `${indent}<span class="json-key">"${key}"</span>: {}`;
+                        }
+                        
+                        let result = `${indent}<span class="json-toggle" onclick="window.toggleNode('${nodeId}')">▼</span><span class="json-key" onclick="window.toggleNode('${nodeId}')">"${key}"</span>: {<span style="color: #6b7280;"> ${keys.length} properties</span>\n`;
+                        result += `<div id="${nodeId}" class="json-indent">`;
+                        
+                        keys.forEach((k, index) => {
+                            result += this.renderJsonNode(value[k], k, depth + 1);
+                            if (index < keys.length - 1) result += ',';
+                            result += '\n';
+                        });
+                        
+                        result += `</div>${indent}}`;
+                        return result;
+                    }
+                    
+                    return `${indent}<span class="json-key">"${key}"</span>: <span class="json-value">${this.escapeHtml(String(value))}</span>`;
+                },
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

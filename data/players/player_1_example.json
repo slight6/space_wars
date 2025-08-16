@@ -1,0 +1,44 @@
+{
+  "player_id": 1,
+  "player_name": "test_player",
+  "display_name": "Test_Player",
+  "registration_timestamp": "2025-08-14T00:00:00Z",
+  "last_login_timestamp": "2025-08-14T00:00:00Z",
+  "last_save_timestamp": "2025-08-14T00:00:00Z",
+  "credits": 2000,
+  "materials": {
+    "metal": 50,
+    "energy_cells": 25,
+    "rare_minerals": 10
+  },
+  "current_location": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "base_coordinates": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "owned_ship_ids": [1],
+  "active_ship_id": 1,
+  "fleet_capacity": 1,
+  "player_level": 1,
+  "experience_points": 0,
+  "missions_completed": 0,
+  "achievements": [],
+  "tutorial_completed": false,
+  "first_login": false,
+  "status": "online",
+  "total_playtime_minutes": 0,
+  "battles_fought": 0,
+  "distance_traveled": 0,
+  "credits_earned": 2000,
+  "credits_spent": 0,
+  "game_settings": {
+    "auto_save": true,
+    "notifications": true,
+    "difficulty": "normal"
+  }
+}

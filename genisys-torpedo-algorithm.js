@@ -5,14 +5,71 @@
 
 class GenisysTorpedoSystem {
     constructor() {
-        // Basic elements for planet generation
+        // Data will be loaded dynamically from torpedo-system-config.json
+        this.elements = [];
+        this.planetTypes = {};
+        this.planetCharacteristics = {};
+        this.coordinateSystem = {};
+        this.formationSettings = {};
+        
+        // Active formations storage
+        this.activeFormations = new Map();
+        
+        // Storage key for persistent formations
+        this.storageKey = 'genisys_formations';
+        
+        // Initialize the system
+        this.initialize();
+    }
+
+    async initialize() {
+        try {
+            // Load configuration data
+            await this.loadConfigData();
+            
+            // Try to load custom configuration (overrides defaults)
+            this.loadCustomConfiguration();
+            
+            // Load existing formations from localStorage
+            this.loadFormations();
+            
+            // Resume any incomplete formations
+            this.resumeFormations();
+            
+            console.log('🚀 GenisysTorpedoSystem initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing GenisysTorpedoSystem:', error);
+            // Load fallback data if config fails
+            this.loadFallbackData();
+        }
+    }
+
+    async loadConfigData() {
+        if (window.DataLoader) {
+            const config = await window.DataLoader.loadData('torpedo-system-config.json');
+            this.elements = config.elements || [];
+            this.planetTypes = config.planetTypes || {};
+            this.planetCharacteristics = config.planetCharacteristics || {};
+            this.coordinateSystem = config.coordinateSystem || {};
+            this.formationSettings = config.formationSettings || {};
+            
+            console.log('✅ Torpedo system configuration loaded from JSON');
+        } else {
+            throw new Error('DataLoader not available');
+        }
+    }
+
+    loadFallbackData() {
+        console.log('⚠️ Loading fallback torpedo system data');
+        
+        // Basic elements for planet generation (fallback)
         this.elements = [
             'Iron', 'Carbon', 'Silicon', 'Aluminum', 'Oxygen', 'Nitrogen', 'Hydrogen',
             'Titanium', 'Copper', 'Gold', 'Silver', 'Platinum', 'Uranium', 'Lithium',
             'Nickel', 'Zinc', 'Lead', 'Tungsten', 'Chromium', 'Cobalt'
         ];
 
-        // Planet types
+        // Planet types (fallback)
         this.planetTypes = {
             ROCKY: 'Rocky',
             GAS_GIANT: 'Gas Giant',
@@ -21,30 +78,15 @@ class GenisysTorpedoSystem {
             EARTH_LIKE: 'Earth-like',
             DESERT: 'Desert'
         };
-
-        // Active formations storage
-        this.activeFormations = new Map();
         
-        // Coordinate system configuration
+        // Coordinate system configuration (fallback)
         this.coordinateSystem = {
-            // Starting position for new players
             startingPosition: { x: 0, y: 0, z: 0 },
-            
-            // Maximum coordinate range (expandable)
             bounds: {
                 min: { x: -1000, y: -1000, z: -1000 },
                 max: { x: 1000, y: 1000, z: 1000 }
             }
         };
-        
-        // Storage key for persistent formations
-        this.storageKey = 'genisys_formations';
-        
-        // Load existing formations from localStorage
-        this.loadFormations();
-        
-        // Resume any incomplete formations
-        this.resumeFormations();
     }
 
     // ========================================
@@ -104,66 +146,36 @@ class GenisysTorpedoSystem {
     }
 
     // Legacy method for compatibility with torpedo-launch.html
-    async launchGenisysTorpedo(launchData) {
+    launchGenisysTorpedo(launchData) {
         const formation = this.launchTorpedo(launchData.coordinates, launchData.playerID);
         
         // Initialize all possibilities for progressive revelation
-        formation.allPossibilities = await this.generateAllPossibilities();
+        formation.allPossibilities = this.generateAllPossibilities();
         formation.eliminationTimer = null;
         formation.eliminatedCount = 0;
         formation.totalPossibilities = this.countTotalPossibilities(formation.allPossibilities);
         
-        // Start the progressive elimination process
+        // Initialize the sophisticated elimination plan
+        formation.eliminationPlan = this.generateEliminationPlan(formation);
+        
+        // Start the enhanced progressive elimination process
         this.startProgressiveElimination(formation);
+        
+        console.log(`🚀 Launched Genisys Torpedo with enhanced elimination system`);
+        console.log(`📊 Total possibilities: ${formation.totalPossibilities}`);
+        console.log(`⏰ Formation time: ${Math.round((formation.completionTime - formation.launchTime) / 1000)}s`);
         
         return formation;
     }
 
     // Generate comprehensive list of all possibilities for a formation
-    async generateAllPossibilities() {
-        // Ensure characteristics are loaded
-        if (!this.planetCharacteristics) {
-            await this.loadCharacteristics();
+    generateAllPossibilities() {
+        // Use loaded configuration data if available, otherwise fall back to hardcoded values
+        if (this.planetCharacteristics && Object.keys(this.planetCharacteristics).length > 0) {
+            return { ...this.planetCharacteristics };
         }
-
-        if (this.planetCharacteristics && this.planetCharacteristics.planetCharacteristics) {
-            const characteristics = this.planetCharacteristics.planetCharacteristics;
-            return {
-                planetTypes: characteristics.planetTypes.map(p => p.name),
-                sizeClasses: characteristics.sizeClasses.map(s => s.name),
-                moonCounts: characteristics.moonCounts.map(m => m.name),
-                atmosphereTypes: characteristics.atmosphereTypes.map(a => a.name),
-                temperatures: characteristics.temperatures.map(t => t.name),
-                surfaceFeatures: characteristics.surfaceFeatures.map(sf => sf.name),
-                mineralWealth: characteristics.mineralWealth.map(mw => mw.name),
-                habitability: characteristics.habitability.map(h => h.name),
-                magneticField: characteristics.magneticField.map(mf => mf.name),
-                specialProperties: characteristics.specialProperties.map(sp => sp.name)
-            };
-        }
-
-        // Fallback to hardcoded if JSON fails
-        return this.getHardcodedCharacteristics();
-    }
-
-    // Load planet characteristics from JSON
-    async loadCharacteristics() {
-        try {
-            const response = await fetch('./data/planet-characteristics.json');
-            if (response.ok) {
-                this.planetCharacteristics = await response.json();
-                console.log('Planet characteristics loaded successfully');
-            } else {
-                throw new Error(`HTTP ${response.status}`);
-            }
-        } catch (error) {
-            console.error('Failed to load planet characteristics:', error);
-            this.planetCharacteristics = null;
-        }
-    }
-
-    // Fallback hardcoded characteristics
-    getHardcodedCharacteristics() {
+        
+        // Fallback hardcoded data (for compatibility)
         return {
             planetTypes: [
                 'Rocky', 'Gas Giant', 'Ice World', 'Volcanic', 'Earth-like', 'Desert', 
@@ -207,6 +219,11 @@ class GenisysTorpedoSystem {
                 'None', 'Weak', 'Moderate', 'Strong', 'Extreme', 'Fluctuating',
                 'Reversed Polarity', 'Multi-Polar', 'Quantum Entangled'
             ],
+            orbitalCharacteristics: [
+                'Stable Circular', 'Elliptical', 'Highly Eccentric', 'Retrograde',
+                'Tidally Locked', 'Wobbling Axis', 'Binary System', 'Trojan Orbit',
+                'Lagrange Point', 'Unstable Decay'
+            ],
             specialProperties: [
                 'Standard Physics', 'Time Dilation Effects', 'Gravity Anomalies',
                 'Dimensional Rifts', 'Quantum Tunneling', 'Anti-Matter Traces',
@@ -214,6 +231,107 @@ class GenisysTorpedoSystem {
                 'Ancient Artifacts', 'Energy Beings', 'Sentient Planet'
             ]
         };
+    }
+
+    // ========================================
+    // DYNAMIC CONFIGURATION METHODS
+    // ========================================
+    
+    // Add new characteristic option to a category
+    addCharacteristicOption(category, newOption) {
+        if (!this.planetCharacteristics[category]) {
+            console.warn(`Category '${category}' does not exist`);
+            return false;
+        }
+        
+        if (!this.planetCharacteristics[category].includes(newOption)) {
+            this.planetCharacteristics[category].push(newOption);
+            console.log(`✅ Added '${newOption}' to ${category}`);
+            return true;
+        } else {
+            console.warn(`'${newOption}' already exists in ${category}`);
+            return false;
+        }
+    }
+    
+    // Remove characteristic option from a category
+    removeCharacteristicOption(category, option) {
+        if (!this.planetCharacteristics[category]) {
+            console.warn(`Category '${category}' does not exist`);
+            return false;
+        }
+        
+        const index = this.planetCharacteristics[category].indexOf(option);
+        if (index > -1) {
+            this.planetCharacteristics[category].splice(index, 1);
+            console.log(`🗑️ Removed '${option}' from ${category}`);
+            return true;
+        } else {
+            console.warn(`'${option}' not found in ${category}`);
+            return false;
+        }
+    }
+    
+    // Add new category of characteristics
+    addCharacteristicCategory(categoryName, options = []) {
+        if (this.planetCharacteristics[categoryName]) {
+            console.warn(`Category '${categoryName}' already exists`);
+            return false;
+        }
+        
+        this.planetCharacteristics[categoryName] = [...options];
+        console.log(`✅ Added new category '${categoryName}' with ${options.length} options`);
+        return true;
+    }
+    
+    // Get all available categories
+    getAvailableCategories() {
+        return Object.keys(this.planetCharacteristics);
+    }
+    
+    // Get options for a specific category
+    getCategoryOptions(category) {
+        return this.planetCharacteristics[category] || [];
+    }
+    
+    // Export current configuration for saving
+    exportConfiguration() {
+        return {
+            version: "1.0.0",
+            lastUpdated: new Date().toISOString(),
+            elements: [...this.elements],
+            planetTypes: { ...this.planetTypes },
+            planetCharacteristics: JSON.parse(JSON.stringify(this.planetCharacteristics)),
+            coordinateSystem: { ...this.coordinateSystem },
+            formationSettings: { ...this.formationSettings }
+        };
+    }
+    
+    // Save current configuration to localStorage (for persistence)
+    saveConfigurationToStorage() {
+        const config = this.exportConfiguration();
+        localStorage.setItem('torpedo_system_custom_config', JSON.stringify(config));
+        console.log('💾 Configuration saved to localStorage');
+    }
+    
+    // Load custom configuration from localStorage
+    loadCustomConfiguration() {
+        try {
+            const saved = localStorage.getItem('torpedo_system_custom_config');
+            if (saved) {
+                const config = JSON.parse(saved);
+                this.elements = config.elements || this.elements;
+                this.planetTypes = config.planetTypes || this.planetTypes;
+                this.planetCharacteristics = config.planetCharacteristics || this.planetCharacteristics;
+                this.coordinateSystem = config.coordinateSystem || this.coordinateSystem;
+                this.formationSettings = config.formationSettings || this.formationSettings;
+                console.log('✅ Custom configuration loaded from localStorage');
+                return true;
+            }
+        } catch (error) {
+            console.error('❌ Error loading custom configuration:', error);
+        }
+        return false;
     }
 
     // Count total possibilities across all categories
@@ -238,215 +356,364 @@ class GenisysTorpedoSystem {
         // Don't start if formation is already complete or should be complete
         if (remainingTime <= 0) return;
         
-        // Calculate elimination strategy to end with exactly 1 item per category
-        formation.eliminationPlan = this.createEliminationPlan(formation.allPossibilities);
-        const totalEliminationsNeeded = formation.eliminationPlan.totalEliminations;
-        
-        if (totalEliminationsNeeded <= 0) {
-            // Already at target state
-            return;
+        // Initialize elimination tracking if not present
+        if (!formation.eliminationPlan) {
+            formation.eliminationPlan = this.generateEliminationPlan(formation);
         }
         
-        // Log the elimination plan
-        this.logEliminationPlan(formation.eliminationPlan);
+        // Calculate steady elimination interval based on remaining time
+        const totalEliminationSteps = formation.eliminationPlan.totalSteps;
+        const eliminationInterval = Math.max(1000, Math.floor(remainingTime / totalEliminationSteps)); // At least 1 second per step
         
-        // Calculate elimination interval to spread eliminations over the remaining time
-        const eliminationInterval = Math.max(1000, Math.floor(remainingTime / totalEliminationsNeeded * 0.8)); // Use 80% of time for eliminations
-        
-        console.log(`Starting elimination for formation ${formation.id}`);
-        console.log(`Total eliminations needed: ${totalEliminationsNeeded}`);
-        console.log(`Elimination interval: ${Math.round(eliminationInterval/1000)}s`);
-        console.log(`Remaining time: ${Math.round(remainingTime/1000)}s`);
+        console.log(`🎯 Starting enhanced elimination for formation ${formation.id}`);
+        console.log(`📊 Elimination plan: ${totalEliminationSteps} steps over ${Math.round(remainingTime/1000)}s`);
+        console.log(`⏱️ Eliminating every ${Math.round(eliminationInterval/1000)}s for steady progression`);
         
         formation.eliminationTimer = setInterval(() => {
-            this.eliminateBasedOnPlan(formation);
+            this.executeEliminationStep(formation);
             
-            // Check if formation is complete or elimination plan is finished
-            if (Date.now() >= formation.completionTime || this.isEliminationPlanComplete(formation)) {
+            // Check if formation is complete
+            if (Date.now() >= formation.completionTime || formation.eliminationPlan.currentStep >= formation.eliminationPlan.totalSteps) {
                 clearInterval(formation.eliminationTimer);
                 this.completeFormation(formation.id);
             }
         }, eliminationInterval);
     }
 
-    // Create elimination plan to end with 1 item per category
-    createEliminationPlan(possibilities) {
+    // Generate elimination plan for sophisticated progressive narrowing
+    generateEliminationPlan(formation) {
         const plan = {
-            categories: {},
-            totalEliminations: 0,
-            eliminationOrder: []
+            currentStep: 0,
+            totalSteps: 0,
+            eliminationSequence: [],
+            targetRetention: {
+                elements: 0.25, // 25% retention for elements
+                standard: 0.10, // 10% retention for all other categories
+                finalReveal: 2   // Final reveal shows only 2 options per category (requires scanners)
+            },
+            scannerRequirements: {
+                'GT-1': 'Global Type Scanner - reveals final 2 options per category',
+                'GC-1': 'Global Composition Scanner - reveals element quantities'
+            }
         };
 
-        // Calculate how many items need to be eliminated from each category
-        Object.entries(possibilities).forEach(([category, items]) => {
-            const currentCount = items.length;
-            const targetCount = 1;
-            const eliminationsNeeded = Math.max(0, currentCount - targetCount);
+        // Calculate elimination steps for each category
+        Object.keys(formation.allPossibilities).forEach(category => {
+            const currentCount = formation.allPossibilities[category].length;
+            let targetCount;
             
-            plan.categories[category] = {
-                current: currentCount,
-                target: targetCount,
-                toEliminate: eliminationsNeeded,
-                eliminated: 0
-            };
+            if (category === 'elements') {
+                // Elements get 25% retention
+                targetCount = Math.max(1, Math.ceil(currentCount * plan.targetRetention.elements));
+            } else {
+                // All other categories get 10% retention
+                targetCount = Math.max(1, Math.ceil(currentCount * plan.targetRetention.standard));
+            }
             
-            plan.totalEliminations += eliminationsNeeded;
+            const eliminationsNeeded = currentCount - targetCount;
+            
+            if (eliminationsNeeded > 0) {
+                // Create elimination sequence with random order but controlled quantity
+                for (let i = 0; i < eliminationsNeeded; i++) {
+                    plan.eliminationSequence.push({
+                        category: category,
+                        step: plan.totalSteps + i,
+                        targetCount: targetCount,
+                        remainingEliminations: eliminationsNeeded - i
+                    });
+                }
+                plan.totalSteps += eliminationsNeeded;
+            }
         });
 
-        // Create elimination order by distributing eliminations evenly
-        this.generateEliminationOrder(plan);
+        // Randomize elimination order for unpredictability
+        plan.eliminationSequence = this.shuffleArray(plan.eliminationSequence);
         
+        console.log(`📋 Generated elimination plan:`, {
+            totalSteps: plan.totalSteps,
+            categories: Object.keys(formation.allPossibilities).length,
+            elementRetention: `${Math.round(plan.targetRetention.elements * 100)}%`,
+            standardRetention: `${Math.round(plan.targetRetention.standard * 100)}%`
+        });
+
         return plan;
     }
 
-    // Generate a balanced elimination order
-    generateEliminationOrder(plan) {
-        const categoriesWithEliminations = Object.entries(plan.categories)
-            .filter(([_, data]) => data.toEliminate > 0)
-            .map(([category, data]) => ({ category, remaining: data.toEliminate }));
-
-        // Distribute eliminations as evenly as possible
-        while (categoriesWithEliminations.some(c => c.remaining > 0)) {
-            categoriesWithEliminations.forEach(categoryData => {
-                if (categoryData.remaining > 0) {
-                    plan.eliminationOrder.push(categoryData.category);
-                    categoryData.remaining--;
-                }
-            });
-        }
-
-        // Shuffle the order slightly for more natural feeling
-        for (let i = plan.eliminationOrder.length - 1; i > 0; i--) {
-            if (Math.random() < 0.3) { // 30% chance to swap
-                const j = Math.floor(Math.random() * (i + 1));
-                [plan.eliminationOrder[i], plan.eliminationOrder[j]] = [plan.eliminationOrder[j], plan.eliminationOrder[i]];
-            }
-        }
-    }
-
-    // Eliminate based on the planned order
-    eliminateBasedOnPlan(formation) {
-        if (!formation.eliminationPlan || formation.eliminationPlan.eliminationOrder.length === 0) {
+    // Execute a single elimination step following the plan
+    executeEliminationStep(formation) {
+        const plan = formation.eliminationPlan;
+        
+        if (plan.currentStep >= plan.eliminationSequence.length) {
+            console.log('🏁 All elimination steps completed');
             return;
         }
 
-        const plan = formation.eliminationPlan;
-        const currentElimination = formation.eliminatedCount || 0;
+        const step = plan.eliminationSequence[plan.currentStep];
+        const category = step.category;
+        const categoryArray = formation.allPossibilities[category];
         
-        if (currentElimination >= plan.eliminationOrder.length) {
-            return; // Plan complete
-        }
-
-        const categoryToEliminate = plan.eliminationOrder[currentElimination];
-        const categoryArray = formation.allPossibilities[categoryToEliminate];
-        
-        // Only eliminate if we have more than 1 item in this category
-        if (categoryArray && categoryArray.length > 1) {
+        // Ensure we don't eliminate more than planned
+        if (categoryArray.length > step.targetCount) {
             const randomIndex = Math.floor(Math.random() * categoryArray.length);
             const eliminated = categoryArray.splice(randomIndex, 1)[0];
             formation.eliminatedCount = (formation.eliminatedCount || 0) + 1;
-            plan.categories[categoryToEliminate].eliminated++;
             
-            console.log(`Eliminated from ${categoryToEliminate}: ${eliminated} (${formation.eliminatedCount}/${plan.totalEliminations})`);
-            console.log(`${categoryToEliminate} now has ${categoryArray.length} items remaining`);
+            // Calculate real-time possibility count
+            let currentTotal = 0;
+            Object.values(formation.allPossibilities).forEach(cat => currentTotal += cat.length);
             
-            // Notify UI of the change if callback is set
-            if (this.eliminationCallback) {
-                this.eliminationCallback(formation, categoryToEliminate, eliminated);
+            // Calculate progress percentage
+            const stepProgress = Math.round((plan.currentStep / plan.totalSteps) * 100);
+            const eliminationProgress = Math.round(((formation.totalPossibilities - currentTotal) / formation.totalPossibilities) * 100);
+            
+            console.log(`� ELIMINATION STEP ${plan.currentStep + 1}/${plan.totalSteps}`);
+            console.log(`   ❌ Eliminated: "${eliminated}" from ${category}`);
+            console.log(`   📊 Current totals: ${currentTotal}/${formation.totalPossibilities} remaining (${formation.totalPossibilities - currentTotal} eliminated)`);
+            console.log(`   📈 Progress: ${Math.max(stepProgress, eliminationProgress)}% complete`);
+            
+            // Special logging for elements (different retention rate)
+            if (category === 'elements') {
+                const elementsLeft = categoryArray.length;
+                const originalElements = this.elements ? this.elements.length : 88;
+                const retentionPercent = Math.round((elementsLeft / originalElements) * 100);
+                console.log(`   🧪 Elements: ${elementsLeft}/${originalElements} remaining (${retentionPercent}% retention, target: 25%)`);
             }
         }
         
-        // Save updated formation
+        plan.currentStep++;
+        
+        // Save updated formation with progress
         this.saveFormations();
     }
 
-    // Log elimination plan for debugging
-    logEliminationPlan(plan) {
-        console.log('\n=== ELIMINATION PLAN ===');
-        Object.entries(plan.categories).forEach(([category, data]) => {
-            console.log(`${category}: ${data.current} → ${data.target} (eliminate ${data.toEliminate})`);
+    // Utility function to shuffle array (Fisher-Yates algorithm)
+    shuffleArray(array) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    // Get current elimination status for UI display
+    getEliminationStatus(formationId) {
+        const formation = this.activeFormations.get(formationId);
+        if (!formation || !formation.eliminationPlan) {
+            return { error: 'Formation not found or elimination not started' };
+        }
+
+        const plan = formation.eliminationPlan;
+        
+        // Calculate real-time remaining possibilities by counting actual items
+        let currentPossibilities = 0;
+        if (formation.allPossibilities) {
+            Object.values(formation.allPossibilities).forEach(category => {
+                currentPossibilities += category.length;
+            });
+        }
+        
+        const eliminated = formation.totalPossibilities - currentPossibilities;
+        const progress = plan.totalSteps > 0 ? Math.round((plan.currentStep / plan.totalSteps) * 100) : 0;
+        
+        // Calculate more accurate progress based on actual eliminations
+        const targetEliminations = Math.floor(formation.totalPossibilities * 0.9); // Target 90% elimination
+        const actualProgress = targetEliminations > 0 ? Math.round((eliminated / targetEliminations) * 100) : 0;
+        
+        return {
+            formationId: formationId,
+            progress: Math.max(progress, actualProgress), // Use the higher of step-based or elimination-based progress
+            currentStep: plan.currentStep,
+            totalSteps: plan.totalSteps,
+            remainingPossibilities: currentPossibilities,
+            totalPossibilities: formation.totalPossibilities,
+            eliminatedCount: eliminated,
+            categoriesStatus: this.getCategoriesStatus(formation),
+            scannerInfo: plan.scannerRequirements,
+            isComplete: plan.currentStep >= plan.totalSteps
+        };
+    }
+
+    // Get detailed status for each category
+    getCategoriesStatus(formation) {
+        const status = {};
+        Object.keys(formation.allPossibilities).forEach(category => {
+            const current = formation.allPossibilities[category].length;
+            const plan = formation.eliminationPlan;
+            let targetRetention;
+            
+            if (category === 'elements') {
+                targetRetention = plan.targetRetention.elements;
+            } else {
+                targetRetention = plan.targetRetention.standard;
+            }
+            
+            status[category] = {
+                currentCount: current,
+                targetRetention: Math.round(targetRetention * 100) + '%',
+                requiresScanner: category !== 'elements' ? 'GT-1' : 'GC-1',
+                finalRevealCount: category !== 'elements' ? plan.targetRetention.finalReveal : 'quantity hidden'
+            };
         });
-        console.log(`Total eliminations: ${plan.totalEliminations}`);
-        console.log(`Elimination order: ${plan.eliminationOrder.slice(0, 10).join(', ')}${plan.eliminationOrder.length > 10 ? '...' : ''}`);
-        console.log('========================\n');
+        return status;
     }
 
-    // Check if elimination plan is complete
-    isEliminationPlanComplete(formation) {
-        if (!formation.eliminationPlan) return true;
-        
-        return (formation.eliminatedCount || 0) >= formation.eliminationPlan.totalEliminations;
-    }
-
-    // Set a callback for UI updates when characteristics are eliminated
-    setEliminationCallback(callback) {
-        this.eliminationCallback = callback;
-    }
-
-    // Get effects for a specific characteristic
-    getCharacteristicEffects(category, characteristicName) {
-        if (!this.planetCharacteristics || !this.planetCharacteristics.planetCharacteristics) {
-            return null;
+    // ========================================
+    // SCANNER SYSTEM FOR FINAL REVEALS
+    // ========================================
+    
+    // Simulate GT-1 Scanner (Global Type Scanner) - reveals final planet characteristics
+    performGT1Scan(formationId, scanCost = 1500) {
+        const formation = this.activeFormations.get(formationId);
+        if (!formation) {
+            return { error: 'Formation not found', scanType: 'GT-1' };
         }
 
-        const characteristics = this.planetCharacteristics.planetCharacteristics;
-        const categoryData = characteristics[category];
-        
-        if (!categoryData) return null;
-        
-        const characteristic = categoryData.find(item => item.name === characteristicName);
-        return characteristic ? characteristic.effects : null;
-    }
-
-    // Get effect descriptions
-    getEffectDescription(effectType, effectName) {
-        if (!this.planetCharacteristics || !this.planetCharacteristics.effectDescriptions) {
-            return `${effectName} (no description available)`;
+        if (formation.status !== 'COMPLETE') {
+            return { error: 'Formation must be complete before scanning', scanType: 'GT-1' };
         }
 
-        const descriptions = this.planetCharacteristics.effectDescriptions[effectType];
-        return descriptions && descriptions[effectName] ? 
-            descriptions[effectName] : 
-            `${effectName} (description not found)`;
-    }
-
-    // Get all effects for a formed planet
-    getPlanetEffects(planet) {
-        const allEffects = {
-            playerEffects: [],
-            atmosphereEffects: [],
-            spatialEffects: [],
-            timeEffects: []
-        };
-
-        // Collect effects from all characteristics
-        const characteristics = {
-            planetTypes: planet.type,
-            sizeClasses: planet.size,
-            moonCounts: planet.moons?.toString() + ' moons',
-            atmosphereTypes: planet.atmosphere,
-            temperatures: planet.temperature,
-            surfaceFeatures: planet.surfaceFeature,
-            mineralWealth: planet.mineralWealth,
-            habitability: planet.habitability,
-            magneticField: planet.magneticField,
-            specialProperties: planet.specialProperty
-        };
-
-        Object.entries(characteristics).forEach(([category, value]) => {
-            if (value) {
-                const effects = this.getCharacteristicEffects(category, value);
-                if (effects) {
-                    Object.entries(effects).forEach(([effectType, effectList]) => {
-                        if (allEffects[effectType] && Array.isArray(effectList)) {
-                            allEffects[effectType].push(...effectList);
-                        }
-                    });
-                }
+        // GT-1 Scanner reveals final 2 options per category (except elements)
+        const scanResults = {};
+        Object.keys(formation.allPossibilities).forEach(category => {
+            if (category !== 'elements') {
+                const possibilities = formation.allPossibilities[category];
+                // Randomly select final 2 options from remaining possibilities
+                const finalOptions = this.selectRandomItems(possibilities, Math.min(2, possibilities.length));
+                scanResults[category] = {
+                    revealedOptions: finalOptions,
+                    totalFound: finalOptions.length,
+                    scannerUsed: 'GT-1'
+                };
             }
         });
 
-        return allEffects;
+        formation.GT1ScanResult = scanResults;
+        formation.GT1ScanTimestamp = Date.now();
+        this.saveFormations();
+
+        console.log('🔬 GT-1 Scanner Results:', scanResults);
+        return {
+            success: true,
+            scanType: 'GT-1',
+            cost: scanCost,
+            results: scanResults,
+            timestamp: Date.now(),
+            message: 'GT-1 Scanner has revealed the final planetary characteristics'
+        };
+    }
+
+    // Simulate GC-1 Scanner (Global Composition Scanner) - reveals element quantities
+    performGC1Scan(formationId, scanCost = 2000) {
+        const formation = this.activeFormations.get(formationId);
+        if (!formation) {
+            return { error: 'Formation not found', scanType: 'GC-1' };
+        }
+
+        if (formation.status !== 'COMPLETE') {
+            return { error: 'Formation must be complete before scanning', scanType: 'GC-1' };
+        }
+
+        // GC-1 Scanner reveals quantities of the 25% retained elements
+        const elementPossibilities = formation.allPossibilities.elements || [];
+        const elementComposition = {};
+        
+        elementPossibilities.forEach(element => {
+            // Generate realistic quantities (percentage of planet composition)
+            const abundance = this.generateElementAbundance(element);
+            elementComposition[element] = {
+                abundance: abundance.percentage,
+                classification: abundance.classification,
+                extractionDifficulty: abundance.difficulty,
+                economicValue: abundance.value
+            };
+        });
+
+        formation.GC1ScanResult = elementComposition;
+        formation.GC1ScanTimestamp = Date.now();
+        this.saveFormations();
+
+        console.log('🧪 GC-1 Scanner Results:', elementComposition);
+        return {
+            success: true,
+            scanType: 'GC-1',
+            cost: scanCost,
+            results: elementComposition,
+            elementCount: Object.keys(elementComposition).length,
+            timestamp: Date.now(),
+            message: 'GC-1 Scanner has revealed detailed elemental composition and quantities'
+        };
+    }
+
+    // Generate realistic element abundance data
+    generateElementAbundance(element) {
+        // Base abundance varies by element type
+        const commonElements = ['Iron', 'Silicon', 'Oxygen', 'Aluminum', 'Carbon', 'Nitrogen', 'Hydrogen'];
+        const rareElements = ['Gold', 'Platinum', 'Uranium', 'Titanium'];
+        const exoticElements = ['Plutonium', 'Americium', 'Curium'];
+
+        let baseAbundance, classification, difficulty, value;
+
+        if (commonElements.includes(element)) {
+            baseAbundance = 0.5 + Math.random() * 15; // 0.5-15.5%
+            classification = 'Common';
+            difficulty = 'Easy';
+            value = 'Standard';
+        } else if (rareElements.includes(element)) {
+            baseAbundance = 0.01 + Math.random() * 0.5; // 0.01-0.51%
+            classification = 'Rare';
+            difficulty = 'Moderate';
+            value = 'Valuable';
+        } else if (exoticElements.includes(element)) {
+            baseAbundance = 0.001 + Math.random() * 0.01; // 0.001-0.011%
+            classification = 'Exotic';
+            difficulty = 'Extreme';
+            value = 'Priceless';
+        } else {
+            baseAbundance = 0.1 + Math.random() * 2; // 0.1-2.1%
+            classification = 'Uncommon';
+            difficulty = 'Moderate';
+            value = 'Good';
+        }
+
+        return {
+            percentage: Math.round(baseAbundance * 1000) / 1000, // 3 decimal places
+            classification: classification,
+            difficulty: difficulty,
+            value: value
+        };
+    }
+
+    // Utility function to select random items from array
+    selectRandomItems(array, count) {
+        const shuffled = [...array];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled.slice(0, count);
+    }
+
+    // Check if scanners are available for purchase/use
+    getScannerAvailability() {
+        return {
+            'GT-1': {
+                name: 'Global Type Scanner',
+                description: 'Reveals final 2 characteristics per category after formation completion',
+                baseCost: 1500,
+                availability: 'Available at most shipyards',
+                repairCost: 300,
+                durability: 'High'
+            },
+            'GC-1': {
+                name: 'Global Composition Scanner', 
+                description: 'Reveals detailed elemental composition and quantities',
+                baseCost: 2000,
+                availability: 'Available at most shipyards',
+                repairCost: 450,
+                durability: 'High'
+            }
+        };
     }
 
     // ========================================
@@ -456,44 +723,82 @@ class GenisysTorpedoSystem {
         const formation = this.activeFormations.get(formationId);
         if (!formation) return;
         
-        // Generate the planet system based on remaining possibilities
-        formation.planet = this.generatePlanetFromPossibilities(formation.allPossibilities);
-        formation.status = 'COMPLETE';
+        // Clear elimination timer if running
+        if (formation.eliminationTimer) {
+            clearInterval(formation.eliminationTimer);
+        }
         
-        // Calculate effects for the formed planet
-        formation.planet.effects = this.getPlanetEffects(formation.planet);
+        // Mark formation as complete
+        formation.status = 'COMPLETE';
+        formation.completionTime = Date.now();
+        
+        // Generate the planet system based on remaining possibilities
+        formation.planet = this.generatePlanetFromPossibilities(formation);
         
         // Save to localStorage
         this.saveFormations();
         
-        console.log(`Formation ${formationId} completed!`, formation.planet);
+        console.log(`🌍 Formation ${formationId} completed!`);
+        console.log(`📊 Final elimination stats:`, {
+            eliminated: formation.eliminatedCount,
+            total: formation.totalPossibilities,
+            categories: Object.keys(formation.allPossibilities).length
+        });
+        
+        // Log scanner requirements
+        console.log(`🔬 Scanners needed for full revelation:`, formation.eliminationPlan.scannerRequirements);
     }
 
-    // Generate planet based on remaining possibilities
-    generatePlanetFromPossibilities(possibilities) {
+    // Generate planet based on refined possibilities after elimination
+    generatePlanetFromPossibilities(formation) {
+        const possibilities = formation.allPossibilities;
+        
         const planet = {
             name: this.generatePlanetName(),
-            type: this.selectRandomFromArray(possibilities.planetTypes),
-            size: this.selectRandomFromArray(possibilities.sizeClasses),
-            moons: this.selectRandomFromArray(possibilities.moonCounts),
-            atmosphere: this.selectRandomFromArray(possibilities.atmosphereTypes),
-            temperature: this.selectRandomFromArray(possibilities.temperatures),
-            surfaceFeature: this.selectRandomFromArray(possibilities.surfaceFeatures),
-            mineralWealth: this.selectRandomFromArray(possibilities.mineralWealth),
-            habitability: this.selectRandomFromArray(possibilities.habitability),
-            magneticField: this.selectRandomFromArray(possibilities.magneticField),
-            specialProperty: this.selectRandomFromArray(possibilities.specialProperties),
+            formationId: formation.id,
+            coordinates: formation.coordinates,
+            
+            // Select characteristics from remaining possibilities
+            characteristics: {},
+            
+            // Elements will be included but quantities hidden until GC-1 scan
+            elements: possibilities.elements || [],
+            
+            // Basic physical properties
             diameter: 1000 + Math.floor(Math.random() * 49000), // 1000-50000 km
-            elements: this.generateElements()
+            moons: this.generateMoons(),
+            
+            // Scanner status
+            scannerData: {
+                GT1Required: true,  // For final characteristic revelation
+                GC1Required: true,  // For element quantities
+                scansPerformed: []
+            },
+            
+            // Formation metadata
+            formationTime: formation.completionTime - formation.launchTime,
+            eliminationSummary: {
+                totalEliminated: formation.eliminatedCount,
+                categoriesProcessed: Object.keys(possibilities).length,
+                retentionRates: {
+                    elements: '25%',
+                    characteristics: '10%'
+                }
+            }
         };
-        
-        return planet;
-    }
 
-    // Helper to select random item from array
-    selectRandomFromArray(array) {
-        if (!array || array.length === 0) return 'Unknown';
-        return array[Math.floor(Math.random() * array.length)];
+        // Add characteristics from each category (but note they're partially hidden)
+        Object.keys(possibilities).forEach(category => {
+            if (category !== 'elements') {
+                planet.characteristics[category] = {
+                    remainingOptions: possibilities[category].length,
+                    requiresGT1Scan: true,
+                    status: 'Partially revealed - GT-1 Scanner needed for final details'
+                };
+            }
+        });
+
+        return planet;
     }
 
     // ========================================
@@ -865,8 +1170,23 @@ class GenisysTorpedoSystem {
     clearAllFormations() {
         console.log('Clearing all formations from torpedo system...');
         
-        // Clear both the formations array AND the activeFormations Map
-        this.formations = [];
+        // Count formations before clearing
+        let clearedCount = this.activeFormations.size;
+        
+        // Also count any stored formations in localStorage
+        try {
+            const saved = localStorage.getItem(this.storageKey);
+            if (saved) {
+                const savedFormations = JSON.parse(saved);
+                if (Array.isArray(savedFormations)) {
+                    clearedCount = Math.max(clearedCount, savedFormations.length);
+                }
+            }
+        } catch (error) {
+            console.warn('Error counting saved formations:', error);
+        }
+        
+        // Clear the activeFormations Map
         this.activeFormations.clear();
         
         // Clear from localStorage using the correct storage key
@@ -876,10 +1196,9 @@ class GenisysTorpedoSystem {
         // Also save formations to ensure persistence
         this.saveFormations();
         
-        console.log('All formations cleared from torpedo system and localStorage');
-        console.log('Formations array length:', this.formations.length);
+        console.log(`Cleared ${clearedCount} formations from torpedo system and localStorage`);
         console.log('ActiveFormations Map size:', this.activeFormations.size);
-        return true;
+        return clearedCount;
     }
 }
 

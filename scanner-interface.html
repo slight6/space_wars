@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner Control Panel - Keldar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="scanner-system.js"></script>
+    <script src="universal-footer.js"></script>
+    <style>
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            z-index: -1;
+        }
+        
+        .scanner-panel {
+            background: rgba(17, 24, 39, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.7);
+        }
+        
+        .results-overlay {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .results-panel {
+            background: rgba(17, 24, 39, 0.95);
+            border: 1px solid rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .scanner-button {
+            transition: all 0.3s ease;
+        }
+        
+        .scanner-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+            animation: progress-sweep 2s ease-in-out infinite;
+        }
+
+        @keyframes progress-sweep {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white" x-data="scannerApp()">
+    <!-- Animated background -->
+    <div class="star-field"></div>
+    
+    <!-- Main Scanner Interface -->
+    <div class="min-h-screen p-6 relative z-10">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-blue-400 mb-2">🔍 Scanner Control Panel</h1>
+                <p class="text-gray-300">Advanced Deep Space Scanning Systems</p>
+                <div class="mt-4 text-sm text-gray-400">
+                    <span class="mr-4">📍 Location: (<span x-text="playerLocation.x"></span>, <span x-text="playerLocation.y"></span>, <span x-text="playerLocation.z"></span>)</span>
+                    <span class="mr-4">🚢 Status: <span x-text="shipState" :class="shipState === 'floating' ? 'text-green-400' : 'text-yellow-400'"></span></span>
+                    <span>⚡ Energy: <span x-text="shipEnergy"></span>/100</span>
+                </div>
+            </div>
+
+            <!-- Scanner Categories -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                
+                <!-- Spatial Scanner -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">🌌</div>
+                        <h3 class="text-xl font-bold text-blue-400">Spatial Scanner</h3>
+                        <p class="text-sm text-gray-400">Detect objects in surrounding sectors</p>
+                        <div x-show="!canUseSpatialScanner" class="text-red-400 text-xs mt-2">
+                            ⚠️ Cannot use while docked
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button 
+                            @click="startScan('spatial', 'stage1')"
+                            :disabled="!canUseSpatialScanner || isScanning('spatial')"
+                            class="w-full scanner-button bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Stage 1 (1 sector)</span>
+                                <span class="text-xs">5⚡ • 5s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('spatial', 'stage2')"
+                            :disabled="!canUseSpatialScanner || isScanning('spatial')"
+                            class="w-full scanner-button bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Stage 2 (2 sectors)</span>
+                                <span class="text-xs">12⚡ • 8s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('spatial', 'stage3')"
+                            :disabled="!canUseSpatialScanner || isScanning('spatial')"
+                            class="w-full scanner-button bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Stage 3 (3 sectors)</span>
+                                <span class="text-xs">20⚡ • 12s</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Surface Scanner -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">🪐</div>
+                        <h3 class="text-xl font-bold text-green-400">Surface Scanner</h3>
+                        <p class="text-sm text-gray-400">Analyze planetary surfaces</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button 
+                            @click="startScan('surface', 'stage1')"
+                            :disabled="isScanning('surface')"
+                            class="w-full scanner-button bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Basic Analysis</span>
+                                <span class="text-xs">3⚡ • 3s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('surface', 'stage2')"
+                            :disabled="isScanning('surface')"
+                            class="w-full scanner-button bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Safety Assessment</span>
+                                <span class="text-xs">8⚡ • 6s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('surface', 'stage3')"
+                            :disabled="isScanning('surface')"
+                            class="w-full scanner-button bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Detailed Info</span>
+                                <span class="text-xs">15⚡ • 10s</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Prospecting Scanner -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">⛏️</div>
+                        <h3 class="text-xl font-bold text-yellow-400">Prospecting Scanner</h3>
+                        <p class="text-sm text-gray-400">Survey for mining resources</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button 
+                            @click="startScan('prospecting', 'stage1')"
+                            :disabled="isScanning('prospecting')"
+                            class="w-full scanner-button bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Shallow (1%)</span>
+                                <span class="text-xs">25⚡ • 8s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('prospecting', 'stage2')"
+                            :disabled="isScanning('prospecting')"
+                            class="w-full scanner-button bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Medium (3%)</span>
+                                <span class="text-xs">50⚡ • 15s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('prospecting', 'stage3')"
+                            :disabled="isScanning('prospecting')"
+                            class="w-full scanner-button bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Deep (5%)</span>
+                                <span class="text-xs">75⚡ • 20s</span>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Skimming Scanner -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">💨</div>
+                        <h3 class="text-xl font-bold text-purple-400">Atmospheric Skimmer</h3>
+                        <p class="text-sm text-gray-400">Analyze atmospheric gases</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="block text-sm text-gray-300 mb-2">Altitude</label>
+                        <select x-model="skimmingAltitude" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                            <option value="low">Low Atmosphere</option>
+                            <option value="medium">Medium Atmosphere</option>
+                            <option value="high">High Atmosphere</option>
+                            <option value="custom">Custom Altitude</option>
+                        </select>
+                    </div>
+                    
+                    <button 
+                        @click="startScan('skimming', 'stage1')"
+                        :disabled="isScanning('skimming')"
+                        class="w-full scanner-button bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                        <div class="flex justify-between items-center">
+                            <span>Gas Analysis</span>
+                            <span class="text-xs">10⚡ • 7s</span>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Ship Scanner -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">🚢</div>
+                        <h3 class="text-xl font-bold text-red-400">Ship Scanner</h3>
+                        <p class="text-sm text-gray-400">Analyze nearby vessels</p>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <button 
+                            @click="startScan('ship', 'longRange')"
+                            :disabled="isScanning('ship')"
+                            class="w-full scanner-button bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Long Range</span>
+                                <span class="text-xs">2⚡ • 4s</span>
+                            </div>
+                        </button>
+                        
+                        <button 
+                            @click="startScan('ship', 'shortRange')"
+                            :disabled="isScanning('ship')"
+                            class="w-full scanner-button bg-red-600 hover:bg-red-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-md">
+                            <div class="flex justify-between items-center">
+                                <span>Short Range ⚠️</span>
+                                <span class="text-xs">1⚡ • 2s</span>
+                            </div>
+                        </button>
+                        <p class="text-xs text-gray-400">⚠️ Short range alerts target ship</p>
+                    </div>
+                </div>
+
+                <!-- Active Scans Panel -->
+                <div class="scanner-panel rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl mb-2">⏱️</div>
+                        <h3 class="text-xl font-bold text-cyan-400">Active Scans</h3>
+                        <p class="text-sm text-gray-400">Running scan operations</p>
+                    </div>
+                    
+                    <div x-show="activeScans.length === 0" class="text-center text-gray-500 py-4">
+                        No active scans
+                    </div>
+                    
+                    <template x-for="scan in activeScans" :key="scan.id">
+                        <div class="bg-gray-800 rounded p-3 mb-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-semibold" x-text="scan.type + ' ' + scan.stage"></span>
+                                <button @click="cancelScan(scan.id)" class="text-red-400 hover:text-red-300 text-xs">
+                                    ❌ Cancel
+                                </button>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2 mb-2">
+                                <div class="progress-bar h-2 rounded-full" 
+                                     :style="'width: ' + getScanProgress(scan) + '%'"></div>
+                            </div>
+                            <div class="text-xs text-gray-400" x-text="getScanTimeRemaining(scan)"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scan Results Overlay -->
+    <div x-show="showResults" 
+         class="fixed inset-0 results-overlay z-50 flex items-center justify-center p-4"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100">
+        
+        <div class="results-panel rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div class="p-6 border-b border-gray-600">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-2xl font-bold text-blue-400">📊 Scan Results</h2>
+                    <button @click="closeResults()" class="text-gray-400 hover:text-white text-2xl">
+                        ✕
+                    </button>
+                </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div x-show="currentResults">
+                    <div class="mb-4">
+                        <span class="inline-block bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-semibold" 
+                              x-text="currentResults?.scanType + ' Scan • Stage ' + currentResults?.stage"></span>
+                        <span class="ml-2 text-gray-400 text-sm" x-text="currentResults?.timestamp"></span>
+                    </div>
+                    
+                    <!-- Spatial Scan Results -->
+                    <div x-show="currentResults?.scanType === 'spatial'">
+                        <h3 class="text-lg font-bold text-white mb-3">
+                            Objects Detected: <span x-text="currentResults?.objectsDetected || 0"></span>
+                        </h3>
+                        
+                        <div class="grid gap-3">
+                            <template x-for="object in currentResults?.objects || []" :key="object.id">
+                                <div class="bg-gray-800 rounded p-4 border-l-4 border-blue-500">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <h4 class="font-semibold text-white" x-text="object.type"></h4>
+                                            <p class="text-sm text-gray-400" x-text="object.classification"></p>
+                                            <p class="text-xs text-gray-500 mt-1" x-text="object.details"></p>
+                                        </div>
+                                        <div class="text-right text-sm">
+                                            <div class="text-cyan-400">Distance: <span x-text="object.distance.toFixed(1)"></span></div>
+                                            <div class="text-gray-400">Signature: <span x-text="object.signature"></span></div>
+                                            <div class="text-gray-500">
+                                                (<span x-text="object.location.x"></span>, 
+                                                 <span x-text="object.location.y"></span>, 
+                                                 <span x-text="object.location.z"></span>)
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Other Scan Results (simplified display) -->
+                    <div x-show="currentResults?.scanType !== 'spatial'">
+                        <pre class="bg-gray-800 p-4 rounded text-sm text-gray-300 overflow-x-auto" 
+                             x-text="JSON.stringify(currentResults, null, 2)"></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 border-t border-gray-600 bg-gray-800">
+                <div class="flex justify-between">
+                    <button @click="exportResults()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-white">
+                        📥 Export Data
+                    </button>
+                    <button @click="closeResults()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded text-white">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the scanner system globally
+        window.scannerSystem = new ScannerSystem();
+        
+        function scannerApp() {
+            return {
+                // Ship State
+                playerLocation: { x: 0, y: 0, z: 0 },
+                shipState: 'floating',
+                shipEnergy: 85,
+                
+                // Scanner State
+                activeScans: [],
+                skimmingAltitude: 'medium',
+                showResults: false,
+                currentResults: null,
+                currentTime: Date.now(), // For reactive progress calculations
+                
+                init() {
+                    console.log('🔍 Scanner UI initialized');
+                    
+                    // Listen for scan completion events
+                    window.addEventListener('scanComplete', (event) => {
+                        this.onScanComplete(event.detail);
+                    });
+                    
+                    // Update active scans and current time for progress bars
+                    setInterval(() => {
+                        this.updateActiveScans();
+                        this.currentTime = Date.now(); // Force Alpine to recalculate progress
+                    }, 100); // Update every 100ms for smooth progress bars
+                    
+                    // Initialize scanner system location and state
+                    window.scannerSystem.updatePlayerLocation(0, 0, 0);
+                    window.scannerSystem.updateShipState('floating');
+                },
+                
+                get canUseSpatialScanner() {
+                    return this.shipState === 'floating';
+                },
+                
+                startScan(type, stage) {
+                    let altitude = null;
+                    if (type === 'skimming') {
+                        altitude = this.skimmingAltitude;
+                    }
+                    
+                    // Use the correct method name from scanner-system.js
+                    const result = window.scannerSystem.startScan(type, stage, this.playerLocation, altitude);
+                    
+                    if (result.success) {
+                        this.showNotification(`Scan initiated: ${result.message}`, 'success');
+                        this.updateActiveScans();
+                        this.shipEnergy -= this.getEnergyCost(type, stage);
+                    } else {
+                        this.showNotification(`Scan failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                getEnergyCost(type, stage) {
+                    const costs = {
+                        spatial: { stage1: 5, stage2: 12, stage3: 20 },
+                        surface: { stage1: 3, stage2: 8, stage3: 15 },
+                        prospecting: { stage1: 25, stage2: 50, stage3: 75 },
+                        skimming: { stage1: 10 },
+                        ship: { longRange: 2, shortRange: 1 }
+                    };
+                    return costs[type] && costs[type][stage] ? costs[type][stage] : 0;
+                },
+                
+                cancelScan(scanId) {
+                    if (window.scannerSystem.cancelScan(scanId)) {
+                        this.showNotification('Scan cancelled', 'info');
+                        this.updateActiveScans();
+                    }
+                },
+                
+                updateActiveScans() {
+                    this.activeScans = window.scannerSystem.getActiveScans();
+                },
+                
+                isScanning(type) {
+                    return this.activeScans.some(scan => scan.type === type);
+                },
+                
+                getScanProgress(scan) {
+                    const elapsed = this.currentTime - scan.startTime;
+                    const progress = Math.min(100, Math.max(0, (elapsed / scan.duration) * 100));
+                    return progress;
+                },
+                
+                getScanTimeRemaining(scan) {
+                    const remaining = Math.max(0, scan.duration - (this.currentTime - scan.startTime));
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    return `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                },
+                
+                onScanComplete(detail) {
+                    this.showNotification(`Scan completed! ${detail.results.scanType} scan finished.`, 'success');
+                    this.updateActiveScans();
+                    
+                    // Show results overlay
+                    this.currentResults = detail.results;
+                    this.showResults = true;
+                },
+                
+                closeResults() {
+                    this.showResults = false;
+                    this.currentResults = null;
+                },
+                
+                exportResults() {
+                    if (this.currentResults) {
+                        const dataStr = JSON.stringify(this.currentResults, null, 2);
+                        const blob = new Blob([dataStr], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `scan-results-${Date.now()}.json`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        
+                        this.showNotification('Scan results exported', 'success');
+                    }
+                },
+                
+                showNotification(message, type) {
+                    // Simple notification system
+                    console.log(`${type.toUpperCase()}: ${message}`);
+                    
+                    // You can integrate this with Toastify or your notification system
+                    if (typeof Toastify !== 'undefined') {
+                        Toastify({
+                            text: message,
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: type === 'success' ? "#10B981" : type === 'error' ? "#EF4444" : "#3B82F6",
+                            stopOnFocus: true
+                        }).showToast();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

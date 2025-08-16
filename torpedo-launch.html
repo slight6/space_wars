@@ -7,7 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="universal-footer.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="data-loader.js"></script>
     <script src="game-data-manager.js"></script>
     <script src="genisys-torpedo-algorithm.js"></script>
     <style>
@@ -207,6 +209,80 @@
                             </div>
                             <div>Eliminated Count: <span x-text="selectedFormation?.eliminatedCount || 0"></span></div>
                             <div>Total Possibilities: <span x-text="selectedFormation?.totalPossibilities || 0"></span></div>
+                        </div>
+
+                        <!-- Enhanced Elimination Status Panel -->
+                        <div x-show="selectedFormation && !selectedFormation.isComplete" class="mb-4 p-3 bg-gradient-to-r from-purple-900 to-blue-900 rounded border border-purple-500">
+                            <h4 class="text-sm font-semibold text-purple-300 mb-2">🎯 Advanced Elimination Progress</h4>
+                            <div x-data="{ 
+                                get status() { 
+                                    return this.getEnhancedEliminationStatus(this.selectedFormation); 
+                                } 
+                            }">
+                                <div x-show="status && !status.error" class="space-y-2">
+                                    <div class="flex justify-between text-xs">
+                                        <span>Elimination Progress:</span>
+                                        <span x-text="`${status.progress}% (${status.currentStep}/${status.totalSteps} steps)`"></span>
+                                    </div>
+                                    <div class="w-full bg-gray-700 rounded-full h-2">
+                                        <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full transition-all duration-300" :style="`width: ${status.progress}%`"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-300">
+                                        <div>Remaining Possibilities: <span x-text="status.remainingPossibilities"></span>/<span x-text="status.totalPossibilities"></span></div>
+                                        <div>Eliminated: <span x-text="status.totalPossibilities - status.remainingPossibilities"></span></div>
+                                        <div class="mt-1">
+                                            <strong>Retention Strategy:</strong> Elements 25% | Characteristics 10%
+                                        </div>
+                                    </div>
+                                </div>
+                                <div x-show="status && status.error" class="text-xs text-red-400" x-text="status.error"></div>
+                            </div>
+                        </div>
+
+                        <!-- Scanner Requirements Panel -->
+                        <div x-show="selectedFormation && selectedFormation.isComplete" class="mb-4 p-3 bg-gradient-to-r from-green-900 to-teal-900 rounded border border-green-500">
+                            <h4 class="text-sm font-semibold text-green-300 mb-2">🔬 Scanner Operations Available</h4>
+                            <div class="space-y-2">
+                                <div class="text-xs text-gray-300 mb-2">
+                                    Formation complete! Advanced scanners can reveal hidden details.
+                                </div>
+                                <div class="grid grid-cols-1 gap-2">
+                                    <div class="bg-gray-800 p-2 rounded">
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <div class="text-sm font-semibold text-blue-300">GT-1 Scanner</div>
+                                                <div class="text-xs text-gray-400">Reveals final 2 options per category</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <button 
+                                                    @click="performGT1Scan(selectedFormation)"
+                                                    :disabled="selectedFormation.GT1ScanResult"
+                                                    class="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-2 py-1 rounded text-xs transition-colors">
+                                                    <span x-show="!selectedFormation.GT1ScanResult">Scan (1500 CR)</span>
+                                                    <span x-show="selectedFormation.GT1ScanResult">✓ Complete</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="bg-gray-800 p-2 rounded">
+                                        <div class="flex justify-between items-center">
+                                            <div>
+                                                <div class="text-sm font-semibold text-orange-300">GC-1 Scanner</div>
+                                                <div class="text-xs text-gray-400">Reveals element quantities</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <button 
+                                                    @click="performGC1Scan(selectedFormation)"
+                                                    :disabled="selectedFormation.GC1ScanResult"
+                                                    class="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 px-2 py-1 rounded text-xs transition-colors">
+                                                    <span x-show="!selectedFormation.GC1ScanResult">Scan (2000 CR)</span>
+                                                    <span x-show="selectedFormation.GC1ScanResult">✓ Complete</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         
                         <!-- Remaining Possibilities Panel -->
@@ -415,21 +491,9 @@
                     try {
                         if (typeof GenisysTorpedoSystem !== 'undefined') {
                             this.torpedoSystem = new GenisysTorpedoSystem();
-                            console.log('GenisysTorpedoSystem initialized successfully');
-                            
-                            // Set up elimination callback to trigger Alpine.js updates
-                            this.torpedoSystem.setEliminationCallback((formation, category, eliminated) => {
-                                console.log(`UI Update: Eliminated ${eliminated} from ${category}`);
-                                // Force Alpine.js to detect the change by reassigning the reference
-                                if (this.selectedFormation && this.selectedFormation.id === formation.id) {
-                                    this.selectedFormation = { ...formation };
-                                }
-                                // Update active formations array
-                                const index = this.activeFormations.findIndex(f => f.id === formation.id);
-                                if (index !== -1) {
-                                    this.activeFormations[index] = formation;
-                                }
-                            });
+                            // Make it globally accessible for enhanced methods
+                            window.GenisysTorpedoSystem.instance = this.torpedoSystem;
+                            console.log('GenisysTorpedoSystem initialized successfully and made globally accessible');
                         } else {
                             console.error('GenisysTorpedoSystem class not found');
                             this.showNotification('Torpedo system not available. Please refresh the page.', 'error');
@@ -584,7 +648,7 @@
                     );
                 },
                 
-                async launchTorpedo() {
+                launchTorpedo() {
                     console.log('Launch torpedo called');
                     console.log('Can launch:', this.canLaunch());
                     console.log('Selected torpedo:', this.selectedTorpedo);
@@ -616,7 +680,7 @@
                     console.log('Launch data:', launchData);
                     
                     try {
-                        const formation = await this.torpedoSystem.launchGenisysTorpedo(launchData);
+                        const formation = this.torpedoSystem.launchGenisysTorpedo(launchData);
                         console.log('Formation created:', formation);
                         
                         // Add to active formations
@@ -909,21 +973,6 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                     try {
                         if (typeof GenisysTorpedoSystem !== 'undefined') {
                             this.torpedoSystem = new GenisysTorpedoSystem();
-                            
-                            // Set up elimination callback to trigger Alpine.js updates
-                            this.torpedoSystem.setEliminationCallback((formation, category, eliminated) => {
-                                console.log(`UI Update: Eliminated ${eliminated} from ${category}`);
-                                // Force Alpine.js to detect the change by reassigning the reference
-                                if (this.selectedFormation && this.selectedFormation.id === formation.id) {
-                                    this.selectedFormation = { ...formation };
-                                }
-                                // Update active formations array
-                                const index = this.activeFormations.findIndex(f => f.id === formation.id);
-                                if (index !== -1) {
-                                    this.activeFormations[index] = formation;
-                                }
-                            });
-                            
                             this.showNotification('Torpedo system reinitialized successfully', 'success');
                         } else {
                             this.showNotification('GenisysTorpedoSystem class not found. Check if genisys-torpedo-algorithm.js is loaded.', 'error');
@@ -956,9 +1005,13 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                     }
                     
                     try {
-                        // Clear from torpedo system if available
+                        let totalCleared = 0;
+                        
+                        // Clear from torpedo system if available and get count
                         if (this.torpedoSystem) {
-                            this.torpedoSystem.clearAllFormations();
+                            const torpedoSystemCleared = this.torpedoSystem.clearAllFormations();
+                            totalCleared = torpedoSystemCleared || 0;
+                            console.log(`Torpedo system cleared: ${torpedoSystemCleared}`);
                         }
                         
                         // Clear ALL possible localStorage keys that might store formations
@@ -969,22 +1022,30 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                             'active_formations'
                         ];
                         
-                        let totalCleared = 0;
-                        formationKeys.forEach(key => {
-                            const existing = localStorage.getItem(key);
-                            if (existing) {
-                                try {
-                                    const parsed = JSON.parse(existing);
-                                    if (Array.isArray(parsed)) {
-                                        totalCleared += parsed.length;
+                        // Only count additional formations if torpedo system didn't clear any
+                        if (totalCleared === 0) {
+                            formationKeys.forEach(key => {
+                                const existing = localStorage.getItem(key);
+                                if (existing) {
+                                    try {
+                                        const parsed = JSON.parse(existing);
+                                        if (Array.isArray(parsed)) {
+                                            totalCleared += parsed.length;
+                                        }
+                                    } catch (e) {
+                                        // Ignore parsing errors
                                     }
-                                } catch (e) {
-                                    // Ignore parsing errors
+                                    localStorage.removeItem(key);
+                                    console.log(`Cleared localStorage key: ${key}`);
                                 }
+                            });
+                        } else {
+                            // Just remove the keys without counting if torpedo system already counted
+                            formationKeys.forEach(key => {
                                 localStorage.removeItem(key);
                                 console.log(`Cleared localStorage key: ${key}`);
-                            }
-                        });
+                            });
+                        }
                         
                         // Clear from GameDataManager if available
                         if (typeof GameDataManager !== 'undefined' && GameDataManager.clearAllTorpedoFormations) {
@@ -998,7 +1059,7 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                         this.loadActiveFormations();
                         
                         this.showNotification(`Cleared ${totalCleared} formation(s) successfully! All storage cleared.`, 'success');
-                        console.log('All formations cleared completely - checked all storage locations');
+                        console.log(`All formations cleared completely - total cleared: ${totalCleared}`);
                         
                     } catch (error) {
                         console.error('Error clearing formations:', error);
@@ -1259,6 +1320,109 @@ Mineral Wealth: ${outcome.planet.mineralWealth}
                     }
 
                     this.showNotification(`Accelerated elimination! Removed ${actualEliminations} possibilities instantly.`, 'success');
+                },
+
+                // Enhanced scanner methods for GT-1 and GC-1
+                performGT1Scan(formation) {
+                    if (!formation.isComplete) {
+                        this.showNotification('Formation must be complete before GT-1 scanning', 'warning');
+                        return;
+                    }
+
+                    const scanCost = 1500;
+                    if (this.player.credits < scanCost) {
+                        this.showNotification('Insufficient credits for GT-1 Scanner', 'error');
+                        return;
+                    }
+
+                    const result = window.GenisysTorpedoSystem.instance.performGT1Scan(formation.id, scanCost);
+                    
+                    if (result.success) {
+                        this.player.credits -= scanCost;
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                        
+                        // Update formation with scan results
+                        formation.GT1ScanResult = result.results;
+                        formation.GT1ScanTimestamp = result.timestamp;
+                        
+                        this.showNotification('GT-1 Scanner revealed final planetary characteristics!', 'success');
+                        console.log('GT-1 Scan Results:', result.results);
+                    } else {
+                        this.showNotification(result.error || 'GT-1 scan failed', 'error');
+                    }
+                },
+
+                performGC1Scan(formation) {
+                    if (!formation.isComplete) {
+                        this.showNotification('Formation must be complete before GC-1 scanning', 'warning');
+                        return;
+                    }
+
+                    const scanCost = 2000;
+                    if (this.player.credits < scanCost) {
+                        this.showNotification('Insufficient credits for GC-1 Scanner', 'error');
+                        return;
+                    }
+
+                    const result = window.GenisysTorpedoSystem.instance.performGC1Scan(formation.id, scanCost);
+                    
+                    if (result.success) {
+                        this.player.credits -= scanCost;
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                        
+                        // Update formation with scan results
+                        formation.GC1ScanResult = result.results;
+                        formation.GC1ScanTimestamp = result.timestamp;
+                        
+                        this.showNotification(`GC-1 Scanner revealed ${result.elementCount} element compositions!`, 'success');
+                        console.log('GC-1 Scan Results:', result.results);
+                    } else {
+                        this.showNotification(result.error || 'GC-1 scan failed', 'error');
+                    }
+                },
+
+                // Get enhanced elimination status with real-time progress
+                getEnhancedEliminationStatus(formation) {
+                    if (!formation || !this.torpedoSystem) return { error: 'System not available' };
+                    
+                    // Get status from torpedo system
+                    const status = this.torpedoSystem.getEliminationStatus(formation.id);
+                    
+                    // Add local formation data for more accurate real-time display
+                    if (status && !status.error) {
+                        // Calculate current possibilities count from the formation's allPossibilities
+                        let currentPossibilities = 0;
+                        if (formation.allPossibilities) {
+                            Object.values(formation.allPossibilities).forEach(category => {
+                                currentPossibilities += category.length;
+                            });
+                        }
+                        
+                        // Override with real-time data
+                        status.remainingPossibilities = currentPossibilities;
+                        status.eliminatedCount = (formation.totalPossibilities || 0) - currentPossibilities;
+                        
+                        // Recalculate progress based on actual eliminations
+                        if (formation.eliminationPlan && formation.eliminationPlan.totalSteps > 0) {
+                            const actualProgress = Math.round((status.eliminatedCount / (formation.totalPossibilities * 0.9)) * 100);
+                            status.progress = Math.min(100, actualProgress);
+                        }
+                        
+                        console.log(`🔄 Real-time elimination status for ${formation.id}:`, {
+                            eliminated: status.eliminatedCount,
+                            remaining: status.remainingPossibilities,
+                            total: formation.totalPossibilities,
+                            progress: status.progress + '%'
+                        });
+                    }
+                    
+                    return status;
+                },
+
+                // Display scanner availability info
+                getScannerInfo() {
+                    if (!window.GenisysTorpedoSystem.instance) return {};
+                    return window.GenisysTorpedoSystem.instance.getScannerAvailability();
                 },
                 
                 logout() {

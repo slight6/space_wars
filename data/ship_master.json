@@ -1,0 +1,11 @@
+{
+  "ships": [],
+  "next_ship_id": 1,
+  "system_info": {
+    "created": "2025-08-14T00:00:00Z",
+    "last_updated": "2025-08-14T00:00:00Z",
+    "total_ships_created": 0,
+    "active_ships": 0,
+    "destroyed_ships": 0
+  }
+}

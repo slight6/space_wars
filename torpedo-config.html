@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Torpedo System Configuration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="data-loader.js"></script>
+    <script src="game-data-manager.js"></script>
+    <script src="genisys-torpedo-algorithm.js"></script>
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .config-section {
+            background: rgba(16, 31, 64, 0.8);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="game-bg text-white">
+    <div x-data="configManager()" x-init="init()" class="min-h-screen p-4">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-blue-400 mb-2">Torpedo System Configuration</h1>
+            <p class="text-gray-300">Manage planet generation characteristics and possibilities</p>
+            <div class="mt-4">
+                <a href="torpedo-launch.html" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded mr-4">← Back to Launch Center</a>
+                <a href="game.html" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded">← Back to Game</a>
+            </div>
+        </div>
+
+        <!-- Status -->
+        <div class="max-w-4xl mx-auto mb-6">
+            <div class="config-section rounded-lg p-4">
+                <h2 class="text-2xl font-bold text-green-400 mb-4">System Status</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-800 p-3 rounded">
+                        <div class="text-sm text-gray-400">Categories</div>
+                        <div class="text-xl font-bold" x-text="getTotalCategories()"></div>
+                    </div>
+                    <div class="bg-gray-800 p-3 rounded">
+                        <div class="text-sm text-gray-400">Total Options</div>
+                        <div class="text-xl font-bold" x-text="getTotalOptions()"></div>
+                    </div>
+                    <div class="bg-gray-800 p-3 rounded">
+                        <div class="text-sm text-gray-400">Last Updated</div>
+                        <div class="text-sm" x-text="lastUpdated"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Management -->
+        <div class="max-w-4xl mx-auto">
+            <div class="config-section rounded-lg p-6">
+                <h2 class="text-2xl font-bold text-yellow-400 mb-4">Planet Characteristics</h2>
+                
+                <!-- Add New Option Form -->
+                <div class="mb-6 p-4 bg-gray-800 rounded">
+                    <h3 class="text-lg font-bold mb-4">Add New Option</h3>
+                    <div class="flex gap-4">
+                        <select x-model="selectedCategory" class="bg-gray-700 text-white px-3 py-2 rounded flex-1">
+                            <option value="">Select Category</option>
+                            <template x-for="category in getAvailableCategories()" :key="category">
+                                <option :value="category" x-text="formatCategoryName(category)"></option>
+                            </template>
+                        </select>
+                        <input 
+                            x-model="newOptionText" 
+                            placeholder="New option name" 
+                            class="bg-gray-700 text-white px-3 py-2 rounded flex-1"
+                            @keyup.enter="addNewOption()"
+                        >
+                        <button 
+                            @click="addNewOption()" 
+                            class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded"
+                            :disabled="!selectedCategory || !newOptionText"
+                        >
+                            Add Option
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Categories Display -->
+                <div class="space-y-6">
+                    <template x-for="category in getAvailableCategories()" :key="category">
+                        <div class="bg-gray-800 p-4 rounded">
+                            <h4 class="text-lg font-bold text-blue-400 mb-3" x-text="formatCategoryName(category)"></h4>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                                <template x-for="(option, index) in getCategoryOptions(category)" :key="option">
+                                    <div class="flex items-center justify-between bg-gray-700 p-2 rounded">
+                                        <span x-text="option" class="flex-1"></span>
+                                        <button 
+                                            @click="removeOption(category, option)" 
+                                            class="text-red-400 hover:text-red-300 ml-2"
+                                            title="Remove option"
+                                        >
+                                            ×
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                            <div class="mt-2 text-sm text-gray-400">
+                                <span x-text="getCategoryOptions(category).length"></span> options
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-8 flex gap-4 justify-center">
+                    <button 
+                        @click="exportConfig()" 
+                        class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded"
+                    >
+                        💾 Save Configuration
+                    </button>
+                    <button 
+                        @click="resetToDefaults()" 
+                        class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded"
+                    >
+                        🔄 Reset to Defaults
+                    </button>
+                    <button 
+                        @click="downloadConfig()" 
+                        class="bg-purple-600 hover:bg-purple-700 px-6 py-2 rounded"
+                    >
+                        📥 Download JSON
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function configManager() {
+            return {
+                torpedoSystem: null,
+                selectedCategory: '',
+                newOptionText: '',
+                lastUpdated: 'Loading...',
+
+                async init() {
+                    try {
+                        // Wait for torpedo system to initialize
+                        await this.waitForTorpedoSystem();
+                        this.lastUpdated = new Date().toLocaleString();
+                        this.showNotification('Configuration manager loaded', 'success');
+                    } catch (error) {
+                        console.error('Error initializing config manager:', error);
+                        this.showNotification('Error loading configuration', 'error');
+                    }
+                },
+
+                async waitForTorpedoSystem() {
+                    return new Promise((resolve, reject) => {
+                        const checkSystem = () => {
+                            if (window.GenisysTorpedoSystem) {
+                                this.torpedoSystem = new GenisysTorpedoSystem();
+                                // Wait for it to initialize
+                                setTimeout(() => {
+                                    if (this.torpedoSystem.planetCharacteristics) {
+                                        resolve();
+                                    } else {
+                                        setTimeout(checkSystem, 100);
+                                    }
+                                }, 500);
+                            } else {
+                                setTimeout(checkSystem, 100);
+                            }
+                        };
+                        checkSystem();
+                        
+                        // Timeout after 10 seconds
+                        setTimeout(() => reject(new Error('Timeout waiting for torpedo system')), 10000);
+                    });
+                },
+
+                getAvailableCategories() {
+                    return this.torpedoSystem ? this.torpedoSystem.getAvailableCategories() : [];
+                },
+
+                getCategoryOptions(category) {
+                    return this.torpedoSystem ? this.torpedoSystem.getCategoryOptions(category) : [];
+                },
+
+                formatCategoryName(category) {
+                    return category.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                },
+
+                getTotalCategories() {
+                    return this.getAvailableCategories().length;
+                },
+
+                getTotalOptions() {
+                    return this.getAvailableCategories().reduce((total, category) => {
+                        return total + this.getCategoryOptions(category).length;
+                    }, 0);
+                },
+
+                addNewOption() {
+                    if (!this.selectedCategory || !this.newOptionText.trim()) {
+                        this.showNotification('Please select a category and enter option text', 'error');
+                        return;
+                    }
+
+                    const success = this.torpedoSystem.addCharacteristicOption(this.selectedCategory, this.newOptionText.trim());
+                    if (success) {
+                        this.showNotification(`Added "${this.newOptionText}" to ${this.formatCategoryName(this.selectedCategory)}`, 'success');
+                        this.newOptionText = '';
+                        this.lastUpdated = new Date().toLocaleString();
+                    } else {
+                        this.showNotification('Failed to add option (may already exist)', 'error');
+                    }
+                },
+
+                removeOption(category, option) {
+                    if (confirm(`Remove "${option}" from ${this.formatCategoryName(category)}?`)) {
+                        const success = this.torpedoSystem.removeCharacteristicOption(category, option);
+                        if (success) {
+                            this.showNotification(`Removed "${option}"`, 'success');
+                            this.lastUpdated = new Date().toLocaleString();
+                        } else {
+                            this.showNotification('Failed to remove option', 'error');
+                        }
+                    }
+                },
+
+                exportConfig() {
+                    this.torpedoSystem.saveConfigurationToStorage();
+                    this.showNotification('Configuration saved to browser storage', 'success');
+                },
+
+                async resetToDefaults() {
+                    if (confirm('Reset all configuration to defaults? This will lose all custom changes.')) {
+                        localStorage.removeItem('torpedo_system_custom_config');
+                        location.reload();
+                    }
+                },
+
+                downloadConfig() {
+                    const config = this.torpedoSystem.exportConfiguration();
+                    const blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `torpedo-config-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showNotification('Configuration downloaded', 'success');
+                },
+
+                showNotification(message, type = 'info') {
+                    const bgColor = type === 'success' ? '#10B981' : type === 'error' ? '#EF4444' : '#3B82F6';
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: bgColor,
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

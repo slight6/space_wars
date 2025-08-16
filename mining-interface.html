@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mining Operations - Keldar System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="scanner-system.js"></script>
+    <script src="mining-system.js"></script>
+    <script src="universal-footer.js"></script>
+    <style>
+        .star-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            z-index: -1;
+        }
+        
+        .mining-panel {
+            background: rgba(17, 24, 39, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(75, 85, 99, 0.7);
+        }
+        
+        .location-card {
+            background: rgba(31, 41, 55, 0.8);
+            border: 1px solid rgba(75, 85, 99, 0.5);
+            transition: all 0.3s ease;
+        }
+        
+        .location-card:hover {
+            border-color: rgba(59, 130, 246, 0.7);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .ore-sample {
+            background: rgba(55, 65, 81, 0.8);
+            border-left: 4px solid;
+        }
+        
+        .ore-common { border-left-color: #9CA3AF; }
+        .ore-uncommon { border-left-color: #34D399; }
+        .ore-rare { border-left-color: #60A5FA; }
+        .ore-epic { border-left-color: #A78BFA; }
+        .ore-legendary { border-left-color: #F59E0B; }
+        
+        .progress-mining {
+            background: linear-gradient(90deg, #F59E0B, #D97706);
+            animation: mining-progress 2s ease-in-out infinite;
+        }
+        
+        @keyframes mining-progress {
+            0% { background-position: -200px 0; }
+            100% { background-position: 200px 0; }
+        }
+        
+        .refinery-building {
+            background: linear-gradient(90deg, #3B82F6, #1D4ED8);
+            animation: construction-progress 3s ease-in-out infinite;
+        }
+        
+        @keyframes construction-progress {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white" x-data="miningApp()">
+    <!-- Animated background -->
+    <div class="star-field"></div>
+    
+    <!-- Main Mining Interface -->
+    <div class="min-h-screen p-6 relative z-10">
+        <div class="max-w-7xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-yellow-400 mb-2">⛏️ Mining Operations Center</h1>
+                <p class="text-gray-300">Keldar System Resource Extraction</p>
+                <div class="mt-4 text-sm text-gray-400 space-x-6">
+                    <span>🚢 Ship: <span x-text="playerShip.type" class="text-blue-400"></span></span>
+                    <span>⚡ Energy: <span x-text="playerShip.energy"></span>/100</span>
+                    <span>📦 Cargo: <span x-text="cargoUsed"></span>/<span x-text="maxCargo"></span></span>
+                    <span>💰 Credits: <span x-text="playerCredits"></span></span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <!-- Mining Locations -->
+                <div class="xl:col-span-2">
+                    <div class="mining-panel rounded-lg p-6 mb-6">
+                        <h2 class="text-2xl font-bold text-yellow-400 mb-4">🌌 Available Mining Locations</h2>
+                        
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <template x-for="(location, name) in availableLocations" :key="name">
+                                <div class="location-card rounded-lg p-4">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <div>
+                                            <h3 class="text-lg font-bold text-white" x-text="name"></h3>
+                                            <p class="text-sm text-gray-400" x-text="location.description"></p>
+                                            <div class="flex space-x-2 mt-2">
+                                                <span class="text-xs bg-gray-700 px-2 py-1 rounded" x-text="location.type"></span>
+                                                <span class="text-xs bg-red-600 px-2 py-1 rounded" x-text="'Level ' + location.miningDifficulty"></span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right text-sm">
+                                            <div class="text-green-400">
+                                                Spots: <span x-text="location.availableSpots"></span>/<span x-text="location.maxMiningSpots"></span>
+                                            </div>
+                                            <div class="text-gray-400" x-text="'(' + location.coordinates.x + ', ' + location.coordinates.y + ', ' + location.coordinates.z + ')'"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <div class="text-xs text-gray-300 mb-1">Common Resources:</div>
+                                        <div class="flex flex-wrap gap-1">
+                                            <template x-for="resource in location.resources.slice(0, 3)" :key="resource">
+                                                <span class="text-xs bg-gray-600 px-2 py-1 rounded" x-text="resource"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="space-y-2">
+                                        <button 
+                                            @click="startMining(name, 1)"
+                                            :disabled="!canMineAtLocation(name, 1) || isMining"
+                                            class="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-md text-sm">
+                                            <div class="flex justify-between items-center">
+                                                <span>Mine Level 1</span>
+                                                <span>15⚡ • 10s</span>
+                                            </div>
+                                        </button>
+                                        
+                                        <div x-show="!canMineAtLocation(name, 1)" class="text-red-400 text-xs">
+                                            <span x-text="getMiningBlockReason(name, 1)"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Active Mining Operations -->
+                    <div class="mining-panel rounded-lg p-6">
+                        <h2 class="text-2xl font-bold text-orange-400 mb-4">🔄 Active Operations</h2>
+                        
+                        <div x-show="activeMiningOps.length === 0" class="text-center text-gray-500 py-8">
+                            No active mining operations
+                        </div>
+                        
+                        <template x-for="operation in activeMiningOps" :key="operation.id">
+                            <div class="bg-gray-800 rounded-lg p-4 mb-4">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div>
+                                        <h4 class="font-bold text-white" x-text="operation.location"></h4>
+                                        <p class="text-sm text-gray-400" x-text="'Level ' + operation.level + ' Mining Operation'"></p>
+                                        <p class="text-xs text-gray-500" x-text="'Expected: ' + operation.expectedYield"></p>
+                                    </div>
+                                    <button @click="cancelMining(operation.id)" class="text-red-400 hover:text-red-300 text-sm">
+                                        ❌ Cancel
+                                    </button>
+                                </div>
+                                
+                                <div class="w-full bg-gray-700 rounded-full h-3 mb-2">
+                                    <div class="progress-mining h-3 rounded-full" 
+                                         :style="'width: ' + getMiningProgress(operation) + '%'"></div>
+                                </div>
+                                
+                                <div class="text-xs text-gray-400" x-text="getMiningTimeRemaining(operation)"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Inventory and Market -->
+                <div class="space-y-6">
+                    <!-- Ore Inventory -->
+                    <div class="mining-panel rounded-lg p-6">
+                        <h2 class="text-2xl font-bold text-blue-400 mb-4">📦 Ore Inventory</h2>
+                        
+                        <div x-show="oreInventory.length === 0" class="text-center text-gray-500 py-4">
+                            No ore samples
+                        </div>
+                        
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            <template x-for="ore in oreInventory" :key="ore.id">
+                                <div class="ore-sample rounded p-3" :class="getOreRarityClass(ore.type)">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <div>
+                                            <h4 class="font-semibold text-white" x-text="ore.amount + 'x ' + ore.type"></h4>
+                                            <p class="text-xs text-gray-300" x-text="ore.quality + ' quality'"></p>
+                                            <p class="text-xs text-gray-500" x-text="formatTime(ore.minedTime)"></p>
+                                        </div>
+                                        <div class="text-right">
+                                            <div x-show="!ore.appraised" class="text-yellow-400 text-xs">Unknown Value</div>
+                                            <div x-show="ore.appraised" class="text-green-400 text-xs" x-text="ore.marketValue + ' credits'"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex space-x-2">
+                                        <button 
+                                            x-show="!ore.appraised"
+                                            @click="appraiseOre(ore.id)"
+                                            class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1 rounded">
+                                            Appraise (50₵)
+                                        </button>
+                                        
+                                        <button 
+                                            x-show="ore.appraised"
+                                            @click="sellOre(ore.id)"
+                                            class="bg-green-600 hover:bg-green-700 text-white text-xs px-3 py-1 rounded">
+                                            Sell for <span x-text="ore.marketValue"></span>₵
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Stats -->
+                    <div class="mining-panel rounded-lg p-6">
+                        <h2 class="text-xl font-bold text-green-400 mb-4">💎 Mining Stats</h2>
+                        
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Total Samples:</span>
+                                <span class="text-white" x-text="oreInventory.length"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Appraised Value:</span>
+                                <span class="text-green-400" x-text="getAppraisedValue() + '₵'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Cargo Efficiency:</span>
+                                <span class="text-blue-400" x-text="Math.round((cargoUsed / maxCargo) * 100) + '%'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Active Mines:</span>
+                                <span class="text-yellow-400" x-text="activeMiningOps.length"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-600">
+                            <button 
+                                @click="returnToStation()"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">
+                                🚀 Return to Nexus Station
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Refinery Construction -->
+                    <div x-show="showRefineryPanel" class="mining-panel rounded-lg p-6">
+                        <h2 class="text-xl font-bold text-purple-400 mb-4">🏭 Refinery Construction</h2>
+                        
+                        <div class="space-y-3">
+                            <select x-model="selectedLocation" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                                <option value="">Select Location</option>
+                                <template x-for="(location, name) in availableLocations" :key="name">
+                                    <option x-show="location.refinerySpots > 0" :value="name" x-text="name"></option>
+                                </template>
+                            </select>
+                            
+                            <select x-model="selectedRefineryType" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                                <option value="">Select Refinery Type</option>
+                                <option value="Basic Refinery">Basic Refinery (50,000₵)</option>
+                                <option value="Advanced Refinery">Advanced Refinery (150,000₵)</option>
+                                <option value="Exotic Refinery">Exotic Refinery (500,000₵)</option>
+                            </select>
+                            
+                            <button 
+                                @click="buildRefinery()"
+                                :disabled="!selectedLocation || !selectedRefineryType"
+                                class="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:opacity-50 text-white font-bold py-2 px-4 rounded-md">
+                                🔨 Build Refinery
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize mining system globally
+        window.miningSystem = new MiningSystem();
+        
+        function miningApp() {
+            return {
+                // Player state
+                playerShip: {
+                    type: 'Scout Ship',
+                    energy: 85,
+                    level: 1
+                },
+                playerCredits: 25000,
+                currentTime: Date.now(),
+                
+                // Mining state
+                activeMiningOps: [],
+                oreInventory: [],
+                availableLocations: {},
+                
+                // UI state
+                showRefineryPanel: false,
+                selectedLocation: '',
+                selectedRefineryType: '',
+                
+                init() {
+                    console.log('⛏️ Mining system initialized');
+                    
+                    // Listen for mining completion events
+                    window.addEventListener('miningComplete', (event) => {
+                        this.onMiningComplete(event.detail);
+                    });
+                    
+                    // Update state periodically
+                    setInterval(() => {
+                        this.updateMiningState();
+                        this.currentTime = Date.now();
+                    }, 1000);
+                    
+                    this.loadInitialData();
+                },
+                
+                loadInitialData() {
+                    this.availableLocations = window.miningSystem.getAvailableLocations();
+                    this.updateMiningState();
+                },
+                
+                get maxCargo() {
+                    const capabilities = window.miningSystem.shipMiningCapabilities[this.playerShip.type];
+                    return capabilities ? capabilities.cargoCapacity : 50;
+                },
+                
+                get cargoUsed() {
+                    return window.miningSystem.getCargoUsed('player1');
+                },
+                
+                get isMining() {
+                    return this.activeMiningOps.length > 0;
+                },
+                
+                canMineAtLocation(locationName, level) {
+                    const result = window.miningSystem.canMineAtLocation(this.playerShip, locationName, level);
+                    return result.canMine;
+                },
+                
+                getMiningBlockReason(locationName, level) {
+                    const result = window.miningSystem.canMineAtLocation(this.playerShip, locationName, level);
+                    return result.reason;
+                },
+                
+                startMining(location, level) {
+                    const result = window.miningSystem.startMining('player1', this.playerShip, location, level);
+                    
+                    if (result.success) {
+                        this.showNotification(`Mining started at ${location}`, 'success');
+                        this.playerShip.energy -= window.miningSystem.shipMiningCapabilities[this.playerShip.type].energyPerMining;
+                        this.updateMiningState();
+                    } else {
+                        this.showNotification(`Mining failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                cancelMining(miningId) {
+                    // Implementation for canceling mining
+                    this.showNotification('Mining operation cancelled', 'info');
+                    this.updateMiningState();
+                },
+                
+                updateMiningState() {
+                    this.activeMiningOps = window.miningSystem.getPlayerMiningOperations('player1');
+                    this.oreInventory = window.miningSystem.getPlayerInventory('player1');
+                    this.availableLocations = window.miningSystem.getAvailableLocations();
+                },
+                
+                getMiningProgress(operation) {
+                    const elapsed = this.currentTime - operation.startTime;
+                    return Math.min(100, Math.max(0, (elapsed / operation.duration) * 100));
+                },
+                
+                getMiningTimeRemaining(operation) {
+                    const remaining = Math.max(0, operation.duration - (this.currentTime - operation.startTime));
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    return `${minutes}:${seconds.toString().padStart(2, '0')} remaining`;
+                },
+                
+                appraiseOre(oreId) {
+                    if (this.playerCredits < 50) {
+                        this.showNotification('Insufficient credits for appraisal', 'error');
+                        return;
+                    }
+                    
+                    const result = window.miningSystem.appraiseOre('player1', oreId);
+                    if (result.success) {
+                        this.playerCredits -= result.appraisalFee;
+                        this.showNotification(result.message, 'success');
+                        this.updateMiningState();
+                    } else {
+                        this.showNotification(`Appraisal failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                sellOre(oreId) {
+                    const result = window.miningSystem.sellOre('player1', oreId);
+                    if (result.success) {
+                        this.playerCredits += result.credits;
+                        this.showNotification(result.message, 'success');
+                        this.updateMiningState();
+                    } else {
+                        this.showNotification(`Sale failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                buildRefinery() {
+                    const refineryData = window.miningSystem.refineryTypes[this.selectedRefineryType];
+                    if (this.playerCredits < refineryData.cost) {
+                        this.showNotification('Insufficient credits for refinery construction', 'error');
+                        return;
+                    }
+                    
+                    const result = window.miningSystem.buildRefinery('player1', this.selectedLocation, this.selectedRefineryType);
+                    if (result.success) {
+                        this.playerCredits -= result.cost;
+                        this.showNotification(result.message, 'success');
+                        this.selectedLocation = '';
+                        this.selectedRefineryType = '';
+                    } else {
+                        this.showNotification(`Construction failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                returnToStation() {
+                    window.location.href = 'game.html';
+                },
+                
+                getAppraisedValue() {
+                    return this.oreInventory
+                        .filter(ore => ore.appraised)
+                        .reduce((total, ore) => total + ore.marketValue, 0);
+                },
+                
+                getOreRarityClass(oreType) {
+                    const rareOres = ['titanium', 'platinum', 'diamond', 'exotic_crystals', 'keldar_ore'];
+                    const epicOres = ['weapons_grade_uranium', 'exotic_matter'];
+                    
+                    if (epicOres.includes(oreType)) return 'ore-legendary';
+                    if (rareOres.includes(oreType)) return 'ore-rare';
+                    return 'ore-common';
+                },
+                
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString();
+                },
+                
+                onMiningComplete(detail) {
+                    this.showNotification(`Mining operation completed! Found ${detail.oreYield.length} ore samples.`, 'success');
+                    this.updateMiningState();
+                },
+                
+                showNotification(message, type) {
+                    console.log(`${type.toUpperCase()}: ${message}`);
+                    
+                    // Integration point for notification system
+                    if (typeof Toastify !== 'undefined') {
+                        Toastify({
+                            text: message,
+                            duration: 3000,
+                            gravity: "top",
+                            position: "right",
+                            backgroundColor: type === 'success' ? "#10B981" : type === 'error' ? "#EF4444" : "#3B82F6",
+                            stopOnFocus: true
+                        }).showToast();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

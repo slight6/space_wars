@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - 3D Navigation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="universal-footer.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0a0a0a, #1a0d2e, #0d1b2a);
+            min-height: 100vh;
+        }
+
+        .space-grid {
+            perspective: 1000px;
+            perspective-origin: center center;
+            position: relative;
+        }
+
+        .drag-area {
+            position: relative;
+            width: 1200px;
+            height: 1200px;
+            margin: 0 auto;
+            cursor: grab;
+            border: 2px dashed rgba(100, 150, 255, 0.2);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drag-area:active {
+            cursor: grabbing;
+        }
+
+        .drag-area.dragging {
+            border-color: rgba(100, 200, 255, 0.5);
+            background: rgba(100, 150, 255, 0.05);
+        }
+
+        .grid-container {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            transform-style: preserve-3d;
+            transform: rotateX(-20deg) rotateY(-25deg);
+            transition: transform 0.1s ease;
+            pointer-events: none; /* Let drag-area handle interactions */
+        }
+
+        .grid-container.dragging {
+            transition: none;
+        }
+
+        .space-cube {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            background: rgba(0, 20, 40, 0.1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            pointer-events: auto;
+        }
+
+        .space-cube:hover {
+            border-color: rgba(100, 200, 255, 0.8);
+            background: rgba(100, 200, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .space-cube.current-position {
+            border: 2px solid #10b981;
+            background: rgba(16, 185, 129, 0.3);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+        }
+
+        .space-cube.has-planet {
+            background: radial-gradient(circle, rgba(255, 100, 100, 0.6), rgba(255, 150, 50, 0.3));
+            border-color: #ff6b6b;
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.4);
+        }
+
+        .space-cube.has-formation {
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.6), rgba(99, 102, 241, 0.3));
+            border-color: #9333ea;
+            box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .planet-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #ffd700, #ff8c00);
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .formation-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: radial-gradient(circle, #9333ea, #6366f1);
+            box-shadow: 0 0 8px rgba(147, 51, 234, 0.6);
+        }
+
+        .current-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 25px;
+            height: 25px;
+            border: 2px solid #10b981;
+            border-radius: 3px;
+            background: rgba(16, 185, 129, 0.3);
+        }
+
+        .tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #374151;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 300px;
+            backdrop-filter: blur(10px);
+        }
+
+        .grid-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .coordinate-display {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="spaceNavigationApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-between items-center">
+            <div class="flex items-center space-x-4">
+                <button @click="goBack()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded-md text-sm transition-colors">
+                    ← Back
+                </button>
+                <h1 class="text-2xl font-bold">🌌 3D Space Navigation</h1>
+                <div class="text-sm text-blue-400 bg-blue-900 px-3 py-1 rounded">Prototype System</div>
+            </div>
+            <div class="flex items-center space-x-6">
+                <div class="text-right">
+                    <div class="text-sm text-gray-400">Credits:</div>
+                    <div class="text-yellow-400 font-mono text-lg" x-text="player.credits.toLocaleString()"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Navigation Area -->
+    <div class="container mx-auto px-6 py-8">
+        <!-- Current Position Display -->
+        <div class="coordinate-display">
+            <h3 class="text-lg font-bold text-green-400 mb-2">📍 Current Position</h3>
+            <div class="text-sm space-y-1">
+                <div>X: <span class="text-blue-400" x-text="currentPosition.x"></span></div>
+                <div>Y: <span class="text-green-400" x-text="currentPosition.y"></span></div>
+                <div>Z: <span class="text-purple-400" x-text="currentPosition.z"></span></div>
+            </div>
+            <div class="text-xs text-gray-400 mt-2">
+                Sector: <span x-text="getSectorName(currentPosition)"></span>
+            </div>
+        </div>
+
+        <!-- Grid Controls -->
+        <div class="grid-controls">
+            <div class="text-xs text-gray-400 mb-2 text-center">
+                Click & Drag to Rotate
+            </div>
+            <button @click="rotateGrid('x')" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm">
+                🔄 Flip X
+            </button>
+            <button @click="rotateGrid('y')" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm">
+                🔄 Flip Y
+            </button>
+            <button @click="resetView()" class="bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded text-sm">
+                🎯 Reset View
+            </button>
+        </div>
+
+        <!-- 3D Space Grid -->
+        <div class="space-grid">
+            <div class="drag-area" 
+                 @mousedown="startDrag($event)"
+                 @mousemove="onDrag($event)"
+                 @mouseup="endDrag()"
+                 @mouseleave="endDrag()"
+                 :class="{ 'dragging': dragState.isDragging }">
+                
+                <div class="grid-container" :style="gridRotation">
+                    <!-- Generate 3x3x3 grid of cubes -->
+                    <template x-for="cube in spaceGrid" :key="cube.id">
+                        <div 
+                            class="space-cube"
+                            :class="{
+                                'current-position': cube.isCurrent,
+                                'has-planet': cube.hasPlanet,
+                                'has-formation': cube.hasFormation
+                            }"
+                            :style="cube.style"
+                            @mouseenter="showTooltip($event, cube)"
+                            @mouseleave="hideTooltip()"
+                            @click="selectLocation(cube)">
+                            
+                            <!-- Current position icon -->
+                            <div x-show="cube.isCurrent" class="current-icon"></div>
+                            
+                            <!-- Planet icon -->
+                            <div x-show="cube.hasPlanet" class="planet-icon"></div>
+                            
+                            <!-- Formation icon -->
+                            <div x-show="cube.hasFormation" class="formation-icon"></div>
+                        </div>
+                    </template>
+                </div>
+                
+                <!-- Drag instruction overlay -->
+                <div x-show="!dragState.isDragging" class="absolute top-4 left-4 text-xs text-gray-500 bg-black bg-opacity-50 px-2 py-1 rounded">
+                    Click & drag to rotate view
+                </div>
+            </div>
+        </div>
+
+        <!-- Tooltip -->
+        <div x-show="tooltip.show" 
+             class="tooltip" 
+             :style="`left: ${tooltip.x}px; top: ${tooltip.y}px`"
+             x-html="tooltip.content">
+        </div>
+
+        <!-- Information Panel -->
+        <div class="mt-8 bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg p-6 border border-gray-700">
+            <h2 class="text-xl font-bold mb-4 text-cyan-400">🗺️ Navigation Info</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-800 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-green-400 mb-2">Legend</h3>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 border-2 border-green-400 bg-green-400 bg-opacity-30 rounded"></div>
+                            <span>Current Position</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 border border-red-400 bg-red-400 bg-opacity-30 rounded"></div>
+                            <span>Planet/Celestial Body</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 border border-purple-400 bg-purple-400 bg-opacity-30 rounded"></div>
+                            <span>Torpedo Formation</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <div class="w-4 h-4 border border-blue-400 bg-blue-400 bg-opacity-10 rounded"></div>
+                            <span>Empty Space</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-blue-400 mb-2">Controls</h3>
+                    <div class="space-y-1 text-xs">
+                        <div><strong>Hover:</strong> View location info</div>
+                        <div><strong>Click cube:</strong> Select/investigate</div>
+                        <div><strong>Click & Drag:</strong> Rotate 3D view</div>
+                        <div><strong>Reset:</strong> Return to default view</div>
+                        <div><strong>Flip X/Y:</strong> Quick 45° rotations</div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-800 p-4 rounded">
+                    <h3 class="text-sm font-semibold text-purple-400 mb-2">Statistics</h3>
+                    <div class="space-y-1 text-xs">
+                        <div>Planets in area: <span x-text="getStatistic('planets')"></span></div>
+                        <div>Active formations: <span x-text="getStatistic('formations')"></span></div>
+                        <div>Explored locations: <span x-text="getStatistic('explored')"></span></div>
+                        <div>Movement range: 26 adjacent</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function spaceNavigationApp() {
+            return {
+                currentPosition: { x: 0, y: 0, z: 0 },
+                gridRotation: 'transform: rotateX(-20deg) rotateY(-25deg)',
+                rotationX: -20,
+                rotationY: -25,
+                tooltip: {
+                    show: false,
+                    x: 0,
+                    y: 0,
+                    content: ''
+                },
+                player: {
+                    credits: 50000,
+                    name: 'Test Player'
+                },
+                spaceGrid: [],
+                dragState: {
+                    isDragging: false,
+                    startX: 0,
+                    startY: 0,
+                    startRotationX: -20,
+                    startRotationY: -25
+                },
+
+                init() {
+                    console.log('🌌 Initializing 3D Space Navigation...');
+                    this.generateSpaceGrid();
+                    this.addTestPlanets();
+                    this.addTestFormations();
+                },
+
+                generateSpaceGrid() {
+                    this.spaceGrid = [];
+                    let cubeId = 0;
+
+                    // Generate 3x3x3 grid centered on current position
+                    for (let x = -1; x <= 1; x++) {
+                        for (let y = -1; y <= 1; y++) {
+                            for (let z = -1; z <= 1; z++) {
+                                const worldX = this.currentPosition.x + x;
+                                const worldY = this.currentPosition.y + y;
+                                const worldZ = this.currentPosition.z + z;
+
+                                const cube = {
+                                    id: `cube_${cubeId++}`,
+                                    localCoords: { x, y, z },
+                                    worldCoords: { x: worldX, y: worldY, z: worldZ },
+                                    isCurrent: x === 0 && y === 0 && z === 0,
+                                    hasPlanet: false,
+                                    hasFormation: false,
+                                    planetData: null,
+                                    formationData: null,
+                                    explorationStatus: 'unexplored',
+                                    owner: 'neutral',
+                                    threatLevel: Math.floor(Math.random() * 5) + 1,
+                                    economicValue: Math.floor(Math.random() * 8) + 1,
+                                    style: this.calculateCubePosition(x, y, z)
+                                };
+
+                                this.spaceGrid.push(cube);
+                            }
+                        }
+                    }
+
+                    console.log(`Generated ${this.spaceGrid.length} space cubes`);
+                },
+
+                calculateCubePosition(x, y, z) {
+                    // Position cubes in 3D space
+                    const spacing = 80;
+                    const offsetX = x * spacing;
+                    const offsetY = y * spacing;
+                    const offsetZ = z * spacing;
+
+                    return `
+                        transform: translate3d(${offsetX + 270}px, ${offsetY + 270}px, ${offsetZ}px);
+                    `;
+                },
+
+                addTestPlanets() {
+                    // Add some test planets at specific coordinates
+                    const planetLocations = [
+                        { x: 1, y: 0, z: 0, name: 'Alpha Centauri B', type: 'Rocky', owner: 'neutral' },
+                        { x: -1, y: 1, z: 0, name: 'Kepler-442b', type: 'Earth-like', owner: 'player' },
+                        { x: 0, y: -1, z: 1, name: 'HD 40307g', type: 'Ocean World', owner: 'faction_red' },
+                        { x: 1, y: 1, z: -1, name: 'Gliese 667Cc', type: 'Desert', owner: 'neutral' }
+                    ];
+
+                    planetLocations.forEach(planet => {
+                        const cube = this.spaceGrid.find(c => 
+                            c.localCoords.x === planet.x && 
+                            c.localCoords.y === planet.y && 
+                            c.localCoords.z === planet.z
+                        );
+
+                        if (cube) {
+                            cube.hasPlanet = true;
+                            cube.owner = planet.owner;
+                            cube.explorationStatus = 'scanned';
+                            cube.planetData = {
+                                name: planet.name,
+                                type: planet.type,
+                                diameter: Math.floor(Math.random() * 40000) + 5000,
+                                moons: Math.floor(Math.random() * 5),
+                                atmosphere: ['Oxygen', 'Nitrogen', 'Carbon Dioxide', 'Methane'][Math.floor(Math.random() * 4)],
+                                temperature: Math.floor(Math.random() * 100) - 50,
+                                mineralWealth: ['Poor', 'Moderate', 'Rich', 'Very Rich'][Math.floor(Math.random() * 4)]
+                            };
+                        }
+                    });
+
+                    console.log('Added test planets to grid');
+                },
+
+                addTestFormations() {
+                    // Add some torpedo formations
+                    const formationLocations = [
+                        { x: 0, y: 1, z: 0 },
+                        { x: -1, y: 0, z: -1 }
+                    ];
+
+                    formationLocations.forEach(formation => {
+                        const cube = this.spaceGrid.find(c => 
+                            c.localCoords.x === formation.x && 
+                            c.localCoords.y === formation.y && 
+                            c.localCoords.z === formation.z
+                        );
+
+                        if (cube) {
+                            cube.hasFormation = true;
+                            cube.formationData = {
+                                id: `formation_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                progress: Math.floor(Math.random() * 80) + 10,
+                                timeRemaining: Math.floor(Math.random() * 3600) + 300,
+                                possibilities: Math.floor(Math.random() * 200) + 50
+                            };
+                        }
+                    });
+
+                    console.log('Added test formations to grid');
+                },
+
+                showTooltip(event, cube) {
+                    const tooltipContent = this.generateTooltipContent(cube);
+                    
+                    this.tooltip = {
+                        show: true,
+                        x: event.clientX + 15,
+                        y: event.clientY - 10,
+                        content: tooltipContent
+                    };
+                },
+
+                hideTooltip() {
+                    this.tooltip.show = false;
+                },
+
+                generateTooltipContent(cube) {
+                    const coords = cube.worldCoords;
+                    let content = `
+                        <div class="font-bold text-cyan-400 mb-2">Location ${coords.x}, ${coords.y}, ${coords.z}</div>
+                        <div class="text-sm space-y-1">
+                    `;
+
+                    if (cube.isCurrent) {
+                        content += `<div class="text-green-400">📍 <strong>Current Position</strong></div>`;
+                    }
+
+                    if (cube.hasPlanet && cube.planetData) {
+                        const p = cube.planetData;
+                        content += `
+                            <div class="text-orange-400">🪐 <strong>${p.name}</strong></div>
+                            <div>Type: ${p.type}</div>
+                            <div>Diameter: ${p.diameter.toLocaleString()} km</div>
+                            <div>Moons: ${p.moons}</div>
+                            <div>Atmosphere: ${p.atmosphere}</div>
+                            <div>Temperature: ${p.temperature}°C</div>
+                            <div>Mineral Wealth: ${p.mineralWealth}</div>
+                        `;
+                    }
+
+                    if (cube.hasFormation && cube.formationData) {
+                        const f = cube.formationData;
+                        content += `
+                            <div class="text-purple-400">🚀 <strong>Torpedo Formation</strong></div>
+                            <div>Progress: ${f.progress}%</div>
+                            <div>Time Remaining: ${Math.floor(f.timeRemaining/60)}m ${f.timeRemaining%60}s</div>
+                            <div>Possibilities: ${f.possibilities}</div>
+                        `;
+                    }
+
+                    if (!cube.hasPlanet && !cube.hasFormation && !cube.isCurrent) {
+                        content += `<div class="text-gray-400">Empty space</div>`;
+                    }
+
+                    content += `
+                            <div class="border-t border-gray-600 mt-2 pt-2">
+                                <div>Owner: <span class="text-${this.getOwnerColor(cube.owner)}-400">${this.getOwnerName(cube.owner)}</span></div>
+                                <div>Threat Level: ${cube.threatLevel}/10</div>
+                                <div>Economic Value: ${cube.economicValue}/10</div>
+                                <div>Status: ${cube.explorationStatus}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    return content;
+                },
+
+                getOwnerColor(owner) {
+                    const colors = {
+                        'player': 'green',
+                        'neutral': 'gray',
+                        'faction_red': 'red',
+                        'faction_blue': 'blue'
+                    };
+                    return colors[owner] || 'gray';
+                },
+
+                getOwnerName(owner) {
+                    const names = {
+                        'player': 'Player Territory',
+                        'neutral': 'Neutral Space',
+                        'faction_red': 'Red Faction',
+                        'faction_blue': 'Blue Faction'
+                    };
+                    return names[owner] || 'Unknown';
+                },
+
+                selectLocation(cube) {
+                    console.log('Selected location:', cube);
+                    
+                    if (cube.isCurrent) {
+                        this.showNotification('You are already at this location', 'info');
+                        return;
+                    }
+
+                    // Check if it's adjacent (within movement range)
+                    const distance = Math.abs(cube.localCoords.x) + Math.abs(cube.localCoords.y) + Math.abs(cube.localCoords.z);
+                    if (distance > 1) {
+                        this.showNotification('Location too far. Can only move to adjacent coordinates.', 'warning');
+                        return;
+                    }
+
+                    // Move to the selected location
+                    this.moveToLocation(cube.worldCoords);
+                },
+
+                moveToLocation(newCoords) {
+                    console.log(`Moving from ${JSON.stringify(this.currentPosition)} to ${JSON.stringify(newCoords)}`);
+                    
+                    this.currentPosition = { ...newCoords };
+                    this.generateSpaceGrid();
+                    this.addTestPlanets();
+                    this.addTestFormations();
+                    
+                    this.showNotification(`Moved to coordinates ${newCoords.x}, ${newCoords.y}, ${newCoords.z}`, 'success');
+                },
+
+                rotateGrid(axis) {
+                    if (axis === 'x') {
+                        this.rotationX += 45;
+                    } else if (axis === 'y') {
+                        this.rotationY += 45;
+                    }
+                    
+                    this.updateGridRotation();
+                },
+
+                resetView() {
+                    this.rotationX = -20;
+                    this.rotationY = -25;
+                    this.updateGridRotation();
+                },
+
+                updateGridRotation() {
+                    this.gridRotation = `transform: rotateX(${this.rotationX}deg) rotateY(${this.rotationY}deg)`;
+                },
+
+                // Mouse drag controls for 3D rotation
+                startDrag(event) {
+                    // Allow dragging if clicking on the drag area but not on cubes
+                    if (event.target.classList.contains('space-cube') || 
+                        event.target.closest('.space-cube')) {
+                        return;
+                    }
+
+                    this.dragState.isDragging = true;
+                    this.dragState.startX = event.clientX;
+                    this.dragState.startY = event.clientY;
+                    this.dragState.startRotationX = this.rotationX;
+                    this.dragState.startRotationY = this.rotationY;
+
+                    // Add dragging class to both drag area and grid container
+                    const dragArea = event.currentTarget;
+                    const gridContainer = dragArea.querySelector('.grid-container');
+                    
+                    if (gridContainer) {
+                        gridContainer.classList.add('dragging');
+                    }
+
+                    // Prevent text selection while dragging
+                    event.preventDefault();
+                },
+
+                onDrag(event) {
+                    if (!this.dragState.isDragging) return;
+
+                    const deltaX = event.clientX - this.dragState.startX;
+                    const deltaY = event.clientY - this.dragState.startY;
+
+                    // Convert mouse movement to rotation
+                    // Horizontal movement controls Y rotation (left/right)
+                    // Vertical movement controls X rotation (up/down)
+                    const sensitivity = 0.5; // Adjust for more/less sensitivity
+                    
+                    this.rotationY = this.dragState.startRotationY + (deltaX * sensitivity);
+                    this.rotationX = this.dragState.startRotationX - (deltaY * sensitivity);
+
+                    // Clamp X rotation to prevent over-rotation
+                    this.rotationX = Math.max(-90, Math.min(90, this.rotationX));
+
+                    this.updateGridRotation();
+                },
+
+                endDrag() {
+                    if (!this.dragState.isDragging) return;
+
+                    this.dragState.isDragging = false;
+
+                    // Remove dragging class to re-enable transition
+                    const gridContainer = document.querySelector('.grid-container');
+                    if (gridContainer) {
+                        gridContainer.classList.remove('dragging');
+                    }
+                },
+
+                getSectorName(coords) {
+                    // Generate a sector name based on coordinates
+                    const sectorX = Math.floor(coords.x / 10);
+                    const sectorY = Math.floor(coords.y / 10);
+                    const sectorZ = Math.floor(coords.z / 10);
+                    return `Sector ${sectorX}.${sectorY}.${sectorZ}`;
+                },
+
+                getStatistic(type) {
+                    switch(type) {
+                        case 'planets':
+                            return this.spaceGrid.filter(cube => cube.hasPlanet).length;
+                        case 'formations':
+                            return this.spaceGrid.filter(cube => cube.hasFormation).length;
+                        case 'explored':
+                            return this.spaceGrid.filter(cube => cube.explorationStatus !== 'unexplored').length;
+                        default:
+                            return 0;
+                    }
+                },
+
+                goBack() {
+                    window.history.back();
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : 
+                                       type === 'warning' ? "#F59E0B" : 
+                                       type === 'info' ? "#3B82F6" : "#EF4444",
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

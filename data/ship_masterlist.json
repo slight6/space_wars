@@ -1,0 +1,9 @@
+{
+  "ships": [],
+  "next_ship_id": 1,
+  "system_info": {
+    "created": "2025-08-13T10:00:00Z",
+    "total_ships_created": 0,
+    "active_ships": 0
+  }
+}

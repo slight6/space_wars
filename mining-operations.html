@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Mining Operations</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .scan-pulse {
+            animation: scan-pulse 2s ease-in-out infinite;
+        }
+        @keyframes scan-pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        .mining-progress {
+            animation: mining-progress 1s ease-in-out infinite alternate;
+        }
+        @keyframes mining-progress {
+            from { background-position: 0% 50%; }
+            to { background-position: 100% 50%; }
+        }
+        .refining-glow {
+            animation: refining-glow 3s ease-in-out infinite;
+        }
+        @keyframes refining-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 165, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(255, 165, 0, 0.8); }
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="miningOperationsApp()">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header with Location Status -->
+        <div class="bg-gray-800 rounded-lg border border-blue-500 p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h1 class="text-2xl font-bold text-blue-400">🚀 Space Explorer - Mining Operations</h1>
+                <div class="text-right">
+                    <div class="text-lg font-semibold text-green-400">💰 <span x-text="credits.toLocaleString()"></span> Credits</div>
+                    <div class="text-sm text-gray-300">Player Balance</div>
+                </div>
+            </div>
+            
+            <!-- Location Status -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-blue-400 font-semibold mb-2">📍 Current Location</h3>
+                    <div class="text-white font-medium" x-text="locationInfo.name"></div>
+                    <div class="text-sm text-gray-300" x-text="locationInfo.description"></div>
+                    <div class="mt-2">
+                        <span class="text-xs px-2 py-1 rounded" 
+                              :class="locationInfo.status === 'Docked' ? 'bg-green-600' : 'bg-yellow-600'"
+                              x-text="locationInfo.statusIcon + ' ' + locationInfo.status">
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-green-400 font-semibold mb-2">🛠️ Available Services</h3>
+                    <div class="space-y-1">
+                        <template x-for="service in availableServices" :key="service">
+                            <div class="text-sm text-gray-300">• <span x-text="formatServiceName(service)"></span></div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-purple-400 font-semibold mb-2">🗺️ Travel Options</h3>
+                    <div class="space-y-2">
+                        <button x-show="canLiftOff" 
+                                @click="liftOff()" 
+                                class="w-full bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm transition-colors">
+                            🚀 Lift Off to Space
+                        </button>
+                        <select x-model="selectedDestination" 
+                                class="w-full bg-gray-600 text-white p-2 rounded text-sm">
+                            <option value="">Select Destination</option>
+                            <template x-for="dest in availableDestinations" :key="dest.id">
+                                <option :value="dest.id" x-text="dest.name"></option>
+                            </template>
+                        </select>
+                        <button x-show="selectedDestination" 
+                                @click="travelTo(selectedDestination)" 
+                                class="w-full bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm transition-colors">
+                            🛸 Travel & Dock
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Operations Tabs -->
+        <div class="bg-gray-800 rounded-lg border border-gray-600 p-6">
+            <!-- Tab Navigation -->
+            <div class="flex space-x-1 mb-6 bg-gray-700 rounded-lg p-1">
+                <button @click="activeTab = 'scanning'" 
+                        :class="activeTab === 'scanning' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    🔍 Surface Scanning
+                </button>
+                <button @click="activeTab = 'mining'" 
+                        :class="activeTab === 'mining' ? 'bg-green-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    ⛏️ Mining Operations
+                </button>
+                <button @click="activeTab = 'inventory'" 
+                        :class="activeTab === 'inventory' ? 'bg-yellow-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📦 Inventory & Appraisal
+                </button>
+                <button @click="activeTab = 'refining'" 
+                        :class="activeTab === 'refining' ? 'bg-orange-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    🏭 Refining Operations
+                </button>
+                <button @click="activeTab = 'market'" 
+                        :class="activeTab === 'market' ? 'bg-purple-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    💱 Market Trading
+                </button>
+            </div>
+
+            <!-- Surface Scanning Tab -->
+            <div x-show="activeTab === 'scanning'">
+                <h2 class="text-xl font-bold text-blue-400 mb-4">🔍 Surface Scanning Operations</h2>
+                
+                <div x-show="!miningData">
+                    <div class="bg-red-800 border border-red-600 rounded-lg p-4 text-center">
+                        <div class="text-red-300">⚠️ No mining data available at this location</div>
+                        <div class="text-sm text-red-400 mt-2">Travel to a planet or moon to begin scanning operations</div>
+                    </div>
+                </div>
+
+                <div x-show="miningData">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h3 class="text-blue-400 font-semibold mb-3">📊 Location Analysis</h3>
+                            <div class="space-y-2 text-sm">
+                                <div>Resource Abundance: <span class="font-medium text-green-400" x-text="miningData?.abundance"></span></div>
+                                <div>Mining Difficulty: <span class="font-medium text-yellow-400" x-text="miningData?.difficulty"></span></div>
+                                <div x-show="miningData?.specialty">Specialty: <span class="font-medium text-purple-400" x-text="miningData?.specialty"></span></div>
+                            </div>
+                            
+                            <button @click="performScan()" 
+                                    :disabled="scanningInProgress"
+                                    class="w-full mt-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 px-4 py-2 rounded transition-colors">
+                                <span x-show="!scanningInProgress">🔍 Begin Surface Scan</span>
+                                <span x-show="scanningInProgress" class="scan-pulse">🔄 Scanning...</span>
+                            </button>
+                        </div>
+
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h3 class="text-green-400 font-semibold mb-3">📋 Scan Results</h3>
+                            <div x-show="!scanResults" class="text-gray-400 text-center py-8">
+                                No scan data available<br>
+                                <span class="text-sm">Perform a surface scan to detect resources</span>
+                            </div>
+                            
+                            <div x-show="scanResults">
+                                <div class="space-y-2 max-h-64 overflow-y-auto">
+                                    <template x-for="element in scanResults?.detectedElements || []" :key="element.type">
+                                        <div class="bg-gray-600 rounded p-3">
+                                            <div class="font-medium text-white" x-text="element.name"></div>
+                                            <div class="text-sm text-gray-300">
+                                                Abundance: <span x-text="element.abundance"></span> | 
+                                                Value: <span x-text="element.estimatedValue"></span> credits/unit
+                                            </div>
+                                            <div class="text-xs text-gray-400">
+                                                Est. Yield: <span x-text="scanResults.estimatedYield[element.type]"></span> units
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mining Operations Tab -->
+            <div x-show="activeTab === 'mining'">
+                <h2 class="text-xl font-bold text-green-400 mb-4">⛏️ Mining Operations</h2>
+                
+                <div x-show="!scanResults?.detectedElements?.length">
+                    <div class="bg-yellow-800 border border-yellow-600 rounded-lg p-4 text-center">
+                        <div class="text-yellow-300">⚠️ No scan data available</div>
+                        <div class="text-sm text-yellow-400 mt-2">Perform a surface scan first to identify minable resources</div>
+                    </div>
+                </div>
+
+                <div x-show="scanResults?.detectedElements?.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="element in scanResults?.detectedElements || []" :key="element.type">
+                        <div class="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                            <h3 class="font-semibold text-white mb-2" x-text="element.name"></h3>
+                            <div class="text-sm text-gray-300 mb-3">
+                                <div>Abundance: <span x-text="element.abundance"></span></div>
+                                <div>Base Value: <span x-text="element.estimatedValue"></span> credits</div>
+                                <div>Est. Yield: <span x-text="scanResults.estimatedYield[element.type]"></span> units</div>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <input type="number" min="1" max="10" value="1" 
+                                       :id="'mine-qty-' + element.type"
+                                       class="w-full bg-gray-600 text-white p-2 rounded text-sm"
+                                       placeholder="Quantity to mine">
+                                
+                                <button @click="performMining(element.type)" 
+                                        :disabled="miningInProgress"
+                                        class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-3 py-2 rounded text-sm transition-colors">
+                                    <span x-show="!miningInProgress">⛏️ Mine <span x-text="element.name"></span></span>
+                                    <span x-show="miningInProgress" class="mining-progress">🔄 Mining...</span>
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Inventory & Appraisal Tab -->
+            <div x-show="activeTab === 'inventory'">
+                <h2 class="text-xl font-bold text-yellow-400 mb-4">📦 Inventory & Appraisal</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Raw Ores -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-blue-400 font-semibold">🗿 Raw Ores</h3>
+                            <button @click="getAppraisal()" 
+                                    class="bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm transition-colors">
+                                💰 Get Appraisal
+                            </button>
+                        </div>
+                        
+                        <div x-show="!Object.keys(inventory.ores).length" class="text-gray-400 text-center py-4">
+                            No ores in inventory
+                        </div>
+                        
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="[oreType, quantity] in Object.entries(inventory.ores)" :key="oreType">
+                                <div x-show="quantity > 0" class="bg-gray-600 rounded p-3">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <div class="font-medium text-white" x-text="getOreName(oreType)"></div>
+                                            <div class="text-sm text-gray-300">Quantity: <span x-text="quantity"></span></div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-green-400 font-medium" x-text="getOreValue(oreType) + ' credits/unit'"></div>
+                                            <div class="text-xs text-gray-400" x-text="'Total: ' + (getOreValue(oreType) * quantity) + ' credits'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Refined Products -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-orange-400 font-semibold mb-3">🏭 Refined Products</h3>
+                        
+                        <div x-show="!Object.keys(inventory.refinedProducts).length" class="text-gray-400 text-center py-4">
+                            No refined products in inventory
+                        </div>
+                        
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="[productType, quantity] in Object.entries(inventory.refinedProducts)" :key="productType">
+                                <div x-show="quantity > 0" class="bg-gray-600 rounded p-3">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <div class="font-medium text-white" x-text="getRefinedProductName(productType)"></div>
+                                            <div class="text-sm text-gray-300">Quantity: <span x-text="quantity"></span></div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-green-400 font-medium" x-text="getRefinedProductValue(productType) + ' credits/unit'"></div>
+                                            <div class="text-xs text-gray-400" x-text="'Total: ' + (getRefinedProductValue(productType) * quantity) + ' credits'"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Current Appraisal -->
+                <div x-show="currentAppraisal" class="mt-6 bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-green-400 font-semibold mb-3">💰 Current Market Appraisal</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-green-400" x-text="currentAppraisal?.totalValue?.toLocaleString() + ' credits'"></div>
+                            <div class="text-sm text-gray-300">Total Portfolio Value</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-blue-400" x-text="Object.keys(currentAppraisal?.ores || {}).length"></div>
+                            <div class="text-sm text-gray-300">Ore Types</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-orange-400" x-text="Object.keys(currentAppraisal?.refinedProducts || {}).length"></div>
+                            <div class="text-sm text-gray-300">Refined Products</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Refining Operations Tab -->
+            <div x-show="activeTab === 'refining'">
+                <h2 class="text-xl font-bold text-orange-400 mb-4">🏭 Refining Operations</h2>
+                
+                <div x-show="!hasService('refinery') && !hasService('industrial_refinery') && !hasService('specialized_refinery')">
+                    <div class="bg-red-800 border border-red-600 rounded-lg p-4 text-center">
+                        <div class="text-red-300">⚠️ No refinery services available at this location</div>
+                        <div class="text-sm text-red-400 mt-2">Travel to a location with refinery services to process your ores</div>
+                    </div>
+                </div>
+
+                <div x-show="hasService('refinery') || hasService('industrial_refinery') || hasService('specialized_refinery')">
+                    <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                        <h3 class="text-orange-400 font-semibold mb-2">🏭 Refinery Information</h3>
+                        <div class="text-sm text-gray-300">
+                            <div>Refinery Type: <span class="text-orange-400" x-text="getRefineryType()"></span></div>
+                            <div>Processing Fee: <span class="text-yellow-400">Percentage of output</span></div>
+                            <div>Corruption Risk: <span class="text-red-400">0-15% random loss (unknown rate)</span></div>
+                            <div>Value Multiplier: <span class="text-green-400">1x - 4x random enhancement</span></div>
+                        </div>
+                    </div>
+
+                    <div x-show="!Object.keys(inventory.ores).length" class="text-gray-400 text-center py-8">
+                        No ores available for refining
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <template x-for="[oreType, quantity] in Object.entries(inventory.ores)" :key="oreType">
+                            <div x-show="quantity > 0" class="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                                <h3 class="font-semibold text-white mb-2" x-text="getOreName(oreType)"></h3>
+                                <div class="text-sm text-gray-300 mb-3">
+                                    <div>Available: <span x-text="quantity"></span> units</div>
+                                    <div>Refines to: <span x-text="getRefinedProductName(getRefinedProductType(oreType))"></span></div>
+                                    <div>Base Value: <span x-text="getOreValue(oreType)"></span> → <span x-text="getRefinedProductValue(getRefinedProductType(oreType))"></span> credits</div>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <input type="number" min="1" :max="quantity" value="1" 
+                                           :id="'refine-qty-' + oreType"
+                                           class="w-full bg-gray-600 text-white p-2 rounded text-sm"
+                                           placeholder="Quantity to refine">
+                                    
+                                    <button @click="performRefining(oreType)" 
+                                            :disabled="refiningInProgress"
+                                            class="w-full bg-orange-600 hover:bg-orange-700 disabled:bg-gray-500 px-3 py-2 rounded text-sm transition-colors refining-glow">
+                                        <span x-show="!refiningInProgress">🏭 Refine <span x-text="getOreName(oreType)"></span></span>
+                                        <span x-show="refiningInProgress">🔄 Refining...</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Market Trading Tab -->
+            <div x-show="activeTab === 'market'">
+                <h2 class="text-xl font-bold text-purple-400 mb-4">💱 Market Trading</h2>
+                
+                <div x-show="!hasService('marketplace')">
+                    <div class="bg-red-800 border border-red-600 rounded-lg p-4 text-center">
+                        <div class="text-red-300">⚠️ No marketplace available at this location</div>
+                        <div class="text-sm text-red-400 mt-2">Travel to a location with marketplace services to trade your items</div>
+                    </div>
+                </div>
+
+                <div x-show="hasService('marketplace')">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Sell Ores -->
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h3 class="text-blue-400 font-semibold mb-3">💎 Sell Raw Ores</h3>
+                            <div x-show="!Object.keys(inventory.ores).length" class="text-gray-400 text-center py-4">
+                                No ores to sell
+                            </div>
+                            <div class="space-y-2">
+                                <template x-for="[oreType, quantity] in Object.entries(inventory.ores)" :key="oreType">
+                                    <div x-show="quantity > 0" class="bg-gray-600 rounded p-3">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <div>
+                                                <div class="font-medium text-white" x-text="getOreName(oreType)"></div>
+                                                <div class="text-sm text-gray-300">Available: <span x-text="quantity"></span> units</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-green-400 font-medium" x-text="getOreValue(oreType) + ' credits/unit'"></div>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <input type="number" min="1" :max="quantity" value="1" 
+                                                   :id="'sell-ore-qty-' + oreType"
+                                                   class="flex-1 bg-gray-500 text-white p-2 rounded text-sm"
+                                                   placeholder="Qty">
+                                            <button @click="sellOre(oreType)" 
+                                                    class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm transition-colors">
+                                                💰 Sell
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Sell Refined Products -->
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <h3 class="text-orange-400 font-semibold mb-3">🏭 Sell Refined Products</h3>
+                            <div x-show="!Object.keys(inventory.refinedProducts).length" class="text-gray-400 text-center py-4">
+                                No refined products to sell
+                            </div>
+                            <div class="space-y-2">
+                                <template x-for="[productType, quantity] in Object.entries(inventory.refinedProducts)" :key="productType">
+                                    <div x-show="quantity > 0" class="bg-gray-600 rounded p-3">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <div>
+                                                <div class="font-medium text-white" x-text="getRefinedProductName(productType)"></div>
+                                                <div class="text-sm text-gray-300">Available: <span x-text="quantity"></span> units</div>
+                                            </div>
+                                            <div class="text-right">
+                                                <div class="text-green-400 font-medium" x-text="getRefinedProductValue(productType) + ' credits/unit'"></div>
+                                            </div>
+                                        </div>
+                                        <div class="flex space-x-2">
+                                            <input type="number" min="1" :max="quantity" value="1" 
+                                                   :id="'sell-refined-qty-' + productType"
+                                                   class="flex-1 bg-gray-500 text-white p-2 rounded text-sm"
+                                                   placeholder="Qty">
+                                            <button @click="sellRefinedProduct(productType)" 
+                                                    class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded text-sm transition-colors">
+                                                💰 Sell
+                                            </button>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Log -->
+        <div class="mt-6 bg-gray-800 rounded-lg border border-gray-600 p-4">
+            <h3 class="text-white font-semibold mb-3">📋 Operation Log</h3>
+            <div class="max-h-32 overflow-y-auto space-y-1">
+                <template x-for="(log, index) in actionLog.slice(-10)" :key="index">
+                    <div class="text-sm text-gray-300" x-text="log"></div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Required Systems -->
+    <script src="location-travel-system.js"></script>
+    <script src="mining-resource-system.js"></script>
+
+    <script>
+        function miningOperationsApp() {
+            return {
+                // System instances
+                locationSystem: null,
+                miningSystem: null,
+                
+                // UI State
+                activeTab: 'scanning',
+                selectedDestination: '',
+                actionLog: [],
+                
+                // Location data
+                locationInfo: {},
+                availableServices: [],
+                availableDestinations: [],
+                canLiftOff: false,
+                miningData: null,
+                
+                // Mining data
+                scanResults: null,
+                scanningInProgress: false,
+                miningInProgress: false,
+                refiningInProgress: false,
+                
+                // Player data
+                inventory: { ores: {}, refinedProducts: {}, credits: 1000 },
+                credits: 1000,
+                currentAppraisal: null,
+
+                init() {
+                    // Initialize systems
+                    this.locationSystem = new LocationTravelSystem();
+                    this.miningSystem = new MiningResourceSystem();
+                    
+                    // Load saved state
+                    this.loadGameState();
+                    
+                    // Update location info
+                    this.updateLocationInfo();
+                    
+                    this.log('🚀 Mining Operations System initialized');
+                },
+
+                // Location & Travel Methods
+                updateLocationInfo() {
+                    const status = this.locationSystem.getLocationStatus();
+                    this.locationInfo = this.locationSystem.getLocationDisplayInfo();
+                    this.availableServices = status.availableServices;
+                    this.availableDestinations = status.availableDestinations;
+                    this.canLiftOff = status.canLiftOff;
+                    this.miningData = status.miningData;
+                },
+
+                liftOff() {
+                    try {
+                        const result = this.locationSystem.liftOff();
+                        this.updateLocationInfo();
+                        this.log(`🚀 ${result.message}`);
+                        this.showToast(result.message, 'success');
+                    } catch (error) {
+                        this.log(`❌ Lift off failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                travelTo(destinationId) {
+                    try {
+                        const result = this.locationSystem.travelTo(destinationId);
+                        this.updateLocationInfo();
+                        this.selectedDestination = '';
+                        this.scanResults = null; // Clear scan results when changing location
+                        this.log(`🛸 ${result.message}`);
+                        this.showToast(result.message, 'success');
+                    } catch (error) {
+                        this.log(`❌ Travel failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                // Mining Methods
+                async performScan() {
+                    if (!this.miningData) {
+                        this.showToast('No mining data available at this location', 'error');
+                        return;
+                    }
+
+                    try {
+                        this.scanningInProgress = true;
+                        this.log('🔍 Initiating surface scan...');
+                        
+                        const results = await this.miningSystem.scanSurface(this.locationSystem.getCurrentLocation());
+                        this.scanResults = results;
+                        
+                        this.log(`✅ Scan complete: ${results.detectedElements.length} element types detected`);
+                        this.showToast(`Scan complete! Found ${results.detectedElements.length} element types`, 'success');
+                    } catch (error) {
+                        this.log(`❌ Scan failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    } finally {
+                        this.scanningInProgress = false;
+                    }
+                },
+
+                async performMining(elementType) {
+                    const qtyInput = document.getElementById(`mine-qty-${elementType}`);
+                    const quantity = parseInt(qtyInput.value) || 1;
+
+                    try {
+                        this.miningInProgress = true;
+                        this.log(`⛏️ Starting mining operation: ${quantity}x ${elementType}...`);
+                        
+                        const results = await this.miningSystem.mineElement(
+                            elementType, 
+                            this.locationSystem.getCurrentLocation(), 
+                            quantity
+                        );
+                        
+                        this.updateInventory();
+                        this.log(`✅ Mining complete: +${results.quantityMined} ${results.elementName} (Total: ${results.totalInInventory})`);
+                        this.showToast(`Mined ${results.quantityMined} ${results.elementName}!`, 'success');
+                    } catch (error) {
+                        this.log(`❌ Mining failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    } finally {
+                        this.miningInProgress = false;
+                    }
+                },
+
+                async performRefining(oreType) {
+                    const qtyInput = document.getElementById(`refine-qty-${oreType}`);
+                    const quantity = parseInt(qtyInput.value) || 1;
+                    const isPlayerOwned = false; // For now, assume all refineries are NPC-owned
+
+                    try {
+                        this.refiningInProgress = true;
+                        this.log(`🏭 Starting refining operation: ${quantity}x ${oreType}...`);
+                        
+                        const results = await this.miningSystem.refineOre(oreType, quantity, isPlayerOwned);
+                        
+                        this.updateInventory();
+                        let logMessage = `✅ Refining complete: +${results.refinedQuantity} ${results.refinedProductName}`;
+                        if (results.corruptionLoss > 0) {
+                            logMessage += ` (${results.corruptionLoss} units lost to corruption)`;
+                        }
+                        this.log(logMessage);
+                        this.showToast(`Refined ${results.refinedQuantity} ${results.refinedProductName}!`, 'success');
+                    } catch (error) {
+                        this.log(`❌ Refining failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    } finally {
+                        this.refiningInProgress = false;
+                    }
+                },
+
+                // Market Methods
+                sellOre(oreType) {
+                    const qtyInput = document.getElementById(`sell-ore-qty-${oreType}`);
+                    const quantity = parseInt(qtyInput.value) || 1;
+                    const marketPrice = this.getOreValue(oreType);
+
+                    try {
+                        const results = this.miningSystem.sellItems(oreType, 'ore', quantity, marketPrice);
+                        this.updateInventory();
+                        this.log(`💰 Sold ${quantity} ${oreType} for ${results.totalCredits} credits`);
+                        this.showToast(`Sold for ${results.totalCredits} credits!`, 'success');
+                    } catch (error) {
+                        this.log(`❌ Sale failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                sellRefinedProduct(productType) {
+                    const qtyInput = document.getElementById(`sell-refined-qty-${productType}`);
+                    const quantity = parseInt(qtyInput.value) || 1;
+                    const marketPrice = this.getRefinedProductValue(productType);
+
+                    try {
+                        const results = this.miningSystem.sellItems(productType, 'refined', quantity, marketPrice);
+                        this.updateInventory();
+                        this.log(`💰 Sold ${quantity} ${productType} for ${results.totalCredits} credits`);
+                        this.showToast(`Sold for ${results.totalCredits} credits!`, 'success');
+                    } catch (error) {
+                        this.log(`❌ Sale failed: ${error.message}`);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                // Utility Methods
+                updateInventory() {
+                    this.inventory = this.miningSystem.getInventory();
+                    this.credits = this.inventory.credits;
+                },
+
+                getAppraisal() {
+                    this.currentAppraisal = this.miningSystem.getAppraisal(true);
+                    this.log('💰 Obtained current market appraisal');
+                    this.showToast('Market appraisal updated!', 'info');
+                },
+
+                // Helper Methods
+                formatServiceName(service) {
+                    return service.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                },
+
+                hasService(serviceName) {
+                    return this.availableServices.includes(serviceName);
+                },
+
+                getRefineryType() {
+                    if (this.hasService('specialized_refinery')) return 'Specialized Refinery';
+                    if (this.hasService('industrial_refinery')) return 'Industrial Refinery';
+                    if (this.hasService('basic_refinery')) return 'Basic Refinery';
+                    return 'Standard Refinery';
+                },
+
+                getOreName(oreType) {
+                    return this.miningSystem.oreTypes[oreType]?.name || oreType;
+                },
+
+                getOreValue(oreType) {
+                    return this.miningSystem.oreTypes[oreType]?.baseValue || 0;
+                },
+
+                getRefinedProductName(productType) {
+                    return this.miningSystem.refinedProducts[productType]?.name || productType;
+                },
+
+                getRefinedProductValue(productType) {
+                    const product = this.miningSystem.refinedProducts[productType];
+                    if (!product) return 0;
+                    const sourceOre = this.miningSystem.oreTypes[product.sourceOre];
+                    return Math.floor(sourceOre.baseValue * product.baseValueMultiplier);
+                },
+
+                getRefinedProductType(oreType) {
+                    return this.miningSystem.oreTypes[oreType]?.refinedProduct || '';
+                },
+
+                log(message) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    this.actionLog.push(`[${timestamp}] ${message}`);
+                },
+
+                showToast(message, type = 'info') {
+                    const backgrounds = {
+                        success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                        error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                        info: 'linear-gradient(to right, #667eea, #764ba2)'
+                    };
+
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        style: { background: backgrounds[type] || backgrounds.info }
+                    }).showToast();
+                },
+
+                // Save/Load Methods
+                saveGameState() {
+                    const gameState = {
+                        locationState: this.locationSystem.saveLocationState(),
+                        miningState: this.miningSystem.saveMiningState(),
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('miningOperationsState', JSON.stringify(gameState));
+                },
+
+                loadGameState() {
+                    const saved = localStorage.getItem('miningOperationsState');
+                    if (saved) {
+                        try {
+                            const gameState = JSON.parse(saved);
+                            this.locationSystem.loadLocationState(gameState.locationState);
+                            this.miningSystem.loadMiningState(gameState.miningState);
+                            this.updateInventory();
+                        } catch (error) {
+                            console.warn('Failed to load game state:', error);
+                        }
+                    }
+                },
+
+                // Auto-save periodically
+                startAutoSave() {
+                    setInterval(() => {
+                        this.saveGameState();
+                    }, 30000); // Save every 30 seconds
+                }
+            };
+        }
+
+        // Start auto-save when page loads
+        document.addEventListener('alpine:init', () => {
+            setTimeout(() => {
+                if (window.miningOperationsApp) {
+                    // Auto-save will be handled by the init method
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,215 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-08-13",
+  "description": "Configuration data for the Genisys Torpedo System - planet generation characteristics and possibilities",
+  
+  "elements": [
+    "Hydrogen", "Helium", "Lithium", "Beryllium", "Boron", "Carbon", "Nitrogen", "Oxygen",
+    "Fluorine", "Neon", "Sodium", "Magnesium", "Aluminum", "Silicon", "Phosphorus", "Sulfur",
+    "Chlorine", "Argon", "Potassium", "Calcium", "Scandium", "Titanium", "Vanadium", "Chromium",
+    "Manganese", "Iron", "Cobalt", "Nickel", "Copper", "Zinc", "Gallium", "Germanium",
+    "Arsenic", "Selenium", "Bromine", "Krypton", "Rubidium", "Strontium", "Yttrium", "Zirconium",
+    "Niobium", "Molybdenum", "Technetium", "Ruthenium", "Rhodium", "Palladium", "Silver", "Cadmium",
+    "Indium", "Tin", "Antimony", "Tellurium", "Iodine", "Xenon", "Cesium", "Barium",
+    "Lanthanum", "Cerium", "Praseodymium", "Neodymium", "Promethium", "Samarium", "Europium", "Gadolinium",
+    "Terbium", "Dysprosium", "Holmium", "Erbium", "Thulium", "Ytterbium", "Lutetium", "Hafnium",
+    "Tantalum", "Tungsten", "Rhenium", "Osmium", "Iridium", "Platinum", "Gold", "Mercury",
+    "Thallium", "Lead", "Bismuth", "Polonium", "Astatine", "Radon", "Francium", "Radium",
+    "Actinium", "Thorium", "Protactinium", "Uranium", "Neptunium", "Plutonium", "Americium", "Curium"
+  ],
+
+  "planetTypes": {
+    "ROCKY": "Rocky",
+    "GAS_GIANT": "Gas Giant", 
+    "ICE": "Ice",
+    "VOLCANIC": "Volcanic",
+    "EARTH_LIKE": "Earth-like",
+    "DESERT": "Desert",
+    "OCEAN_WORLD": "Ocean World",
+    "LAVA_PLANET": "Lava Planet",
+    "CRYSTAL_WORLD": "Crystal World",
+    "METAL_CORE": "Metal Core",
+    "FROZEN_GAS": "Frozen Gas",
+    "RADIOACTIVE": "Radioactive",
+    "PLASMA_STORM": "Plasma Storm",
+    "DARK_MATTER": "Dark Matter",
+    "QUANTUM_FLUCTUATION": "Quantum Fluctuation",
+    "JUNGLE_WORLD": "Jungle World",
+    "SWAMP_PLANET": "Swamp Planet",
+    "CLOUD_CITY": "Cloud City",
+    "RING_WORLD": "Ring World",
+    "DYSON_SPHERE": "Dyson Sphere",
+    "HOLLOW_PLANET": "Hollow Planet",
+    "DIAMOND_CORE": "Diamond Core",
+    "ANTIMATTER_WORLD": "Antimatter World",
+    "TEMPORAL_ANOMALY": "Temporal Anomaly",
+    "PSIONIC_WORLD": "Psionic World",
+    "ROCKY_ICE": "Rocky-Ice Hybrid",
+    "VOLCANIC_OCEAN": "Volcanic-Ocean Hybrid",
+    "DESERT_CRYSTAL": "Desert-Crystal Hybrid",
+    "ICE_METAL": "Ice-Metal Hybrid",
+    "GAS_CRYSTAL": "Gas-Crystal Hybrid",
+    "LAVA_ICE": "Lava-Ice Hybrid",
+    "ROCKY_CRYSTAL": "Rocky-Crystal Hybrid",
+    "OCEAN_ICE": "Ocean-Ice Hybrid",
+    "VOLCANIC_CRYSTAL": "Volcanic-Crystal Hybrid",
+    "DESERT_METAL": "Desert-Metal Hybrid",
+    "JUNGLE_VOLCANIC": "Jungle-Volcanic Hybrid",
+    "SWAMP_ICE": "Swamp-Ice Hybrid",
+    "ROCKY_GAS": "Rocky-Gas Hybrid",
+    "OCEAN_CRYSTAL": "Ocean-Crystal Hybrid",
+    "LAVA_CRYSTAL": "Lava-Crystal Hybrid",
+    "ICE_PLASMA": "Ice-Plasma Hybrid",
+    "DESERT_PLASMA": "Desert-Plasma Hybrid",
+    "METAL_PLASMA": "Metal-Plasma Hybrid",
+    "QUANTUM_ROCKY": "Quantum-Rocky Hybrid",
+    "QUANTUM_ICE": "Quantum-Ice Hybrid",
+    "DARK_VOLCANIC": "Dark Matter-Volcanic Hybrid",
+    "DARK_ICE": "Dark Matter-Ice Hybrid",
+    "PSIONIC_CRYSTAL": "Psionic-Crystal Hybrid",
+    "PSIONIC_OCEAN": "Psionic-Ocean Hybrid",
+    "TEMPORAL_LAVA": "Temporal-Lava Hybrid",
+    "TEMPORAL_ICE": "Temporal-Ice Hybrid",
+    "ANTIMATTER_CRYSTAL": "Antimatter-Crystal Hybrid",
+    "DIAMOND_ICE": "Diamond-Ice Hybrid",
+    "HOLLOW_GAS": "Hollow-Gas Hybrid",
+    "RING_OCEAN": "Ring-Ocean Hybrid",
+    "CLOUD_CRYSTAL": "Cloud-Crystal Hybrid"
+  },
+
+  "planetCharacteristics": {
+    "planetTypes": [
+      "Rocky", "Gas Giant", "Ice World", "Volcanic", "Earth-like", "Desert", 
+      "Ocean World", "Lava Planet", "Crystal World", "Metal Core", "Frozen Gas", 
+      "Radioactive", "Plasma Storm", "Dark Matter", "Quantum Fluctuation",
+      "Jungle World", "Swamp Planet", "Cloud City", "Ring World", "Dyson Sphere",
+      "Hollow Planet", "Diamond Core", "Antimatter World", "Temporal Anomaly", "Psionic World",
+      "Rocky-Ice Hybrid", "Volcanic-Ocean Hybrid", "Desert-Crystal Hybrid", "Ice-Metal Hybrid",
+      "Gas-Crystal Hybrid", "Lava-Ice Hybrid", "Rocky-Crystal Hybrid", "Ocean-Ice Hybrid",
+      "Volcanic-Crystal Hybrid", "Desert-Metal Hybrid", "Jungle-Volcanic Hybrid", "Swamp-Ice Hybrid",
+      "Rocky-Gas Hybrid", "Ocean-Crystal Hybrid", "Lava-Crystal Hybrid", "Ice-Plasma Hybrid",
+      "Desert-Plasma Hybrid", "Metal-Plasma Hybrid", "Quantum-Rocky Hybrid", "Quantum-Ice Hybrid",
+      "Dark Matter-Volcanic Hybrid", "Dark Matter-Ice Hybrid", "Psionic-Crystal Hybrid", "Psionic-Ocean Hybrid",
+      "Temporal-Lava Hybrid", "Temporal-Ice Hybrid", "Antimatter-Crystal Hybrid", "Diamond-Ice Hybrid",
+      "Hollow-Gas Hybrid", "Ring-Ocean Hybrid", "Cloud-Crystal Hybrid"
+    ],
+    "sizeClasses": [
+      "Asteroid (100-500 km)", "Dwarf Planet (500-2000 km)", 
+      "Small Planet (2000-8000 km)", "Medium Planet (8000-15000 km)",
+      "Large Planet (15000-30000 km)", "Super Planet (30000-50000 km)",
+      "Gas Dwarf (5000-12000 km)", "Gas Giant (20000-80000 km)",
+      "Super Giant (80000+ km)"
+    ],
+    "moonCounts": [
+      "1 moon", "2-3 moons", "4-6 moons", "7-12 moons", "13-25 moons", "26-50 moons", "51-100 moons"
+    ],
+    "atmosphereTypes": [
+      "None (Vacuum)", "Thin Oxygen", "Dense Oxygen", "Methane", "Ammonia",
+      "Carbon Dioxide", "Hydrogen", "Noble Gases", "Toxic Sulfur",
+      "Corrosive Acid", "Plasma Field", "Quantum Mist", "Dark Energy",
+      "Crystalline Fog", "Psychic Resonance", "Time-Diluted Air", "Magnetic Storms",
+      "Neon Clouds", "Helium Hurricanes", "Argon Spirals", "Xenon Winds",
+      "Nitrogen Cyclones", "Steam Geysers", "Supercooled Vapors", "Ionized Particles",
+      "Electromagnetic Soup", "Gravity Waves", "Anti-Matter Traces", "Temporal Echoes",
+      "Psionic Emanations", "Reality Distortions", "Quantum Foam", "Dark Matter Swirls",
+      "Energy Maelstroms", "Dimensional Rifts", "Void Pockets", "Solar Wind Trapped",
+      "Cosmic Ray Showers", "Subspace Anomalies", "Warp Field Residue", "Zero Point Energy"
+    ],
+    "temperatures": [
+      "Absolute Zero (-273°C)", "Frozen (-200 to -100°C)", "Cold (-100 to 0°C)",
+      "Temperate (0 to 50°C)", "Hot (50 to 200°C)", "Scorching (200 to 1000°C)",
+      "Molten (1000 to 5000°C)", "Plasma (5000°C+)", "Solar Core (Millions°C)"
+    ],
+    "surfaceFeatures": [
+      "Smooth Plains", "Mountain Ranges", "Deep Canyons", "Crater Fields",
+      "Volcanic Activity", "Ice Caps", "Liquid Oceans", "Methane Lakes",
+      "Crystal Formations", "Metal Veins", "Floating Islands", "Quantum Rifts",
+      "Temporal Anomalies", "Gravity Wells", "Energy Storms", "Prismatic Valleys",
+      "Singing Crystals", "Levitating Stones", "Liquid Metal Pools", "Glass Deserts",
+      "Living Rock", "Breathing Mountains", "Color-Shifting Terrain", "Magnetic Anomalies",
+      "Dimensional Portals", "Time Loops", "Gravity Inversions", "Reality Tears",
+      "Psychic Resonance Points", "Memory Crystals", "Echo Chambers", "Void Scars",
+      "Stellar Fragments", "Comet Tails", "Aurora Fields", "Lightning Forests",
+      "Frozen Lightning", "Molten Rainbows", "Solid Sound Waves", "Crystallized Time",
+      "Sentient Geology", "Dream Landscapes", "Nightmare Terrains", "Hope Springs",
+      "Despair Valleys", "Wonder Plateaus", "Fear Abysses", "Joy Mountains",
+      "Ancient Ruins", "Alien Architecture", "Impossible Geometries", "Living Cities",
+      "Organic Machines", "Bio-Mechanical Hybrids", "Self-Repairing Structures", "Evolving Landscapes"
+    ],
+    "mineralWealth": [
+      "Barren", "Poor", "Modest", "Moderate", "Rich", "Very Rich", 
+      "Extremely Rich", "Legendary Deposits", "Exotic Materials", "Unique Elements"
+    ],
+    "habitability": [
+      "Completely Hostile", "Barely Survivable", "Harsh Environment",
+      "Challenging", "Liveable with Equipment", "Naturally Habitable",
+      "Paradise World", "Utopian Conditions"
+    ],
+    "magneticField": [
+      "None", "Weak", "Moderate", "Strong", "Extreme", "Fluctuating",
+      "Reversed Polarity", "Multi-Polar", "Quantum Entangled"
+    ],
+    "orbitalCharacteristics": [
+      "Stable Circular", "Elliptical", "Highly Eccentric", "Retrograde",
+      "Tidally Locked", "Wobbling Axis", "Binary System", "Trojan Orbit",
+      "Lagrange Point", "Unstable Decay"
+    ],
+    "specialProperties": [
+      "Standard Physics", "Time Dilation Effects", "Gravity Anomalies",
+      "Dimensional Rifts", "Quantum Tunneling", "Anti-Matter Traces",
+      "Dark Matter Influence", "Psionic Resonance", "Life Signs",
+      "Ancient Artifacts", "Energy Beings", "Sentient Planet",
+      "Probability Storms", "Causality Loops", "Memory Echoes", "Dream Manifestations",
+      "Emotion Crystallization", "Thought Broadcasting", "Reality Anchors", "Chaos Fields",
+      "Order Matrices", "Luck Distortions", "Fate Tangles", "Destiny Convergence",
+      "Soul Resonance", "Spirit Winds", "Phantom Zones", "Mirror Dimensions",
+      "Shadow Realms", "Light Concentrations", "Dark Pools", "Void Touches",
+      "Creation Sparks", "Destruction Echoes", "Birth Cries", "Death Whispers",
+      "Evolution Acceleration", "Devolution Waves", "Mutation Fields", "Adaptation Zones",
+      "Symbiotic Networks", "Parasitic Invasions", "Viral Consciousness", "Bacterial Wisdom",
+      "Mineral Intelligence", "Elemental Awareness", "Atomic Consciousness", "Quantum Minds",
+      "Subatomic Societies", "Molecular Civilizations", "Chemical Empires", "Biological Republics"
+    ],
+    "economicValue": [
+      "Worthless", "Salvage Value", "Low Trade Worth", "Minor Commerce", "Standard Market",
+      "Valuable Resources", "High Worth", "Precious Materials", "Rare Commodities", "Priceless Artifacts",
+      "Galactic Treasury", "Universal Rarity", "Impossible to Value", "Reality-Altering Wealth"
+    ],
+    "dangerLevel": [
+      "Completely Safe", "Minor Hazards", "Moderate Risks", "Significant Dangers", "High Threat",
+      "Extreme Peril", "Lethal Environment", "Reality-Ending Risk", "Existential Threat", "Cosmic Horror"
+    ],
+    "ageClassification": [
+      "Newly Formed", "Young World", "Mature Planet", "Ancient Sphere", "Primordial Relic",
+      "Time-Locked", "Age-Shifting", "Temporally Unstable", "Eternally Young", "Infinitely Old",
+      "Pre-Creation", "Post-Apocalyptic", "Between Moments", "Outside Time"
+    ],
+    "civilizationSigns": [
+      "No Civilization", "Primitive Life", "Basic Tools", "Bronze Age", "Iron Age",
+      "Industrial Revolution", "Space Age", "Interplanetary", "Interstellar", "Galactic Empire",
+      "Transcended Beings", "Digital Consciousness", "Energy Entities", "Post-Physical",
+      "Ruins Only", "Archaeological Mysteries", "Lost Technologies", "Forbidden Knowledge"
+    ]
+  },
+
+  "coordinateSystem": {
+    "startingPosition": { "x": 0, "y": 0, "z": 0 },
+    "bounds": {
+      "min": { "x": -1000, "y": -1000, "z": -1000 },
+      "max": { "x": 1000, "y": 1000, "z": 1000 }
+    }
+  },
+
+  "formationSettings": {
+    "baseFormationTime": {
+      "min": 2,
+      "max": 7,
+      "unit": "hours"
+    },
+    "scanCosts": {
+      "basic": 100,
+      "detailed": 500,
+      "comprehensive": 1000
+    }
+  }
+}

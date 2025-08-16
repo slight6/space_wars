@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Explorer - Player Registration</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="universal-footer.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0a0a0a, #1a0d2e, #0d1b2a);
+            min-height: 100vh;
+        }
+        
+        .form-container {
+            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+        }
+        
+        .input-field {
+            background: rgba(30, 30, 50, 0.8);
+            border: 1px solid rgba(100, 150, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            border-color: rgba(100, 200, 255, 0.8);
+            box-shadow: 0 0 0 2px rgba(100, 200, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="authApp()">
+    <!-- Header -->
+    <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
+        <div class="flex justify-center items-center">
+            <h1 class="text-3xl font-bold">🌌 Space Explorer</h1>
+        </div>
+    </header>
+
+    <!-- Main Authentication Area -->
+    <div class="container mx-auto px-6 py-12 flex justify-center items-center min-h-screen">
+        <div class="form-container rounded-lg p-8 w-full max-w-md">
+            
+            <!-- Login Form -->
+            <div x-show="!showRegister" x-transition>
+                <h2 class="text-2xl font-bold text-center mb-6 text-cyan-400">🚀 Player Login</h2>
+                
+                <form @submit.prevent="loginPlayer()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Player Name</label>
+                            <input 
+                                type="text" 
+                                x-model="loginForm.playerName"
+                                class="input-field w-full px-4 py-3 rounded-md text-white placeholder-gray-400 outline-none"
+                                placeholder="Enter your player name"
+                                maxlength="16"
+                                required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                            <input 
+                                type="password" 
+                                x-model="loginForm.password"
+                                class="input-field w-full px-4 py-3 rounded-md text-white placeholder-gray-400 outline-none"
+                                placeholder="Enter your password"
+                                required>
+                        </div>
+                        
+                        <button 
+                            type="submit"
+                            :disabled="loginForm.loading"
+                            class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 px-4 py-3 rounded-md text-white font-medium transition-colors">
+                            <span x-show="!loginForm.loading">🎯 Login</span>
+                            <span x-show="loginForm.loading">⚡ Logging in...</span>
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-gray-400">Don't have an account?</p>
+                    <button 
+                        @click="showRegister = true"
+                        class="text-cyan-400 hover:text-cyan-300 font-medium">
+                        Register as new player
+                    </button>
+                </div>
+            </div>
+
+            <!-- Registration Form -->
+            <div x-show="showRegister" x-transition>
+                <h2 class="text-2xl font-bold text-center mb-6 text-green-400">✨ New Player Registration</h2>
+                
+                <form @submit.prevent="registerPlayer()">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Choose Player Name</label>
+                            <input 
+                                type="text" 
+                                x-model="registerForm.playerName"
+                                @input="validatePlayerName()"
+                                class="input-field w-full px-4 py-3 rounded-md text-white placeholder-gray-400 outline-none"
+                                placeholder="3-16 characters, letters/numbers only"
+                                maxlength="16"
+                                required>
+                            <div x-show="registerForm.nameValidation.message" class="mt-2 text-sm"
+                                 :class="registerForm.nameValidation.valid ? 'text-green-400' : 'text-red-400'">
+                                <span x-text="registerForm.nameValidation.message"></span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+                            <input 
+                                type="password" 
+                                x-model="registerForm.password"
+                                class="input-field w-full px-4 py-3 rounded-md text-white placeholder-gray-400 outline-none"
+                                placeholder="Choose a secure password"
+                                required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300 mb-2">Confirm Password</label>
+                            <input 
+                                type="password" 
+                                x-model="registerForm.confirmPassword"
+                                class="input-field w-full px-4 py-3 rounded-md text-white placeholder-gray-400 outline-none"
+                                placeholder="Confirm your password"
+                                required>
+                            <div x-show="registerForm.password && registerForm.confirmPassword && registerForm.password !== registerForm.confirmPassword" 
+                                 class="mt-2 text-sm text-red-400">
+                                Passwords do not match
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 p-4 rounded-md">
+                            <h4 class="text-sm font-medium text-yellow-400 mb-2">📋 Player Name Rules:</h4>
+                            <ul class="text-xs text-gray-300 space-y-1">
+                                <li>• 3-16 characters maximum</li>
+                                <li>• Letters, numbers, underscore, hyphen only</li>
+                                <li>• Names are unique (case-insensitive)</li>
+                                <li>• Choose carefully - changes are limited</li>
+                            </ul>
+                        </div>
+                        
+                        <button 
+                            type="submit"
+                            :disabled="!canRegister()"
+                            class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-3 rounded-md text-white font-medium transition-colors">
+                            <span x-show="!registerForm.loading">🚀 Create Player</span>
+                            <span x-show="registerForm.loading">⚡ Creating player...</span>
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="mt-6 text-center">
+                    <p class="text-gray-400">Already have an account?</p>
+                    <button 
+                        @click="showRegister = false"
+                        class="text-cyan-400 hover:text-cyan-300 font-medium">
+                        Login to existing account
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Info Panel -->
+    <div class="fixed bottom-4 right-4 bg-gray-900 bg-opacity-90 rounded-lg p-4 max-w-sm">
+        <h3 class="text-sm font-bold text-cyan-400 mb-2">🎮 Game Features</h3>
+        <div class="text-xs text-gray-300 space-y-1">
+            <div>• Explore 3D space coordinates</div>
+            <div>• Build and manage your fleet</div>
+            <div>• Advanced torpedo systems</div>
+            <div>• Player vs Player combat</div>
+            <div>• Economy and trading</div>
+            <div>• Alliance system (coming soon)</div>
+        </div>
+    </div>
+
+    <script src="localStorage-player-manager.js"></script>
+    <script>
+        function authApp() {
+            return {
+                showRegister: false,
+                playerManager: window.playerManager,
+                loginForm: {
+                    playerName: '',
+                    password: '',
+                    loading: false
+                },
+                registerForm: {
+                    playerName: '',
+                    password: '',
+                    confirmPassword: '',
+                    loading: false,
+                    nameValidation: {
+                        valid: false,
+                        message: ''
+                    }
+                },
+
+                loginPlayer() {
+                    this.loginForm.loading = true;
+                    
+                    try {
+                        const response = this.playerManager.loginPlayer(
+                            this.loginForm.playerName, 
+                            this.loginForm.password
+                        );
+                        
+                        if (response.success) {
+                            this.showNotification('Login successful! Welcome back, ' + this.loginForm.playerName, 'success');
+                            
+                            // Store session data in sessionStorage (temporary, not localStorage)
+                            sessionStorage.setItem('current_player', JSON.stringify({
+                                player_id: response.player_id,
+                                player_name: this.loginForm.playerName,
+                                login_time: new Date().toISOString()
+                            }));
+                            
+                            // Redirect to main game
+                            setTimeout(() => {
+                                window.location.href = 'game.html';
+                            }, 1500);
+                            
+                        } else {
+                            this.showNotification(response.error, 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Login failed. Please try again.', 'error');
+                    }
+                    
+                    this.loginForm.loading = false;
+                },
+
+                registerPlayer() {
+                    this.registerForm.loading = true;
+                    
+                    try {
+                        const response = this.playerManager.registerPlayer(
+                            this.registerForm.playerName, 
+                            this.registerForm.password
+                        );
+                        
+                        if (response.success) {
+                            this.showNotification(
+                                `Registration successful! Welcome to Space Explorer, ${this.registerForm.playerName}! You've been granted a starter ship and 2,000 credits.`, 
+                                'success'
+                            );
+                            
+                            console.log('Registration details:', response);
+                            
+                            // Auto-login after registration
+                            setTimeout(() => {
+                                this.loginForm.playerName = this.registerForm.playerName;
+                                this.loginForm.password = this.registerForm.password;
+                                this.showRegister = false;
+                                this.loginPlayer();
+                            }, 3000);
+                            
+                        } else {
+                            this.showNotification(response.error, 'error');
+                        }
+                    } catch (error) {
+                        this.showNotification('Registration failed. Please try again.', 'error');
+                        console.error('Registration error:', error);
+                    }
+                    
+                    this.registerForm.loading = false;
+                },
+
+                validatePlayerName() {
+                    const validation = this.playerManager.validatePlayerName(this.registerForm.playerName);
+                    this.registerForm.nameValidation = {
+                        valid: validation.valid,
+                        message: validation.valid ? '✓ Valid player name' : validation.error
+                    };
+                },
+
+                canRegister() {
+                    return this.registerForm.nameValidation.valid &&
+                           this.registerForm.password &&
+                           this.registerForm.confirmPassword &&
+                           this.registerForm.password === this.registerForm.confirmPassword &&
+                           !this.registerForm.loading;
+                },
+
+                showNotification(message, type = 'success') {
+                    Toastify({
+                        text: message,
+                        duration: type === 'success' ? 6000 : 4000,
+                        close: true,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: type === 'success' ? "#10B981" : 
+                                       type === 'error' ? "#EF4444" : "#3B82F6",
+                    }).showToast();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

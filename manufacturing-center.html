@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Manufacturing Center - Space Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="universal-footer.js"></script>
+    <script src="game-data-manager.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .production-glow {
+            animation: production-glow 3s ease-in-out infinite alternate;
+        }
+        @keyframes production-glow {
+            from { box-shadow: 0 0 20px rgba(255, 165, 0, 0.3); }
+            to { box-shadow: 0 0 30px rgba(255, 165, 0, 0.6); }
+        }
+        .quality-bar {
+            background: linear-gradient(90deg, #6b7280 0%, #3b82f6 25%, #10b981 50%, #f59e0b 75%, #ef4444 100%);
+            height: 4px;
+            border-radius: 2px;
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #10b981);
+            height: 6px;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="manufacturingApp()">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="bg-gray-800 rounded-lg border border-orange-500 p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-orange-400">🏭 Advanced Manufacturing Center</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-lg font-semibold text-green-400">💰 <span x-text="credits.toLocaleString()"></span> Credits</div>
+                        <div class="text-sm text-gray-300">Available Budget</div>
+                    </div>
+                    <button @click="backToGame()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+                        ← Back to Game
+                    </button>
+                </div>
+            </div>
+            <div class="mt-4 text-sm text-gray-300">
+                <span class="text-orange-400">⚠️ Combat-Ready Manufacturing:</span> 
+                Civilian equipment, weapon components, and strategic materials production facility
+            </div>
+        </div>
+
+        <!-- Facility Selection -->
+        <div class="bg-gray-800 rounded-lg border border-gray-600 p-6 mb-6">
+            <h2 class="text-xl font-bold text-blue-400 mb-4">🏢 Manufacturing Facilities</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <template x-for="[facilityId, facility] in Object.entries(facilities)" :key="facilityId">
+                    <div class="bg-gray-700 rounded-lg border p-4 cursor-pointer transition-all"
+                         :class="selectedFacility === facilityId ? 'border-orange-500 bg-gray-600' : 'border-gray-600 hover:border-gray-500'"
+                         @click="selectFacility(facilityId)">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-semibold text-white" x-text="facility.name"></h3>
+                            <span class="text-xs px-2 py-1 rounded" 
+                                  :class="getSecurityColor(facility.securityClearance)"
+                                  x-text="facility.securityClearance[facility.securityClearance.length - 1]">
+                            </span>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Location:</span>
+                                <span class="text-white" x-text="facility.location"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Efficiency:</span>
+                                <span class="text-yellow-400" x-text="(facility.efficiency * 100) + '%'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Active Jobs:</span>
+                                <span class="text-blue-400" x-text="getActiveJobs(facilityId) + '/' + facility.productionSlots"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Max Quality:</span>
+                                <span class="text-purple-400" x-text="facility.maxQuality"></span>
+                            </div>
+                        </div>
+
+                        <div x-show="facility.accessRequirement" class="mt-2 text-xs">
+                            <span class="text-red-400">🔒 Requires: </span>
+                            <span class="text-gray-300" x-text="facility.accessRequirement"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Main Manufacturing Interface -->
+        <div x-show="selectedFacility" class="bg-gray-800 rounded-lg border border-gray-600 p-6">
+            <!-- Tab Navigation -->
+            <div class="flex space-x-1 mb-6 bg-gray-700 rounded-lg p-1">
+                <button @click="activeTab = 'blueprints'" 
+                        :class="activeTab === 'blueprints' ? 'bg-orange-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📋 Available Blueprints
+                </button>
+                <button @click="activeTab = 'production'" 
+                        :class="activeTab === 'production' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    ⚙️ Production Queue
+                </button>
+                <button @click="activeTab = 'materials'" 
+                        :class="activeTab === 'materials' ? 'bg-green-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📦 Material Inventory
+                </button>
+                <button @click="activeTab = 'products'" 
+                        :class="activeTab === 'products' ? 'bg-purple-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    🏭 Finished Products
+                </button>
+            </div>
+
+            <!-- Available Blueprints Tab -->
+            <div x-show="activeTab === 'blueprints'">
+                <h2 class="text-xl font-bold text-orange-400 mb-4">📋 Available Blueprints</h2>
+                
+                <!-- Category Filter -->
+                <div class="flex space-x-2 mb-4">
+                    <button @click="blueprintFilter = 'all'" 
+                            :class="blueprintFilter === 'all' ? 'bg-orange-600' : 'bg-gray-600 hover:bg-gray-500'"
+                            class="px-3 py-1 rounded text-sm transition-colors">
+                        All Categories
+                    </button>
+                    <button @click="blueprintFilter = 'civilian'" 
+                            :class="blueprintFilter === 'civilian' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'"
+                            class="px-3 py-1 rounded text-sm transition-colors">
+                        🔧 Civilian
+                    </button>
+                    <button @click="blueprintFilter = 'combat'" 
+                            :class="blueprintFilter === 'combat' ? 'bg-red-600' : 'bg-gray-600 hover:bg-gray-500'"
+                            class="px-3 py-1 rounded text-sm transition-colors">
+                        ⚔️ Combat
+                    </button>
+                    <button @click="blueprintFilter = 'component'" 
+                            :class="blueprintFilter === 'component' ? 'bg-yellow-600' : 'bg-gray-600 hover:bg-gray-500'"
+                            class="px-3 py-1 rounded text-sm transition-colors">
+                        🔩 Components
+                    </button>
+                </div>
+
+                <!-- Blueprint Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="blueprint in getFilteredBlueprints()" :key="blueprint.id">
+                        <div class="bg-gray-700 rounded-lg border p-4"
+                             :class="getCategoryBorder(blueprint.category)">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-semibold text-white" x-text="blueprint.name"></h3>
+                                <div class="flex space-x-1">
+                                    <span class="text-xs px-2 py-1 rounded" 
+                                          :class="getCategoryColor(blueprint.category)"
+                                          x-text="blueprint.category.toUpperCase()">
+                                    </span>
+                                    <span class="text-xs px-2 py-1 bg-gray-600 rounded" 
+                                          x-text="blueprint.securityLevel">
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="text-sm text-gray-300 mb-3" x-text="blueprint.description"></div>
+                            
+                            <!-- Material Requirements -->
+                            <div class="mb-3">
+                                <h4 class="text-sm font-semibold text-blue-400 mb-2">📦 Materials Required</h4>
+                                <div class="space-y-1 text-xs">
+                                    <template x-for="[material, amount] in Object.entries(blueprint.materials)" :key="material">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300 capitalize" x-text="material.replace('_', ' ')"></span>
+                                            <span class="text-yellow-400" x-text="amount"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Quality Options -->
+                            <div class="mb-3">
+                                <h4 class="text-sm font-semibold text-purple-400 mb-2">⭐ Quality Options</h4>
+                                <div class="space-y-1 text-xs">
+                                    <template x-for="quality in blueprint.availableQualities || []" :key="quality.name">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300" x-text="quality.name"></span>
+                                            <span class="text-green-400" x-text="quality.multiplier + 'x performance'"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Production Controls -->
+                            <div class="space-y-2">
+                                <div class="flex space-x-2">
+                                    <input type="number" min="1" max="10" value="1" 
+                                           class="w-16 px-2 py-1 bg-gray-600 rounded text-white text-sm"
+                                           x-model="productionQuantities[blueprint.id]">
+                                    <select class="flex-1 px-2 py-1 bg-gray-600 rounded text-white text-sm"
+                                            x-model="selectedQualities[blueprint.id]">
+                                        <template x-for="quality in blueprint.availableQualities || []" :key="quality.name">
+                                            <option :value="quality.name" x-text="quality.name + ' (' + quality.multiplier + 'x)'"></option>
+                                        </template>
+                                    </select>
+                                </div>
+                                <button @click="startProduction(blueprint)" 
+                                        class="w-full bg-orange-600 hover:bg-orange-700 px-3 py-2 rounded text-sm transition-colors">
+                                    🏭 Start Production
+                                </button>
+                            </div>
+
+                            <div x-show="blueprint.licenseRequired" class="mt-2 text-xs text-red-400">
+                                🔒 Military license required
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Production Queue Tab -->
+            <div x-show="activeTab === 'production'">
+                <h2 class="text-xl font-bold text-blue-400 mb-4">⚙️ Production Queue</h2>
+                
+                <div x-show="!getProductionJobs().length" class="text-center py-8">
+                    <div class="text-gray-400 mb-4">No active production jobs</div>
+                    <div class="text-sm text-gray-500">Start production from the Blueprints tab</div>
+                </div>
+
+                <div class="space-y-4">
+                    <template x-for="job in getProductionJobs()" :key="job.id">
+                        <div class="bg-gray-700 rounded-lg border border-blue-500 p-4 production-glow">
+                            <div class="flex justify-between items-start mb-3">
+                                <div>
+                                    <h3 class="font-semibold text-white" x-text="job.quantity + 'x ' + job.item"></h3>
+                                    <div class="text-sm text-gray-300">Quality: <span class="text-purple-400" x-text="job.quality"></span></div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-sm text-blue-400" x-text="Math.round(job.progress * 100) + '% Complete'"></div>
+                                    <div class="text-xs text-gray-400" x-text="getTimeRemaining(job.completion)"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-600 rounded h-2 mb-2">
+                                <div class="progress-bar rounded h-2" 
+                                     :style="`width: ${Math.min(100, job.progress * 100)}%`"></div>
+                            </div>
+                            
+                            <div class="flex justify-between text-xs text-gray-400">
+                                <span>Started: <span x-text="formatTime(job.startTime)"></span></span>
+                                <span>ETA: <span x-text="formatTime(job.completion)"></span></span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Material Inventory Tab -->
+            <div x-show="activeTab === 'materials'">
+                <h2 class="text-xl font-bold text-green-400 mb-4">📦 Material Inventory</h2>
+                
+                <!-- Ore Conversion Section -->
+                <div class="bg-gray-800 rounded-lg border border-blue-500 p-6 mb-6">
+                    <h3 class="text-lg font-semibold text-blue-400 mb-4">⚙️ Ore to Material Conversion</h3>
+                    <div class="flex items-center justify-between">
+                        <div class="text-gray-300">
+                            <p>Convert raw ore samples from mining operations into manufacturing materials</p>
+                            <p class="text-sm text-gray-400 mt-1">Automatically processes all available ore types</p>
+                        </div>
+                        <button @click="convertMiningOres()" 
+                                class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+                            🔄 Convert Ores
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="[material, quantity] in Object.entries(materials)" :key="material">
+                        <div class="bg-gray-700 rounded-lg border border-green-500 p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <h3 class="font-semibold text-white capitalize" x-text="material.replace('_', ' ')"></h3>
+                                <span class="text-2xl" x-text="getMaterialIcon(material)"></span>
+                            </div>
+                            <div class="text-2xl font-bold text-green-400" x-text="quantity.toLocaleString()"></div>
+                            <div class="text-sm text-gray-300">units available</div>
+                            
+                            <div class="mt-2">
+                                <div class="text-xs text-gray-400">Category: <span x-text="getMaterialCategory(material)"></span></div>
+                                <div class="text-xs text-gray-400">Rarity: <span x-text="getMaterialRarity(material)"></span></div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Finished Products Tab -->
+            <div x-show="activeTab === 'products'">
+                <h2 class="text-xl font-bold text-purple-400 mb-4">🏭 Finished Products</h2>
+                
+                <div x-show="!finishedProducts.length" class="text-center py-8">
+                    <div class="text-gray-400 mb-4">No finished products yet</div>
+                    <div class="text-sm text-gray-500">Complete production jobs to see manufactured items here</div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <template x-for="product in finishedProducts" :key="product.serialNumber">
+                        <div class="bg-gray-700 rounded-lg border border-purple-500 p-4">
+                            <div class="flex justify-between items-start mb-3">
+                                <h3 class="font-semibold text-white" x-text="product.name"></h3>
+                                <span class="text-xs px-2 py-1 rounded" 
+                                      :class="getCategoryColor(product.category)"
+                                      x-text="product.category.toUpperCase()">
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-300">Quality:</span>
+                                    <span class="text-purple-400" x-text="product.quality"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-300">Performance:</span>
+                                    <span class="text-yellow-400" x-text="product.performance.toFixed(1) + 'x'"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-300">Manufacturer:</span>
+                                    <span class="text-blue-400" x-text="product.manufacturer"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-300">Serial:</span>
+                                    <span class="text-gray-400 font-mono text-xs" x-text="product.serialNumber"></span>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 flex space-x-2">
+                                <button @click="installProduct(product)" 
+                                        class="flex-1 bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs transition-colors">
+                                    📦 Install
+                                </button>
+                                <button @click="sellProduct(product)" 
+                                        class="flex-1 bg-yellow-600 hover:bg-yellow-700 px-2 py-1 rounded text-xs transition-colors">
+                                    💰 Sell
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Manufacturing System -->
+    <script src="advanced-manufacturing-system.js"></script>
+    <script src="manufacturing-integration.js"></script>
+
+    <script>
+        function manufacturingApp() {
+            return {
+                // System reference
+                manufacturingSystem: null,
+                
+                // UI state
+                activeTab: 'blueprints',
+                selectedFacility: null,
+                blueprintFilter: 'all',
+                
+                // Data
+                facilities: {},
+                credits: 500000,
+                materials: {},
+                finishedProducts: [],
+                productionQuantities: {},
+                selectedQualities: {},
+                
+                // Production tracking
+                productionJobs: [],
+                
+                init() {
+                    // Initialize manufacturing system
+                    this.manufacturingSystem = window.advancedManufacturing;
+                    
+                    // Wait for integration system
+                    this.waitForIntegration().then(() => {
+                        this.loadFacilities();
+                        this.loadMaterials();
+                        this.updateCredits();
+                        
+                        // Auto-select first facility
+                        const facilityIds = Object.keys(this.facilities);
+                        if (facilityIds.length > 0) {
+                            this.selectFacility(facilityIds[0]);
+                        }
+                        
+                        // Start production status updates
+                        this.startProductionUpdates();
+                    });
+                },
+
+                async waitForIntegration() {
+                    while (!window.manufacturingIntegration || !window.manufacturingIntegration.initialized) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                },
+
+                updateCredits() {
+                    // Get credits from main game system
+                    if (window.spaceGame && window.spaceGame.player) {
+                        this.credits = window.spaceGame.player.credits || 0;
+                    }
+                },
+
+                loadFacilities() {
+                    this.facilities = Object.fromEntries(this.manufacturingSystem.manufacturingFacilities);
+                },
+
+                loadMaterials() {
+                    // Load materials from manufacturing system integration
+                    if (window.manufacturingIntegration && window.manufacturingIntegration.initialized) {
+                        const status = window.manufacturingIntegration.getManufacturingStatus();
+                        this.materials = Object.fromEntries(status.materials);
+                    } else {
+                        // Fallback to mock materials
+                        this.materials = {
+                            'silicon': 1000,
+                            'copper': 800,
+                            'aluminum': 600,
+                            'titanium': 200,
+                            'rare_earth': 150,
+                            'platinum': 50,
+                            'carbon': 400,
+                            'energy_crystals': 25,
+                            'quantum_processors': 10,
+                            'tracking_device': 5,
+                            'magnetic_clamp': 8,
+                            'stealth_coating': 15,
+                            'quantum_materials': 12,
+                            'focusing_crystals': 8
+                        };
+                    }
+                },
+
+                selectFacility(facilityId) {
+                    this.selectedFacility = facilityId;
+                    this.loadAvailableBlueprints();
+                },
+
+                loadAvailableBlueprints() {
+                    // This would call manufacturingSystem.getAvailableBlueprints
+                    // For now, mock some blueprints
+                    this.updateProductionStatus();
+                },
+
+                getFilteredBlueprints() {
+                    if (!this.selectedFacility) return [];
+                    
+                    // Get blueprints from manufacturing system
+                    const available = this.manufacturingSystem.getAvailableBlueprints('player1', this.selectedFacility);
+                    
+                    if (this.blueprintFilter === 'all') {
+                        return available;
+                    }
+                    
+                    return available.filter(blueprint => blueprint.category === this.blueprintFilter);
+                },
+
+                startProduction(blueprint) {
+                    const quantity = this.productionQuantities[blueprint.id] || 1;
+                    const quality = this.selectedQualities[blueprint.id] || 'Standard';
+                    
+                    const result = this.manufacturingSystem.startProduction(
+                        'player1',
+                        this.selectedFacility,
+                        blueprint.id,
+                        quantity,
+                        quality
+                    );
+                    
+                    if (result.success) {
+                        this.showToast(`Production started: ${quantity}x ${blueprint.name}`, 'success');
+                        this.updateProductionStatus();
+                    } else {
+                        this.showToast(result.error, 'error');
+                    }
+                },
+
+                updateProductionStatus() {
+                    const status = this.manufacturingSystem.getProductionStatus();
+                    if (this.selectedFacility && status[this.selectedFacility]) {
+                        this.productionJobs = status[this.selectedFacility].queue;
+                    }
+                },
+
+                startProductionUpdates() {
+                    setInterval(() => {
+                        this.updateProductionStatus();
+                    }, 1000);
+                },
+
+                getProductionJobs() {
+                    return this.productionJobs || [];
+                },
+
+                getActiveJobs(facilityId) {
+                    const status = this.manufacturingSystem.getProductionStatus();
+                    return status[facilityId]?.activeJobs || 0;
+                },
+
+                // Helper functions
+                getSecurityColor(clearances) {
+                    const highest = clearances[clearances.length - 1];
+                    const colors = {
+                        'Civilian': 'bg-green-600',
+                        'Commercial': 'bg-blue-600',
+                        'Military': 'bg-red-600',
+                        'Special Projects': 'bg-purple-600'
+                    };
+                    return colors[highest] || 'bg-gray-600';
+                },
+
+                getCategoryColor(category) {
+                    const colors = {
+                        'civilian': 'bg-blue-600',
+                        'combat': 'bg-red-600',
+                        'component': 'bg-yellow-600'
+                    };
+                    return colors[category] || 'bg-gray-600';
+                },
+
+                getCategoryBorder(category) {
+                    const borders = {
+                        'civilian': 'border-blue-500',
+                        'combat': 'border-red-500',
+                        'component': 'border-yellow-500'
+                    };
+                    return borders[category] || 'border-gray-500';
+                },
+
+                getMaterialIcon(material) {
+                    const icons = {
+                        'silicon': '🔬',
+                        'copper': '🔋',
+                        'aluminum': '⚡',
+                        'titanium': '🛡️',
+                        'rare_earth': '💎',
+                        'platinum': '✨',
+                        'carbon': '⚫',
+                        'energy_crystals': '💠',
+                        'quantum_processors': '🧠',
+                        'tracking_device': '📡',
+                        'magnetic_clamp': '🧲',
+                        'stealth_coating': '👻',
+                        'quantum_materials': '⚛️',
+                        'focusing_crystals': '🔮'
+                    };
+                    return icons[material] || '📦';
+                },
+
+                getMaterialCategory(material) {
+                    const categories = {
+                        'silicon': 'Electronics',
+                        'copper': 'Electronics',
+                        'aluminum': 'Structure',
+                        'titanium': 'Advanced',
+                        'rare_earth': 'Rare',
+                        'platinum': 'Precious',
+                        'carbon': 'Basic',
+                        'energy_crystals': 'Energy',
+                        'quantum_processors': 'Quantum',
+                        'tracking_device': 'Electronics',
+                        'magnetic_clamp': 'Mechanical',
+                        'stealth_coating': 'Advanced',
+                        'quantum_materials': 'Quantum',
+                        'focusing_crystals': 'Energy'
+                    };
+                    return categories[material] || 'Unknown';
+                },
+
+                getMaterialRarity(material) {
+                    const rarities = {
+                        'silicon': 'Common',
+                        'copper': 'Common',
+                        'aluminum': 'Common',
+                        'titanium': 'Uncommon',
+                        'rare_earth': 'Rare',
+                        'platinum': 'Very Rare',
+                        'carbon': 'Common',
+                        'energy_crystals': 'Rare',
+                        'quantum_processors': 'Very Rare',
+                        'tracking_device': 'Uncommon',
+                        'magnetic_clamp': 'Common',
+                        'stealth_coating': 'Very Rare',
+                        'quantum_materials': 'Legendary',
+                        'focusing_crystals': 'Rare'
+                    };
+                    return rarities[material] || 'Unknown';
+                },
+
+                getTimeRemaining(completionTime) {
+                    const remaining = new Date(completionTime) - new Date();
+                    if (remaining <= 0) return 'Complete';
+                    
+                    const minutes = Math.floor(remaining / 60000);
+                    const seconds = Math.floor((remaining % 60000) / 1000);
+                    return `${minutes}m ${seconds}s`;
+                },
+
+                formatTime(timestamp) {
+                    return new Date(timestamp).toLocaleTimeString();
+                },
+
+                installProduct(product) {
+                    this.showToast(`Installing ${product.name}`, 'info');
+                    // TODO: Integrate with ship management system
+                },
+
+                sellProduct(product) {
+                    const value = this.calculateProductValue(product);
+                    this.credits += value;
+                    this.showToast(`Sold ${product.name} for ${value.toLocaleString()} credits`, 'success');
+                    // Remove from inventory
+                    this.finishedProducts = this.finishedProducts.filter(p => p.serialNumber !== product.serialNumber);
+                },
+
+                calculateProductValue(product) {
+                    const baseValues = {
+                        'civilian': 1000,
+                        'combat': 5000,
+                        'component': 2000
+                    };
+                    const base = baseValues[product.category] || 1000;
+                    return Math.floor(base * product.performance);
+                },
+
+                backToGame() {
+                    window.location.href = 'game.html';
+                },
+
+                convertMiningOres() {
+                    if (window.manufacturingIntegration && window.manufacturingIntegration.initialized) {
+                        const result = window.manufacturingIntegration.convertMinedOresToMaterials();
+                        if (result.success) {
+                            this.showToast(`Converted ${result.converted} ore samples to materials`, 'success');
+                            this.loadMaterials(); // Refresh material display
+                        } else {
+                            this.showToast(result.message || 'No ores available for conversion', 'info');
+                        }
+                    } else {
+                        this.showToast('Manufacturing integration not available', 'error');
+                    }
+                },
+
+                purchaseMaterials(material, quantity) {
+                    if (window.manufacturingIntegration && window.manufacturingIntegration.initialized) {
+                        const result = window.manufacturingIntegration.manufacturingSystem.purchaseMaterials(material, quantity);
+                        if (result.success) {
+                            this.showToast(`Purchased ${quantity} ${material} for ${result.cost.toLocaleString()} credits`, 'success');
+                            this.loadMaterials();
+                            this.updateCredits();
+                        } else {
+                            this.showToast(result.message || 'Purchase failed', 'error');
+                        }
+                    }
+                },
+
+                showToast(message, type = 'info') {
+                    const backgrounds = {
+                        success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                        error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                        info: 'linear-gradient(to right, #667eea, #764ba2)'
+                    };
+
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        style: { background: backgrounds[type] || backgrounds.info }
+                    }).showToast();
+                }
+            };
+        }
+    </script>
+</body>
+</html>

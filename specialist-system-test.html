@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Specialist System - Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="comprehensive-specialist-system.js"></script>
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="testApp()">
+    <div class="container mx-auto px-6 py-8">
+        <div class="bg-gray-800 rounded-lg border border-gray-700 p-6 mb-6">
+            <h1 class="text-2xl font-bold mb-4">🎓 Comprehensive Specialist System - Integration Test</h1>
+            <p class="text-gray-300 mb-4">Testing the comprehensive specialist system components.</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <button @click="testTutorials()" class="bg-blue-600 hover:bg-blue-700 p-4 rounded-lg transition-colors">
+                    <div class="text-lg font-semibold">📚 Test Tutorials</div>
+                    <div class="text-sm text-blue-200">Tutorial System</div>
+                </button>
+                <button @click="testMissions()" class="bg-green-600 hover:bg-green-700 p-4 rounded-lg transition-colors">
+                    <div class="text-lg font-semibold">⚡ Test Missions</div>
+                    <div class="text-sm text-green-200">Mission Generation</div>
+                </button>
+                <button @click="testQuestChains()" class="bg-purple-600 hover:bg-purple-700 p-4 rounded-lg transition-colors">
+                    <div class="text-lg font-semibold">🎯 Test Quest Chains</div>
+                    <div class="text-sm text-purple-200">Progressive Quests</div>
+                </button>
+                <button @click="testAchievements()" class="bg-yellow-600 hover:bg-yellow-700 p-4 rounded-lg transition-colors">
+                    <div class="text-lg font-semibold">🏆 Test Achievements</div>
+                    <div class="text-sm text-yellow-200">Achievement System</div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results Display -->
+        <div class="bg-gray-800 rounded-lg border border-gray-700 p-6">
+            <h2 class="text-xl font-bold mb-4">Test Results</h2>
+            <div class="bg-gray-900 rounded-lg p-4 font-mono text-sm overflow-auto max-h-96">
+                <div x-text="testResults"></div>
+            </div>
+        </div>
+
+        <!-- Quick Access Links -->
+        <div class="mt-6 text-center space-x-4">
+            <a href="comprehensive-specialists.html" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg transition-colors inline-block">
+                Launch Full System
+            </a>
+            <a href="game.html" class="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg transition-colors inline-block">
+                Back to Game
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function testApp() {
+            return {
+                testResults: 'Click a test button above to see results...',
+                specialistSystem: null,
+                testPlayer: {
+                    reputation: 150,
+                    credits: 50000,
+                    specialistProgress: {
+                        tutorialsCompleted: ['system_basics'],
+                        questChainsActive: [],
+                        questChainsCompleted: [],
+                        certifications: ['basic_navigation'],
+                        achievements: [],
+                        mentorRelationships: {},
+                        skillLevels: {},
+                        goals: { short: [], medium: [], long: [] }
+                    }
+                },
+
+                init() {
+                    this.specialistSystem = new ComprehensiveSpecialistSystem();
+                    this.specialistSystem.initialize(this.testPlayer);
+                    this.testResults = 'Comprehensive Specialist System initialized successfully!\n\nTest player created with:\n- 150 reputation\n- Basic navigation certification\n- System basics tutorial completed\n\nReady for testing!';
+                },
+
+                testTutorials() {
+                    try {
+                        const availableTutorials = this.specialistSystem.tutorials.getAvailableTutorials(this.testPlayer);
+                        const tutorialCount = Object.keys(this.specialistSystem.tutorials.tutorials).length;
+                        
+                        let result = `TUTORIAL SYSTEM TEST\n`;
+                        result += `===================\n\n`;
+                        result += `Total tutorials in system: ${tutorialCount}\n`;
+                        result += `Available tutorials for test player: ${availableTutorials.length}\n\n`;
+                        
+                        result += `AVAILABLE TUTORIALS:\n`;
+                        availableTutorials.forEach(tutorial => {
+                            result += `- ${tutorial.title} (${tutorial.difficulty})\n`;
+                            result += `  Estimated time: ${tutorial.estimatedTime}\n`;
+                            result += `  Steps: ${tutorial.steps.length}\n`;
+                            result += `  Reward: +${tutorial.completion_reward.reputation} rep, +${tutorial.completion_reward.credits} credits\n\n`;
+                        });
+
+                        if (availableTutorials.length === 0) {
+                            result += `No tutorials available. Prerequisites may be required.\n`;
+                        }
+
+                        result += `\nTUTORIAL SYSTEM: ✅ WORKING`;
+                        this.testResults = result;
+                    } catch (error) {
+                        this.testResults = `TUTORIAL SYSTEM TEST FAILED:\n${error.message}`;
+                    }
+                },
+
+                testMissions() {
+                    try {
+                        const availableMissions = this.specialistSystem.missions.generateAvailableMissions(this.testPlayer);
+                        
+                        let result = `MISSION SYSTEM TEST\n`;
+                        result += `==================\n\n`;
+                        result += `Generated missions for test player: ${availableMissions.length}\n\n`;
+                        
+                        result += `AVAILABLE MISSIONS:\n`;
+                        availableMissions.forEach(mission => {
+                            result += `- ${mission.title} (${mission.type})\n`;
+                            result += `  Difficulty: ${mission.difficulty}\n`;
+                            result += `  Time estimate: ${mission.timeEstimate}\n`;
+                            result += `  Player level: ${mission.playerLevel}\n`;
+                            result += `  Rewards: +${mission.dynamicRewards.reputation} rep, +${mission.dynamicRewards.credits} credits\n\n`;
+                        });
+
+                        if (availableMissions.length === 0) {
+                            result += `No missions generated. Player may need more certifications.\n`;
+                        }
+
+                        result += `\nMISSION SYSTEM: ✅ WORKING`;
+                        this.testResults = result;
+                    } catch (error) {
+                        this.testResults = `MISSION SYSTEM TEST FAILED:\n${error.message}`;
+                    }
+                },
+
+                testQuestChains() {
+                    try {
+                        const availableChains = this.specialistSystem.questChains.getAvailableQuestChains(this.testPlayer);
+                        const totalChains = Object.keys(this.specialistSystem.questChains.questChains).length;
+                        
+                        let result = `QUEST CHAIN SYSTEM TEST\n`;
+                        result += `======================\n\n`;
+                        result += `Total quest chains in system: ${totalChains}\n`;
+                        result += `Available quest chains for test player: ${availableChains.length}\n\n`;
+                        
+                        result += `AVAILABLE QUEST CHAINS:\n`;
+                        availableChains.forEach(chain => {
+                            result += `- ${chain.title} (${chain.category})\n`;
+                            result += `  Total stages: ${chain.totalStages}\n`;
+                            result += `  Duration: ${chain.estimatedDuration}\n`;
+                            result += `  Prerequisites: ${chain.prerequisites.join(', ')}\n\n`;
+                        });
+
+                        result += `ALL QUEST CHAINS IN SYSTEM:\n`;
+                        Object.values(this.specialistSystem.questChains.questChains).forEach(chain => {
+                            result += `- ${chain.title}: ${chain.totalStages} stages\n`;
+                        });
+
+                        result += `\nQUEST CHAIN SYSTEM: ✅ WORKING`;
+                        this.testResults = result;
+                    } catch (error) {
+                        this.testResults = `QUEST CHAIN SYSTEM TEST FAILED:\n${error.message}`;
+                    }
+                },
+
+                testAchievements() {
+                    try {
+                        const allAchievements = Object.values(this.specialistSystem.achievements.achievements);
+                        const categories = [...new Set(allAchievements.map(a => a.category))];
+                        const difficulties = [...new Set(allAchievements.map(a => a.difficulty))];
+                        
+                        let result = `ACHIEVEMENT SYSTEM TEST\n`;
+                        result += `======================\n\n`;
+                        result += `Total achievements in system: ${allAchievements.length}\n`;
+                        result += `Categories: ${categories.join(', ')}\n`;
+                        result += `Difficulty levels: ${difficulties.join(', ')}\n\n`;
+                        
+                        result += `ACHIEVEMENTS BY CATEGORY:\n`;
+                        categories.forEach(category => {
+                            const categoryAchievements = allAchievements.filter(a => a.category === category);
+                            result += `\n${category.toUpperCase()} (${categoryAchievements.length}):\n`;
+                            categoryAchievements.forEach(achievement => {
+                                result += `- ${achievement.title} (${achievement.difficulty})\n`;
+                                result += `  Reward: +${achievement.rewards.reputation} rep, +${achievement.rewards.credits} credits\n`;
+                                if (achievement.rewards.title) {
+                                    result += `  Title: "${achievement.rewards.title}"\n`;
+                                }
+                                if (achievement.hidden) {
+                                    result += `  🔒 HIDDEN ACHIEVEMENT\n`;
+                                }
+                            });
+                        });
+
+                        result += `\nCERTIFICATION SYSTEM:\n`;
+                        const certifications = Object.values(this.specialistSystem.skillCertification.certifications);
+                        result += `Total certifications: ${certifications.length}\n`;
+                        certifications.forEach(cert => {
+                            result += `- ${cert.title} (Level ${cert.level})\n`;
+                        });
+
+                        result += `\nMENTORSHIP PROGRAMS:\n`;
+                        const mentorships = Object.values(this.specialistSystem.mentorshipProgram.mentorPrograms);
+                        result += `Total programs: ${mentorships.length}\n`;
+                        mentorships.forEach(program => {
+                            result += `- ${program.title} (${program.duration})\n`;
+                        });
+
+                        result += `\nACHIEVEMENT SYSTEM: ✅ WORKING`;
+                        this.testResults = result;
+                    } catch (error) {
+                        this.testResults = `ACHIEVEMENT SYSTEM TEST FAILED:\n${error.message}`;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

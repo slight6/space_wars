@@ -1,0 +1,80 @@
+{
+  "player_id": 1,
+  "player_name": "commander_alpha",
+  "display_name": "Commander_Alpha",
+  "email": null,
+  "registration_timestamp": "2025-08-13T10:30:00Z",
+  "last_login_timestamp": "2025-08-13T15:45:00Z",
+  "total_playtime_minutes": 240,
+  "player_level": 3,
+  "experience_points": 1250,
+  "credits": 15750,
+  "premium_currency": 5,
+  "reputation_points": 150,
+  "research_points": 230,
+  "materials_inventory": {
+    "metal": 450,
+    "energy_cells": 125,
+    "rare_minerals": 35,
+    "quantum_cores": 2
+  },
+  "blueprints_owned": [
+    "basic_scout",
+    "light_fighter",
+    "cargo_hauler"
+  ],
+  "owned_ship_ids": [1, 3],
+  "active_ship_id": 1,
+  "fleet_size_limit": 2,
+  "hangar_capacity": 5,
+  "base_coordinates": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "missions_completed": 8,
+  "battles_won": 3,
+  "battles_lost": 1,
+  "distance_traveled": 1850,
+  "achievements_unlocked": [
+    "first_flight",
+    "explorer",
+    "trader"
+  ],
+  "research_completed": [
+    "basic_navigation",
+    "improved_thrusters"
+  ],
+  "current_location": {
+    "x": 2,
+    "y": -1,
+    "z": 0
+  },
+  "tutorial_progress": {
+    "basic_movement": true,
+    "ship_management": true,
+    "combat_basics": false,
+    "trading_basics": true
+  },
+  "settings_preferences": {
+    "auto_save": true,
+    "notifications": true,
+    "sound_effects": true,
+    "music": true,
+    "ui_scale": 1.0,
+    "camera_sensitivity": 0.5
+  },
+  "alliance_id": null,
+  "last_save_timestamp": "2025-08-13T15:44:30Z",
+  "status": "online",
+  "first_login": false,
+  "statistics": {
+    "sessions_played": 12,
+    "longest_session_minutes": 180,
+    "total_credits_earned": 25750,
+    "total_credits_spent": 10000,
+    "planets_discovered": 5,
+    "formations_deployed": 15,
+    "successful_trades": 4
+  }
+}

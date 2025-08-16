@@ -7,14 +7,32 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="page-template.js"></script>
-    <script src="game-data-manager.js"></script>
+    <script src="data-loader.js"></script>
+    <script src="ship-manager.js"></script>
+    <script src="advanced-ship-manager.js"></script>
+    <script src="ship-mining-integration.js"></script>
+    <script src="ship-status-bar.js"></script>
+    <script src="unified-header.js"></script>
+    <script src="scanner-system.js"></script>
+    <script src="mining-system.js"></script>
+    <script src="ship-equipment-system.js"></script>
+    <script src="comprehensive-specialist-system.js"></script>
+    <script src="universal-footer.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        /* Alpine.js handles show/hide with x-show directive */
+        .scanner-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+    </style>
 </head>
-<body x-data="stationApp()" class="text-white">
+<body class="game-bg text-white" x-data="stationApp()">
     <!-- Header -->
     <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
         <div class="flex justify-between items-center">
@@ -119,6 +137,7 @@
                             <a href="#" @click.prevent="configureSensors()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Sensor Range</a>
                             <a href="#" @click.prevent="configureBlackMarket()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🕳️ Hidden Compartment</a>
                             <div class="border-t border-gray-600 mt-2 pt-2">
+                                <a href="ship-management.html" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-blue-400">🚀 Advanced Ship Management</a>
                                 <a href="#" @click.prevent="manageLoadouts()" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-yellow-400">⚡ Manage Loadouts</a>
                             </div>
                         </div>
@@ -145,6 +164,7 @@
                                 <a href="#" @click.prevent="manageFuelPower()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ Fuel & Power</a>
                                 <a href="#" @click.prevent="manageMining()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Mining Operations</a>
                                 <a href="torpedo-launch.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🚀 Torpedo Launch</a>
+                                <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Space Navigation</a>
                             </div>
                         </div>
                     </div>
@@ -159,13 +179,17 @@
                         </button>
                         <div x-show="dropdowns.stationLocations" class="dropdown-menu border-t border-gray-700">
                             <a href="shipyard.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Shipyard</a>
+                            <a href="mining-operations.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-orange-400 font-semibold">⛏️ Mining Operations</a>
                             <a href="#" @click.prevent="visitEquipmentCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Equipment Center</a>
                             <a href="marketplace.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Marketplace</a>
                             <a href="trade-center.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏦 Trading Zone</a>
                             <a href="#" @click.prevent="visitTavern()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🍺 Tavern</a>
                             <a href="#" @click.prevent="visitGovernment()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Government Services</a>
                             <a href="specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 State Specialists</a>
+                            <a href="comprehensive-specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-yellow-400">🎓 Comprehensive Training</a>
+                            <a href="#" @click.prevent="showQuickTraining()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-green-400">⚡ Quick Training Overview</a>
                             <a href="system-map.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🗺️ Local Maps</a>
+                            <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Navigation</a>
                             <a href="#" @click.prevent="checkNews()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📰 Local News</a>
                             <a href="mission-log.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Mission Log</a>
                             <a href="#" @click.prevent="visitManufacturing()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Manufacturing</a>
@@ -196,6 +220,11 @@
     </div>
 
     <script>
+        // Global function to access station app instance for onclick handlers
+        function getStationApp() {
+            return window.stationAppInstance;
+        }
+        
         function stationApp() {
             return {
                 player: {},
@@ -246,6 +275,8 @@
                     this.player = JSON.parse(currentPlayer);
                     this.initializePlayerDefaults();
                     this.initializeLicenses();
+                    this.initializeScannersAndMining();
+                    this.initializeComprehensiveSpecialistSystem();
                     this.savePlayer();
                     
                     // Initialize unified status bar
@@ -313,41 +344,125 @@
                     };
                 },
 
-                // Scanner Functions
+                // Scanner Functions - Connected to actual scanner system
                 useSpatialScanner() {
-                    this.currentView = {
-                        title: '🌌 Spatial Scanner Active',
-                        content: '<p class="text-gray-300">Initializing spatial scanner array...</p>'
-                    };
-                    this.performSpatialScan();
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('spatial', 'stage1', this.player.coordinates);
+                    if (result.success) {
+                        this.currentView = {
+                            title: '🌌 Spatial Scanner Active',
+                            content: `<p class="text-blue-400">Spatial scan initiated...</p>
+                                     <p class="text-gray-300">Scan duration: ${Math.round(result.duration/1000)} seconds</p>
+                                     <p class="text-yellow-400">Energy consumed: 5 units</p>`
+                        };
+                        this.showNotification('Spatial scan started', 'success');
+                    } else {
+                        this.currentView = {
+                            title: '🌌 Spatial Scanner Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
                 },
 
                 useSurfaceScanner() {
-                    this.currentView = {
-                        title: '🏔️ Surface Scanner Active',
-                        content: '<p class="text-gray-300">Surface scanning requires proximity to a planetary body.</p>'
-                    };
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('surface', 'stage1', this.player.coordinates);
+                    if (result.success) {
+                        this.currentView = {
+                            title: '🏔️ Surface Scanner Active',
+                            content: `<p class="text-green-400">Surface scan initiated...</p>
+                                     <p class="text-gray-300">Analyzing planetary surface composition</p>
+                                     <p class="text-yellow-400">Energy consumed: 3 units</p>`
+                        };
+                        this.showNotification('Surface scan started', 'success');
+                    } else {
+                        this.currentView = {
+                            title: '🏔️ Surface Scanner Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
                 },
 
                 useProspectingScanner() {
-                    this.currentView = {
-                        title: '⛏️ Prospecting Scanner Active',
-                        content: '<p class="text-gray-300">Prospecting scanner ready. Target a mineral-rich location.</p>'
-                    };
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('prospecting', 'stage1', this.player.coordinates);
+                    if (result.success) {
+                        this.currentView = {
+                            title: '⛏️ Prospecting Scanner Active',
+                            content: `<p class="text-yellow-400">Prospecting scan initiated...</p>
+                                     <p class="text-gray-300">Surveying subsurface mineral deposits (1% depth)</p>
+                                     <p class="text-yellow-400">Energy consumed: 25 units</p>`
+                        };
+                        this.showNotification('Prospecting scan started', 'success');
+                    } else {
+                        this.currentView = {
+                            title: '⛏️ Prospecting Scanner Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
                 },
 
                 useSkimmingScanner() {
-                    this.currentView = {
-                        title: '💨 Skimming Scanner Active',
-                        content: '<p class="text-gray-300">Atmospheric skimming scanner online. Detecting gaseous resources.</p>'
-                    };
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('skimming', 'stage1', this.player.coordinates, 'medium');
+                    if (result.success) {
+                        this.currentView = {
+                            title: '💨 Atmospheric Skimmer Active',
+                            content: `<p class="text-purple-400">Atmospheric scan initiated...</p>
+                                     <p class="text-gray-300">Analyzing atmospheric composition at medium altitude</p>
+                                     <p class="text-yellow-400">Energy consumed: 10 units</p>`
+                        };
+                        this.showNotification('Atmospheric scan started', 'success');
+                    } else {
+                        this.currentView = {
+                            title: '💨 Atmospheric Skimmer Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
                 },
 
                 useShipScanner() {
-                    this.currentView = {
-                        title: '🚀 Ship Scanner Active',
-                        content: '<p class="text-gray-300">No other ships detected in immediate vicinity.</p>'
-                    };
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('ship', 'longRange', this.player.coordinates);
+                    if (result.success) {
+                        this.currentView = {
+                            title: '🚀 Ship Scanner Active',
+                            content: `<p class="text-red-400">Ship scan initiated...</p>
+                                     <p class="text-gray-300">Scanning for vessels in long-range proximity</p>
+                                     <p class="text-yellow-400">Energy consumed: 2 units</p>`
+                        };
+                        this.showNotification('Ship scan started', 'success');
+                    } else {
+                        this.currentView = {
+                            title: '🚀 Ship Scanner Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
                 },
 
                 performSpatialScan() {
@@ -1026,19 +1141,89 @@
                 },
 
                 manageMining() {
+                    if (!window.miningSystem) {
+                        this.showNotification('Mining system not available', 'error');
+                        return;
+                    }
+                    
+                    const nearbyLocations = this.getNearbyMiningLocations();
+                    const availableLocations = window.miningSystem.getAvailableLocations();
+                    const playerInventory = window.miningSystem.getPlayerInventory('player1');
+                    const activeMining = window.miningSystem.getPlayerMiningOperations('player1');
+                    
                     this.currentView = {
-                        title: '⛏️ Mining Operations',
+                        title: '⛏️ Mining Operations Center',
                         content: `
-                            <div class="space-y-4">
+                            <div class="space-y-6">
+                                <!-- Quick Mining Actions -->
                                 <div class="bg-gray-800 p-4 rounded-lg border border-yellow-500">
-                                    <h4 class="font-semibold text-yellow-400 mb-2">⚠️ Mining License Required</h4>
-                                    <p class="text-sm text-gray-300">Mining operations require proper certification</p>
-                                    <button class="mt-2 bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded text-sm">Apply for Mining License</button>
+                                    <h4 class="font-semibold text-yellow-400 mb-3">🚀 Quick Mining</h4>
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button onclick="getStationApp().quickMine()" class="bg-yellow-600 hover:bg-yellow-700 text-white font-bold py-2 px-3 rounded text-sm">
+                                            ⛏️ Quick Mine
+                                        </button>
+                                        <button onclick="getStationApp().openMiningInterface()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded text-sm">
+                                            📊 Full Interface
+                                        </button>
+                                    </div>
                                 </div>
+                                
+                                <!-- Current Status -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-400 mb-2">📦 Cargo Status</h4>
+                                        <p class="text-sm text-gray-300">Ore samples: ${playerInventory.length}</p>
+                                        <p class="text-xs text-gray-400">Cargo space: ${this.getCargoUsed()}/${this.getMaxCargo()}</p>
+                                        <div class="w-full bg-gray-700 rounded-full h-2 mt-2">
+                                            <div class="bg-blue-500 h-2 rounded-full" style="width: ${Math.min(100, (this.getCargoUsed()/this.getMaxCargo())*100)}%"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-green-400 mb-2">⚡ Operations</h4>
+                                        <p class="text-sm text-gray-300">Active mining: ${activeMining.length}</p>
+                                        <p class="text-xs text-gray-400">Available locations: ${Object.keys(availableLocations).length}</p>
+                                        ${activeMining.length > 0 ? 
+                                            `<p class="text-yellow-400 text-xs mt-1">⚠️ Mining in progress</p>` : 
+                                            `<p class="text-green-400 text-xs mt-1">✅ Ready for mining</p>`
+                                        }
+                                    </div>
+                                </div>
+                                
+                                <!-- Nearby Locations -->
                                 <div class="bg-gray-800 p-4 rounded-lg">
-                                    <h4 class="font-semibold text-blue-400 mb-2">🛠️ Equipment Status</h4>
-                                    <p class="text-sm text-gray-300">Basic mining equipment available</p>
-                                    <p class="text-xs text-gray-400">Efficiency: 45% (unlicensed operation)</p>
+                                    <h4 class="font-semibold text-purple-400 mb-3">� Nearby Mining Locations</h4>
+                                    <div class="space-y-2">
+                                        ${Object.keys(availableLocations).slice(0, 3).map(locationName => {
+                                            const location = availableLocations[locationName];
+                                            return `
+                                                <div class="flex justify-between items-center bg-gray-700 p-3 rounded">
+                                                    <div>
+                                                        <span class="font-medium text-white">${locationName}</span>
+                                                        <p class="text-xs text-gray-400">${location.description}</p>
+                                                    </div>
+                                                    <div class="text-right">
+                                                        <div class="text-green-400 text-sm">${location.availableSpots} spots</div>
+                                                        <div class="text-gray-400 text-xs">Level ${location.miningDifficulty}</div>
+                                                    </div>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                </div>
+                                
+                                <!-- Refinery Options -->
+                                <div class="bg-gray-800 p-4 rounded-lg border border-purple-500">
+                                    <h4 class="font-semibold text-purple-400 mb-3">🏭 Refinery Services</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <button onclick="getStationApp().showRefineryOptions()" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-3 rounded text-sm">
+                                            🔨 Build Refinery
+                                        </button>
+                                        <button onclick="getStationApp().processOre()" class="bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-3 rounded text-sm">
+                                            ⚗️ Process Ore
+                                        </button>
+                                    </div>
+                                    <p class="text-xs text-gray-400 mt-2">Level 1 refinery operations available</p>
                                 </div>
                             </div>
                         `
@@ -1779,9 +1964,504 @@
                             </div>
                         `
                     };
+                },
+                
+                // Scanner and Mining System Integration
+                initializeScannersAndMining() {
+                    // Initialize global systems
+                    if (typeof ScannerSystem !== 'undefined') {
+                        window.scannerSystem = new ScannerSystem();
+                        window.scannerSystem.updatePlayerLocation(0, 0, 0);
+                        window.scannerSystem.updateShipState('docked');
+                        
+                        // Listen for scan completion
+                        window.addEventListener('scanComplete', (event) => {
+                            this.handleScanComplete(event.detail);
+                        });
+                    }
+                    
+                    if (typeof MiningSystem !== 'undefined') {
+                        window.miningSystem = new MiningSystem();
+                        
+                        // Listen for mining completion
+                        window.addEventListener('miningComplete', (event) => {
+                            this.handleMiningComplete(event.detail);
+                        });
+                    }
+                    
+                    if (typeof ShipEquipment !== 'undefined') {
+                        window.shipEquipment = new ShipEquipment();
+                    }
+                    
+                    // Set default coordinates if not present
+                    if (!this.player.coordinates) {
+                        this.player.coordinates = { x: 0, y: 0, z: 0 };
+                    }
+                },
+                
+                handleScanComplete(scanData) {
+                    this.showNotification(`Scan completed! Found ${scanData.results.objectsDetected || 'data'} results.`, 'success');
+                    
+                    // Update current view if we're showing a scanner
+                    if (this.currentView.title.includes('Scanner')) {
+                        this.currentView.content = this.formatScanResults(scanData.results);
+                    }
+                },
+                
+                handleMiningComplete(miningData) {
+                    this.showNotification(`Mining completed! Found ${miningData.oreYield.length} ore samples.`, 'success');
+                    
+                    // Update credits if needed
+                    if (!this.player.credits) this.player.credits = 0;
+                    this.savePlayer();
+                },
+                
+                formatScanResults(results) {
+                    if (results.scanType === 'spatial' && results.objects) {
+                        return `
+                            <div class="space-y-4">
+                                <h4 class="text-blue-400 font-semibold">Objects Detected: ${results.objectsDetected}</h4>
+                                <div class="grid gap-3">
+                                    ${results.objects.map(obj => `
+                                        <div class="bg-gray-800 p-3 rounded border-l-4 border-blue-500">
+                                            <div class="flex justify-between">
+                                                <div>
+                                                    <h5 class="font-medium text-white">${obj.type}</h5>
+                                                    <p class="text-sm text-gray-400">${obj.classification}</p>
+                                                </div>
+                                                <div class="text-right text-sm">
+                                                    <div class="text-cyan-400">Distance: ${obj.distance.toFixed(1)}</div>
+                                                    <div class="text-gray-400">Signature: ${obj.signature}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        return `<pre class="bg-gray-800 p-4 rounded text-sm text-gray-300 overflow-x-auto">${JSON.stringify(results, null, 2)}</pre>`;
+                    }
+                },
+                
+                // Mining helper functions
+                quickMine() {
+                    if (!window.miningSystem) {
+                        this.showNotification('Mining system not available', 'error');
+                        return;
+                    }
+                    
+                    // Try to mine at nearest location (Quilt Belt by default)
+                    const result = window.miningSystem.startMining('player1', 
+                        { type: 'Scout Ship', energy: 85 }, 
+                        'Quilt Belt', 1);
+                    
+                    if (result.success) {
+                        this.showNotification(result.message, 'success');
+                        // Update view to show mining status
+                        this.manageMining();
+                    } else {
+                        this.showNotification(`Mining failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                openMiningInterface() {
+                    window.open('mining-interface.html', '_blank');
+                },
+                
+                openScannerInterface() {
+                    window.open('scanner-interface.html', '_blank');
+                },
+                
+                getNearbyMiningLocations() {
+                    if (!window.miningSystem) return [];
+                    
+                    const locations = window.miningSystem.getAvailableLocations();
+                    return Object.keys(locations).map(name => ({
+                        name: name,
+                        ...locations[name],
+                        distance: this.calculateDistance(this.player.coordinates, locations[name].coordinates)
+                    })).filter(loc => loc.distance <= 10).sort((a, b) => a.distance - b.distance);
+                },
+                
+                getCargoUsed() {
+                    if (!window.miningSystem) return 0;
+                    return window.miningSystem.getCargoUsed('player1');
+                },
+                
+                getMaxCargo() {
+                    return 50; // Scout ship default
+                },
+                
+                calculateDistance(pos1, pos2) {
+                    return Math.sqrt(
+                        Math.pow(pos1.x - pos2.x, 2) +
+                        Math.pow(pos1.y - pos2.y, 2) +
+                        Math.pow(pos1.z - pos2.z, 2)
+                    );
+                },
+                
+                // Refinery functions
+                showRefineryOptions() {
+                    this.currentView = {
+                        title: '🏭 Refinery Station Construction',
+                        content: `
+                            <div class="space-y-6">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-purple-500">
+                                    <h4 class="font-semibold text-purple-400 mb-3">🔨 Build Level 1 Refinery Station</h4>
+                                    <p class="text-gray-300 mb-4">A basic refinery station allows you to process raw ore into refined materials, increasing their market value.</p>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <h5 class="text-blue-400 font-medium">📊 Specifications</h5>
+                                            <ul class="text-sm text-gray-300 mt-2 space-y-1">
+                                                <li>• Processing Rate: 100 units/hour</li>
+                                                <li>• Efficiency: 1.5x value increase</li>
+                                                <li>• Compatible: Iron, Copper, Aluminum</li>
+                                                <li>• Build Time: 1 hour</li>
+                                            </ul>
+                                        </div>
+                                        <div class="bg-gray-700 p-3 rounded">
+                                            <h5 class="text-green-400 font-medium">💰 Economics</h5>
+                                            <ul class="text-sm text-gray-300 mt-2 space-y-1">
+                                                <li>• Cost: 50,000 credits</li>
+                                                <li>• Operating Cost: 10 credits/hour</li>
+                                                <li>• Break-even: ~500 units</li>
+                                                <li>• ROI: 30-60 days</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label class="block text-sm text-gray-300 mb-2">Select Construction Location:</label>
+                                        <select id="refinery-location" class="w-full bg-gray-700 border border-gray-600 rounded px-3 py-2 text-white">
+                                            <option value="Keldar Planet">Keldar Planet (8 spots available)</option>
+                                            <option value="Keldar Moon Alpha">Keldar Moon Alpha (3 spots available)</option>
+                                            <option value="Keldar Moon Beta">Keldar Moon Beta (2 spots available)</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <button onclick="window.stationAppInstance.buildRefinery()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-md">
+                                        🔨 Build Level 1 Refinery Station (50,000₵)
+                                    </button>
+                                </div>
+                                
+                                <div class="bg-gray-800 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-orange-400 mb-3">📈 Refinery Benefits</h4>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div class="text-center">
+                                            <div class="text-2xl text-blue-400 mb-2">1.5x</div>
+                                            <div class="text-sm text-gray-300">Value Multiplier</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl text-green-400 mb-2">100</div>
+                                            <div class="text-sm text-gray-300">Units/Hour</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-2xl text-purple-400 mb-2">∞</div>
+                                            <div class="text-sm text-gray-300">Passive Income</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+                
+                buildRefinery() {
+                    const location = document.getElementById('refinery-location')?.value || 'Keldar Planet';
+                    
+                    if (!this.player.credits || this.player.credits < 50000) {
+                        this.showNotification('Insufficient credits! Need 50,000 credits to build refinery.', 'error');
+                        return;
+                    }
+                    
+                    if (!window.miningSystem) {
+                        this.showNotification('Mining system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.miningSystem.buildRefinery('player1', location, 'Basic Refinery');
+                    if (result.success) {
+                        this.player.credits -= result.cost;
+                        this.savePlayer();
+                        this.showNotification(`Refinery construction started at ${location}!`, 'success');
+                        
+                        this.currentView = {
+                            title: '🏗️ Refinery Under Construction',
+                            content: `
+                                <div class="bg-gray-800 p-6 rounded-lg border border-yellow-500">
+                                    <h4 class="text-yellow-400 font-semibold mb-3">🚧 Construction in Progress</h4>
+                                    <p class="text-gray-300 mb-4">Your Level 1 Refinery Station is under construction at ${location}.</p>
+                                    <div class="bg-gray-700 p-3 rounded mb-4">
+                                        <div class="text-sm text-gray-300">Construction will complete in: <span class="text-blue-400">${Math.round(result.buildTime/1000)} seconds</span></div>
+                                        <div class="w-full bg-gray-600 rounded-full h-2 mt-2">
+                                            <div class="bg-yellow-500 h-2 rounded-full w-0 animate-pulse"></div>
+                                        </div>
+                                    </div>
+                                    <p class="text-xs text-gray-400">You will be notified when construction is complete.</p>
+                                </div>
+                            `
+                        };
+                    } else {
+                        this.showNotification(`Construction failed: ${result.error}`, 'error');
+                    }
+                },
+                
+                processOre() {
+                    if (!window.miningSystem) {
+                        this.showNotification('Mining system not available', 'error');
+                        return;
+                    }
+                    
+                    const oreInventory = window.miningSystem.getPlayerInventory('player1');
+                    
+                    if (oreInventory.length === 0) {
+                        this.showNotification('No ore to process! Mine some ore first.', 'error');
+                        return;
+                    }
+                    
+                    this.currentView = {
+                        title: '⚗️ Ore Processing Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-gray-800 p-4 rounded-lg border border-orange-500">
+                                    <h4 class="font-semibold text-orange-400 mb-3">🔬 Level 1 Processing Available</h4>
+                                    <p class="text-gray-300 mb-4">Basic ore refining increases value by 50% but requires processing time.</p>
+                                    
+                                    <div class="space-y-3">
+                                        ${oreInventory.slice(0, 5).map(ore => `
+                                            <div class="bg-gray-700 p-3 rounded flex justify-between items-center">
+                                                <div>
+                                                    <span class="text-white font-medium">${ore.amount}x ${ore.type}</span>
+                                                    <span class="text-gray-400 text-sm ml-2">(${ore.quality})</span>
+                                                </div>
+                                                <div class="text-right">
+                                                    ${ore.appraised ? 
+                                                        `<div class="text-green-400">${ore.marketValue}₵ → ${Math.floor(ore.marketValue * 1.5)}₵</div>` :
+                                                        `<div class="text-yellow-400">Appraise first</div>`
+                                                    }
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                    
+                                    <div class="mt-4 p-3 bg-blue-900 rounded">
+                                        <p class="text-blue-300 text-sm">💡 Build a refinery station for automated processing and higher efficiency!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                // COMPREHENSIVE SPECIALIST SYSTEM INTEGRATION
+                initializeComprehensiveSpecialistSystem() {
+                    try {
+                        if (typeof ComprehensiveSpecialistSystem !== 'undefined') {
+                            this.comprehensiveSystem = new ComprehensiveSpecialistSystem();
+                            this.comprehensiveSystem.initialize(this.player);
+                            console.log('Comprehensive Specialist System initialized successfully');
+                        } else {
+                            console.warn('Comprehensive Specialist System not available');
+                        }
+                    } catch (error) {
+                        console.error('Failed to initialize Comprehensive Specialist System:', error);
+                    }
+                },
+
+                // Quick access to specialist training from main interface
+                showQuickTraining() {
+                    if (!this.comprehensiveSystem) {
+                        this.showNotification('Training system not available', 'error');
+                        return;
+                    }
+
+                    const availableTutorials = this.comprehensiveSystem.tutorials.getAvailableTutorials(this.player);
+                    const availableMissions = this.comprehensiveSystem.missions.generateAvailableMissions(this.player);
+                    
+                    this.currentView = {
+                        title: '🎓 Quick Training Overview',
+                        content: `
+                            <div class="space-y-6">
+                                <div class="text-center">
+                                    <h3 class="text-xl font-bold text-yellow-400 mb-2">🌟 Comprehensive Training Available</h3>
+                                    <p class="text-gray-300">Access advanced tutorials, missions, and certification programs</p>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="bg-blue-900 bg-opacity-30 rounded-lg p-4 border border-blue-500">
+                                        <h4 class="text-blue-400 font-semibold mb-2">📚 Tutorials Available</h4>
+                                        <div class="text-2xl font-bold text-white mb-2">${availableTutorials.length}</div>
+                                        <p class="text-blue-300 text-sm mb-3">Learn new skills</p>
+                                        <a href="comprehensive-specialists.html" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm inline-block w-full text-center">
+                                            Start Learning
+                                        </a>
+                                    </div>
+                                    
+                                    <div class="bg-green-900 bg-opacity-30 rounded-lg p-4 border border-green-500">
+                                        <h4 class="text-green-400 font-semibold mb-2">⚡ Missions Ready</h4>
+                                        <div class="text-2xl font-bold text-white mb-2">${availableMissions.length}</div>
+                                        <p class="text-green-300 text-sm mb-3">Earn rewards</p>
+                                        <a href="comprehensive-specialists.html?view=missions" class="bg-green-600 hover:bg-green-700 px-3 py-2 rounded text-sm inline-block w-full text-center">
+                                            View Missions
+                                        </a>
+                                    </div>
+                                    
+                                    <div class="bg-purple-900 bg-opacity-30 rounded-lg p-4 border border-purple-500">
+                                        <h4 class="text-purple-400 font-semibold mb-2">🏆 Progress</h4>
+                                        <div class="text-2xl font-bold text-white mb-2">${this.calculatePlayerLevel()}</div>
+                                        <p class="text-purple-300 text-sm mb-3">Current level</p>
+                                        <a href="comprehensive-specialists.html?view=achievements" class="bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded text-sm inline-block w-full text-center">
+                                            View Progress
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-gray-800 p-4 rounded-lg border border-yellow-500">
+                                    <h4 class="text-yellow-400 font-semibold mb-3">🎯 Recommended Next Steps</h4>
+                                    <div class="space-y-2">
+                                        ${this.getRecommendedActions().map(action => `
+                                            <div class="flex items-center justify-between bg-gray-700 p-3 rounded">
+                                                <div>
+                                                    <span class="text-white">${action.title}</span>
+                                                    <div class="text-gray-400 text-sm">${action.description}</div>
+                                                </div>
+                                                <div class="text-yellow-400 text-sm">+${action.reputation} Rep</div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                calculatePlayerLevel() {
+                    return Math.floor((this.player.reputation || 0) / 50) + 1;
+                },
+
+                getRecommendedActions() {
+                    const actions = [];
+                    const completed = this.player.specialistProgress?.tutorialsCompleted || [];
+                    
+                    if (!completed.includes('system_basics')) {
+                        actions.push({
+                            title: 'Complete System Orientation',
+                            description: 'Learn about the Keldar system',
+                            reputation: 25
+                        });
+                    }
+                    
+                    if (!completed.includes('navigation_basics')) {
+                        actions.push({
+                            title: 'Basic Navigation Training',
+                            description: 'Master space travel fundamentals',
+                            reputation: 35
+                        });
+                    }
+                    
+                    if (!completed.includes('scanner_basics')) {
+                        actions.push({
+                            title: 'Scanner Systems Training',
+                            description: 'Learn to use all 5 scanner types',
+                            reputation: 75
+                        });
+                    }
+                    
+                    return actions.slice(0, 3);
+                },
+
+                // Enhanced notification system with specialist integration
+                showNotificationWithSpecialistTip(message, type = 'info', specialistTip = null) {
+                    this.showNotification(message, type);
+                    
+                    if (specialistTip && this.comprehensiveSystem) {
+                        setTimeout(() => {
+                            this.showNotification(`💡 Tip: ${specialistTip}`, 'info');
+                        }, 2000);
+                    }
+                },
+
+                // Integration with existing scanner functions
+                useSpatialScanner() {
+                    if (!window.scannerSystem) {
+                        this.showNotification('Scanner system not available', 'error');
+                        return;
+                    }
+                    
+                    const result = window.scannerSystem.startScan('spatial', 'stage1', this.player.coordinates);
+                    if (result.success) {
+                        this.currentView = {
+                            title: '🌌 Spatial Scanner Active',
+                            content: `<p class="text-blue-400">Spatial scan initiated...</p>
+                                     <p class="text-gray-300">Scan duration: ${Math.round(result.duration/1000)} seconds</p>
+                                     <p class="text-yellow-400">Energy consumed: 5 units</p>`
+                        };
+                        
+                        // Check if player should learn about scanner training
+                        const completed = this.player.specialistProgress?.tutorialsCompleted || [];
+                        if (!completed.includes('scanner_basics')) {
+                            this.showNotificationWithSpecialistTip(
+                                'Spatial scan started', 
+                                'success',
+                                'Complete Scanner Training for improved efficiency and accuracy'
+                            );
+                        } else {
+                            this.showNotification('Spatial scan started', 'success');
+                        }
+                    } else {
+                        this.currentView = {
+                            title: '🌌 Spatial Scanner Error',
+                            content: `<p class="text-red-400">Scanner Error: ${result.error}</p>`
+                        };
+                        this.showNotification(result.error, 'error');
+                    }
+                },
+
+                // Enhanced mining with specialist integration
+                quickMine() {
+                    if (!window.miningSystem) {
+                        this.showNotification('Mining system not available', 'error');
+                        return;
+                    }
+                    
+                    const completed = this.player.specialistProgress?.tutorialsCompleted || [];
+                    const certifications = this.player.specialistProgress?.certifications || [];
+                    
+                    // Check for proper training/certification
+                    if (!completed.includes('mining_basics') && !certifications.includes('mining_operator')) {
+                        this.showNotification('⚠️ Warning: Untrained mining detected! Consider completing mining tutorials.', 'warning');
+                        
+                        setTimeout(() => {
+                            this.showNotification('💡 Visit Comprehensive Training for mining education', 'info');
+                        }, 3000);
+                    }
+                    
+                    // Try to mine at nearest location (Quilt Belt by default)
+                    const result = window.miningSystem.startMining('player1', 
+                        { type: 'Scout Ship', energy: 85 }, 
+                        'Quilt Belt', 1);
+                    
+                    if (result.success) {
+                        let message = result.message;
+                        if (certifications.includes('mining_operator')) {
+                            message += ' (Certified operator bonus applied)';
+                        }
+                        this.showNotification(message, 'success');
+                        // Update view to show mining status
+                        this.manageMining();
+                    } else {
+                        this.showNotification(`Mining failed: ${result.error}`, 'error');
+                    }
                 }
             }
         }
+
+        // Initialize the app when Alpine.js loads
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('stationApp', stationApp);
+        });
     </script>
 </body>
 </html>

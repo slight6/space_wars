@@ -14,9 +14,17 @@ class ShipManager {
 
     async loadShipData() {
         try {
-            // Load ship definitions from ships.json
-            const response = await fetch('./ships.json');
-            this.ships = await response.json();
+            // Load ship definitions from data/ships.json using DataLoader
+            if (window.DataLoader) {
+                this.ships = await window.DataLoader.loadData('ships.json');
+            } else {
+                // Fallback for direct loading
+                const response = await fetch('./data/ships.json');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                this.ships = await response.json();
+            }
             console.log(`Loaded ${this.ships.length} ship definitions`);
             
             // Load player ship instances from localStorage

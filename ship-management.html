@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Ship Management - Space Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <style>
+        .game-bg {
+            background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+            min-height: 100vh;
+        }
+        .loadout-glow {
+            animation: loadout-glow 2s ease-in-out infinite alternate;
+        }
+        @keyframes loadout-glow {
+            from { box-shadow: 0 0 20px rgba(59, 130, 246, 0.3); }
+            to { box-shadow: 0 0 30px rgba(59, 130, 246, 0.6); }
+        }
+        .equipment-pulse {
+            animation: equipment-pulse 1.5s ease-in-out infinite;
+        }
+        @keyframes equipment-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.02); opacity: 0.9; }
+        }
+        .efficiency-bar {
+            background: linear-gradient(90deg, #ef4444 0%, #f59e0b 50%, #10b981 100%);
+            height: 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="game-bg text-white" x-data="shipManagementApp()">
+    <div class="container mx-auto px-4 py-6">
+        <!-- Header -->
+        <div class="bg-gray-800 rounded-lg border border-blue-500 p-6 mb-6">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-blue-400">🚀 Advanced Ship Management</h1>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-lg font-semibold text-green-400">💰 <span x-text="credits.toLocaleString()"></span> Credits</div>
+                        <div class="text-sm text-gray-300">Available Budget</div>
+                    </div>
+                    <button @click="backToGame()" class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors">
+                        ← Back to Game
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ship Selection -->
+        <div class="bg-gray-800 rounded-lg border border-gray-600 p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-300 mb-4">🛸 Your Ships</h2>
+            <div x-show="!playerShips.length" class="text-center py-8">
+                <div class="text-gray-400 mb-4">No ships available</div>
+                <button @click="createStarterShip()" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded transition-colors">
+                    Create Starter Ship
+                </button>
+            </div>
+            
+            <div x-show="playerShips.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="ship in playerShips" :key="ship.instanceId">
+                    <div class="bg-gray-700 rounded-lg border p-4 cursor-pointer transition-all"
+                         :class="selectedShip?.instanceId === ship.instanceId ? 'border-blue-500 bg-gray-600' : 'border-gray-600 hover:border-gray-500'"
+                         @click="selectShip(ship)">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="font-semibold text-white" x-text="ship.shipName"></h3>
+                            <span class="text-xs px-2 py-1 rounded" 
+                                  :class="ship.currentStatus.docked ? 'bg-green-600' : 'bg-yellow-600'"
+                                  x-text="ship.currentStatus.docked ? '🔗 Docked' : '🚀 In Space'">
+                            </span>
+                        </div>
+                        
+                        <!-- Ship Status Bars -->
+                        <div class="space-y-2 text-xs">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Hull</span>
+                                <span x-text="ship.currentStatus.hull + '%'" class="text-green-400"></span>
+                            </div>
+                            <div class="w-full bg-gray-600 rounded h-1">
+                                <div class="bg-green-500 h-1 rounded" :style="`width: ${ship.currentStatus.hull}%`"></div>
+                            </div>
+                            
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Condition</span>
+                                <span x-text="ship.currentStatus.condition + '%'" 
+                                      :class="ship.currentStatus.condition > 80 ? 'text-green-400' : ship.currentStatus.condition > 50 ? 'text-yellow-400' : 'text-red-400'"></span>
+                            </div>
+                            <div class="w-full bg-gray-600 rounded h-1">
+                                <div class="h-1 rounded" 
+                                     :class="ship.currentStatus.condition > 80 ? 'bg-green-500' : ship.currentStatus.condition > 50 ? 'bg-yellow-500' : 'bg-red-500'"
+                                     :style="`width: ${ship.currentStatus.condition}%`"></div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 text-xs text-gray-400">
+                            <div>Operating Hours: <span x-text="Math.floor(ship.currentStatus.operatingHours)"></span></div>
+                            <div>Active Loadout: <span x-text="ship.currentLoadout?.name || 'Default'"></span></div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Main Ship Management Interface -->
+        <div x-show="selectedShip" class="bg-gray-800 rounded-lg border border-gray-600 p-6">
+            <!-- Tab Navigation -->
+            <div class="flex space-x-1 mb-6 bg-gray-700 rounded-lg p-1">
+                <button @click="activeTab = 'overview'" 
+                        :class="activeTab === 'overview' ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📊 Ship Overview
+                </button>
+                <button @click="activeTab = 'loadouts'" 
+                        :class="activeTab === 'loadouts' ? 'bg-green-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    ⚡ Loadout Management
+                </button>
+                <button @click="activeTab = 'equipment'" 
+                        :class="activeTab === 'equipment' ? 'bg-orange-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    🔧 Equipment & Upgrades
+                </button>
+                <button @click="activeTab = 'cargo'" 
+                        :class="activeTab === 'cargo' ? 'bg-purple-600' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📦 Cargo Management
+                </button>
+                <button @click="activeTab = 'logs'" 
+                        :class="activeTab === 'logs' ? 'bg-gray-500' : 'bg-gray-600 hover:bg-gray-500'"
+                        class="px-4 py-2 rounded transition-colors text-sm font-medium">
+                    📋 Ship Logs
+                </button>
+            </div>
+
+            <!-- Ship Overview Tab -->
+            <div x-show="activeTab === 'overview'">
+                <h2 class="text-xl font-bold text-blue-400 mb-4" x-text="'📊 ' + (selectedShip?.shipName || 'Ship Overview')"></h2>
+                
+                <!-- Ship Status Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                    <!-- Current Status -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-green-400 font-semibold mb-3">🚀 Current Status</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Location:</span>
+                                <span class="text-white" x-text="selectedShip?.currentStatus.location.name"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Status:</span>
+                                <span :class="selectedShip?.currentStatus.docked ? 'text-green-400' : 'text-yellow-400'"
+                                      x-text="selectedShip?.currentStatus.docked ? 'Docked' : 'In Space'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Fuel:</span>
+                                <span class="text-blue-400" x-text="selectedShip?.currentStatus.fuel + '%'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Power:</span>
+                                <span class="text-yellow-400" x-text="selectedShip?.currentStatus.power + '%'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ship Capabilities -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-orange-400 font-semibold mb-3">⚙️ Capabilities</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Mining Speed:</span>
+                                <span class="text-orange-400" x-text="(selectedShip?.capabilities?.mining?.speed || 1).toFixed(1) + 'x'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Scan Range:</span>
+                                <span class="text-cyan-400" x-text="(selectedShip?.capabilities?.scanning?.range || 100) + ' km'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Cargo Cap:</span>
+                                <span class="text-purple-400" x-text="(selectedShip?.capabilities?.cargo?.capacity || 100) + ' units'"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Power Output:</span>
+                                <span class="text-yellow-400" x-text="(selectedShip?.capabilities?.power?.output || 100) + ' MW'"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Operating Efficiency -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-yellow-400 font-semibold mb-3">📈 Efficiency</h3>
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-300">Mining:</span>
+                                    <span x-text="Math.floor((selectedShip?.efficiency?.mining || 1) * 100) + '%'"></span>
+                                </div>
+                                <div class="efficiency-bar">
+                                    <div class="bg-gray-600 h-full rounded" :style="`width: ${Math.min(100, (selectedShip?.efficiency?.mining || 1) * 100)}%`"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-300">Scanning:</span>
+                                    <span x-text="Math.floor((selectedShip?.efficiency?.scanning || 1) * 100) + '%'"></span>
+                                </div>
+                                <div class="efficiency-bar">
+                                    <div class="bg-gray-600 h-full rounded" :style="`width: ${Math.min(100, (selectedShip?.efficiency?.scanning || 1) * 100)}%`"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <span class="text-gray-300">Overall:</span>
+                                    <span x-text="Math.floor((selectedShip?.efficiency?.overall || 1) * 100) + '%'"></span>
+                                </div>
+                                <div class="efficiency-bar">
+                                    <div class="bg-gray-600 h-full rounded" :style="`width: ${Math.min(100, (selectedShip?.efficiency?.overall || 1) * 100)}%`"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-purple-400 font-semibold mb-3">📊 Statistics</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Total Mined:</span>
+                                <span class="text-orange-400" x-text="(selectedShip?.statistics?.totalMined || 0).toLocaleString()"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Scans Completed:</span>
+                                <span class="text-cyan-400" x-text="(selectedShip?.statistics?.scansCompleted || 0).toLocaleString()"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Operations:</span>
+                                <span class="text-green-400" x-text="(selectedShip?.statistics?.operationsCompleted || 0).toLocaleString()"></span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-300">Credits Earned:</span>
+                                <span class="text-yellow-400" x-text="(selectedShip?.statistics?.creditsEarned || 0).toLocaleString()"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Maintenance Status -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-red-400 font-semibold mb-3">🔧 Maintenance Status</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-300 mb-1">Hull Maintenance</div>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex-1 bg-gray-600 rounded h-2">
+                                    <div class="h-2 rounded" 
+                                         :class="(selectedShip?.maintenanceNeeded?.hull || 0) > 50 ? 'bg-red-500' : (selectedShip?.maintenanceNeeded?.hull || 0) > 25 ? 'bg-yellow-500' : 'bg-green-500'"
+                                         :style="`width: ${Math.min(100, selectedShip?.maintenanceNeeded?.hull || 0)}%`"></div>
+                                </div>
+                                <span class="text-xs" x-text="Math.floor(selectedShip?.maintenanceNeeded?.hull || 0) + '%'"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300 mb-1">Systems</div>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex-1 bg-gray-600 rounded h-2">
+                                    <div class="h-2 rounded" 
+                                         :class="(selectedShip?.maintenanceNeeded?.systems || 0) > 50 ? 'bg-red-500' : (selectedShip?.maintenanceNeeded?.systems || 0) > 25 ? 'bg-yellow-500' : 'bg-green-500'"
+                                         :style="`width: ${Math.min(100, selectedShip?.maintenanceNeeded?.systems || 0)}%`"></div>
+                                </div>
+                                <span class="text-xs" x-text="Math.floor(selectedShip?.maintenanceNeeded?.systems || 0) + '%'"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-300 mb-1">Equipment</div>
+                            <div class="flex items-center space-x-2">
+                                <div class="flex-1 bg-gray-600 rounded h-2">
+                                    <div class="h-2 rounded" 
+                                         :class="(selectedShip?.maintenanceNeeded?.equipment || 0) > 50 ? 'bg-red-500' : (selectedShip?.maintenanceNeeded?.equipment || 0) > 25 ? 'bg-yellow-500' : 'bg-green-500'"
+                                         :style="`width: ${Math.min(100, selectedShip?.maintenanceNeeded?.equipment || 0)}%`"></div>
+                                </div>
+                                <span class="text-xs" x-text="Math.floor(selectedShip?.maintenanceNeeded?.equipment || 0) + '%'"></span>
+                            </div>
+                        </div>
+                        <div>
+                            <button @click="performMaintenance()" 
+                                    :disabled="(selectedShip?.maintenanceNeeded?.overall || 0) < 10"
+                                    class="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-500 px-4 py-2 rounded text-sm transition-colors">
+                                🔧 Maintenance
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loadout Management Tab -->
+            <div x-show="activeTab === 'loadouts'">
+                <h2 class="text-xl font-bold text-green-400 mb-4">⚡ Loadout Management</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <template x-for="(loadout, index) in selectedShip?.loadouts || []" :key="index">
+                        <div class="bg-gray-700 rounded-lg border p-4"
+                             :class="selectedShip?.activeLoadout === index ? 'border-green-500 loadout-glow' : 'border-gray-600'">
+                            <div class="flex justify-between items-center mb-3">
+                                <h3 class="font-semibold text-white flex items-center">
+                                    <span x-text="loadout.icon"></span>
+                                    <span class="ml-2" x-text="loadout.name"></span>
+                                </h3>
+                                <div class="flex space-x-2">
+                                    <button x-show="selectedShip?.activeLoadout !== index"
+                                            @click="switchLoadout(index)" 
+                                            class="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs transition-colors">
+                                        Activate
+                                    </button>
+                                    <span x-show="selectedShip?.activeLoadout === index"
+                                          class="bg-green-500 px-2 py-1 rounded text-xs">
+                                        Active
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <p class="text-sm text-gray-300 mb-4" x-text="loadout.description"></p>
+                            
+                            <!-- Power Allocation -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-semibold text-yellow-400 mb-2">⚡ Power Allocation</h4>
+                                <div class="space-y-1 text-xs">
+                                    <template x-for="[system, power] in Object.entries(loadout.powerAllocation || {})" :key="system">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300 capitalize" x-text="system.replace('_', ' ')"></span>
+                                            <span class="text-yellow-400" x-text="power + '%'"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                            
+                            <!-- Equipment Overview -->
+                            <div>
+                                <h4 class="text-sm font-semibold text-blue-400 mb-2">🔧 Key Equipment</h4>
+                                <div class="space-y-1 text-xs">
+                                    <template x-for="[slot, equipmentId] in Object.entries(loadout.equipment || {})" :key="slot">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-300 capitalize" x-text="slot.replace('_', ' ')"></span>
+                                            <span class="text-blue-400" x-text="getEquipmentName(equipmentId)"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Power Allocation Adjustment -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-yellow-400 font-semibold mb-4">⚡ Custom Power Allocation</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                        <template x-for="[system, power] in Object.entries(selectedShip?.powerAllocation || {})" :key="system">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-300 mb-1 capitalize" x-text="system.replace('_', ' ')"></label>
+                                <div class="flex items-center space-x-2">
+                                    <input type="range" min="0" max="50" :value="power" 
+                                           @input="updatePowerAllocation(system, $event.target.value)"
+                                           class="flex-1">
+                                    <span class="text-yellow-400 text-sm w-8" x-text="power + '%'"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="mt-4 text-sm text-gray-400">
+                        Total allocation: <span x-text="getTotalPowerAllocation() + '%'" 
+                                               :class="getTotalPowerAllocation() > 100 ? 'text-red-400' : 'text-green-400'"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipment & Upgrades Tab -->
+            <div x-show="activeTab === 'equipment'">
+                <h2 class="text-xl font-bold text-orange-400 mb-4">🔧 Equipment & Upgrades</h2>
+                
+                <!-- Installed Equipment -->
+                <div class="bg-gray-700 rounded-lg p-4 mb-6">
+                    <h3 class="text-blue-400 font-semibold mb-4">🔧 Currently Installed</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <template x-for="[slot, equipmentId] in Object.entries(selectedShip?.installedEquipment || {})" :key="slot">
+                            <div class="bg-gray-600 rounded-lg p-3 equipment-pulse">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-white capitalize" x-text="slot.replace('_', ' ')"></h4>
+                                    <span class="text-xs px-2 py-1 bg-blue-600 rounded" x-text="'T' + getEquipmentTier(equipmentId)"></span>
+                                </div>
+                                <div class="text-sm text-gray-300 mb-2" x-text="getEquipmentName(equipmentId)"></div>
+                                <div class="text-xs text-gray-400" x-text="getEquipmentDescription(equipmentId)"></div>
+                                <button @click="showEquipmentUpgrades(slot)" 
+                                        class="w-full mt-2 bg-orange-600 hover:bg-orange-700 px-2 py-1 rounded text-xs transition-colors">
+                                    🔧 Upgrade
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Available Upgrades -->
+                <div class="bg-gray-700 rounded-lg p-4">
+                    <h3 class="text-green-400 font-semibold mb-4">📈 Available Upgrades</h3>
+                    
+                    <div x-show="!selectedShip?.availableUpgrades?.length" class="text-center py-8 text-gray-400">
+                        No upgrades available at this time
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <template x-for="upgrade in selectedShip?.availableUpgrades?.slice(0, 6) || []" :key="upgrade.id">
+                            <div class="bg-gray-600 rounded-lg border p-4"
+                                 :class="upgrade.isUpgrade ? 'border-green-500' : 'border-blue-500'">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h4 class="font-semibold text-white" x-text="upgrade.name"></h4>
+                                    <span class="text-xs px-2 py-1 rounded" 
+                                          :class="'bg-' + getTierColor(upgrade.tier) + '-600'"
+                                          x-text="'Tier ' + upgrade.tier"></span>
+                                </div>
+                                
+                                <div class="text-sm text-gray-300 mb-2" x-text="upgrade.description"></div>
+                                
+                                <div class="text-sm text-green-400 font-semibold mb-3" x-text="upgrade.cost.toLocaleString() + ' Credits'"></div>
+                                
+                                <div class="flex space-x-2">
+                                    <button @click="installEquipment(upgrade)" 
+                                            :disabled="credits < upgrade.cost"
+                                            class="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 px-3 py-2 rounded text-sm transition-colors">
+                                        <span x-show="upgrade.isUpgrade">⬆️ Upgrade</span>
+                                        <span x-show="!upgrade.isUpgrade">📦 Install</span>
+                                    </button>
+                                    <button @click="showEquipmentDetails(upgrade)" 
+                                            class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded text-sm transition-colors">
+                                        ℹ️
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cargo Management Tab -->
+            <div x-show="activeTab === 'cargo'">
+                <h2 class="text-xl font-bold text-purple-400 mb-4">📦 Cargo Management</h2>
+                
+                <!-- Cargo Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-purple-400 font-semibold mb-2">📊 Capacity</h3>
+                        <div class="text-2xl font-bold text-white" x-text="selectedShip?.cargoUsed || 0"></div>
+                        <div class="text-sm text-gray-300">
+                            / <span x-text="selectedShip?.capabilities?.cargo?.capacity || 100"></span> units
+                        </div>
+                        <div class="mt-2 w-full bg-gray-600 rounded h-2">
+                            <div class="bg-purple-500 h-2 rounded" 
+                                 :style="`width: ${Math.min(100, ((selectedShip?.cargoUsed || 0) / (selectedShip?.capabilities?.cargo?.capacity || 100)) * 100)}%`"></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-orange-400 font-semibold mb-2">🗿 Ores</h3>
+                        <div class="text-2xl font-bold text-white" x-text="Object.keys(selectedShip?.cargoInventory?.ores || {}).length"></div>
+                        <div class="text-sm text-gray-300">types</div>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-blue-400 font-semibold mb-2">🏭 Refined</h3>
+                        <div class="text-2xl font-bold text-white" x-text="Object.keys(selectedShip?.cargoInventory?.refinedProducts || {}).length"></div>
+                        <div class="text-sm text-gray-300">types</div>
+                    </div>
+
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-green-400 font-semibold mb-2">⚙️ Equipment</h3>
+                        <div class="text-2xl font-bold text-white" x-text="Object.keys(selectedShip?.cargoInventory?.equipment || {}).length"></div>
+                        <div class="text-sm text-gray-300">items</div>
+                    </div>
+                </div>
+
+                <!-- Cargo Categories -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Ores -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-orange-400 font-semibold mb-3">🗿 Raw Ores</h3>
+                        <div x-show="!Object.keys(selectedShip?.cargoInventory?.ores || {}).length" 
+                             class="text-gray-400 text-center py-4">
+                            No ores in cargo
+                        </div>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            <template x-for="[oreType, quantity] in Object.entries(selectedShip?.cargoInventory?.ores || {})" :key="oreType">
+                                <div x-show="quantity > 0" class="flex justify-between items-center bg-gray-600 rounded p-2">
+                                    <div>
+                                        <div class="font-medium text-white" x-text="oreType"></div>
+                                        <div class="text-sm text-gray-300" x-text="quantity + ' units'"></div>
+                                    </div>
+                                    <button @click="transferCargo('ores', oreType)" 
+                                            class="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs transition-colors">
+                                        📤 Transfer
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Refined Products -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-blue-400 font-semibold mb-3">🏭 Refined Products</h3>
+                        <div x-show="!Object.keys(selectedShip?.cargoInventory?.refinedProducts || {}).length" 
+                             class="text-gray-400 text-center py-4">
+                            No refined products in cargo
+                        </div>
+                        <div class="space-y-2 max-h-48 overflow-y-auto">
+                            <template x-for="[productType, quantity] in Object.entries(selectedShip?.cargoInventory?.refinedProducts || {})" :key="productType">
+                                <div x-show="quantity > 0" class="flex justify-between items-center bg-gray-600 rounded p-2">
+                                    <div>
+                                        <div class="font-medium text-white" x-text="productType"></div>
+                                        <div class="text-sm text-gray-300" x-text="quantity + ' units'"></div>
+                                    </div>
+                                    <button @click="transferCargo('refinedProducts', productType)" 
+                                            class="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs transition-colors">
+                                        📤 Transfer
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ship Logs Tab -->
+            <div x-show="activeTab === 'logs'">
+                <h2 class="text-xl font-bold text-gray-400 mb-4">📋 Ship Logs</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Operation Log -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-green-400 font-semibold mb-3">⚙️ Operation Log</h3>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="(log, index) in selectedShip?.operationLog?.slice(-20) || []" :key="index">
+                                <div class="bg-gray-600 rounded p-2 text-sm">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-white font-medium capitalize" x-text="log.operation.replace('_', ' ')"></span>
+                                        <span class="text-gray-400 text-xs" x-text="formatTimestamp(log.timestamp)"></span>
+                                    </div>
+                                    <div class="text-gray-300 text-xs mt-1" x-text="formatLogDetails(log.details)"></div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- Upgrade History -->
+                    <div class="bg-gray-700 rounded-lg p-4">
+                        <h3 class="text-blue-400 font-semibold mb-3">🔧 Upgrade History</h3>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="(upgrade, index) in selectedShip?.upgradeHistory?.slice(-10) || []" :key="index">
+                                <div class="bg-gray-600 rounded p-2 text-sm">
+                                    <div class="flex justify-between items-start">
+                                        <span class="text-white font-medium capitalize" x-text="upgrade.action"></span>
+                                        <span class="text-gray-400 text-xs" x-text="formatTimestamp(upgrade.timestamp)"></span>
+                                    </div>
+                                    <div class="text-gray-300 text-xs mt-1">
+                                        <span class="capitalize" x-text="upgrade.slot.replace('_', ' ')"></span>: 
+                                        <span x-text="getEquipmentName(upgrade.equipmentId)"></span>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Required Systems -->
+    <script src="advanced-ship-manager.js"></script>
+    <script src="universal-footer.js"></script>
+
+    <script>
+        function shipManagementApp() {
+            return {
+                // System instances
+                shipManager: null,
+                
+                // UI State
+                activeTab: 'overview',
+                selectedShip: null,
+                
+                // Data
+                playerShips: [],
+                credits: 1000000, // Will be loaded from player data
+                
+                init() {
+                    // Initialize ship management system
+                    this.shipManager = new AdvancedShipManager();
+                    
+                    // Load player data
+                    this.loadPlayerData();
+                    
+                    // Load player ships
+                    this.loadPlayerShips();
+                },
+
+                loadPlayerData() {
+                    try {
+                        const currentPlayer = localStorage.getItem('currentPlayer');
+                        if (currentPlayer) {
+                            const player = JSON.parse(currentPlayer);
+                            this.credits = player.credits || 1000000;
+                        }
+                    } catch (error) {
+                        console.error('Error loading player data:', error);
+                    }
+                },
+
+                loadPlayerShips() {
+                    try {
+                        // Get current player ID
+                        const currentPlayer = localStorage.getItem('currentPlayer');
+                        if (!currentPlayer) return;
+                        
+                        const player = JSON.parse(currentPlayer);
+                        this.playerShips = this.shipManager.getPlayerShips(player.username);
+                        
+                        // Auto-select first ship if available
+                        if (this.playerShips.length > 0) {
+                            this.selectShip(this.playerShips[0]);
+                        }
+                    } catch (error) {
+                        console.error('Error loading player ships:', error);
+                    }
+                },
+
+                selectShip(ship) {
+                    this.selectedShip = ship;
+                },
+
+                createStarterShip() {
+                    try {
+                        const currentPlayer = localStorage.getItem('currentPlayer');
+                        if (!currentPlayer) return;
+                        
+                        const player = JSON.parse(currentPlayer);
+                        
+                        // Create basic scout ship blueprint
+                        const basicBlueprint = {
+                            ship_class: 'basic_scout',
+                            display_name: 'Scout Explorer'
+                        };
+                        
+                        const newShip = this.shipManager.createShipInstance(
+                            player.username, 
+                            basicBlueprint, 
+                            `${player.username}'s Scout`
+                        );
+                        
+                        this.loadPlayerShips();
+                        this.showToast('Starter ship created successfully!', 'success');
+                    } catch (error) {
+                        console.error('Error creating starter ship:', error);
+                        this.showToast('Failed to create starter ship', 'error');
+                    }
+                },
+
+                switchLoadout(loadoutIndex) {
+                    try {
+                        const updatedShip = this.shipManager.switchLoadout(this.selectedShip.instanceId, loadoutIndex);
+                        this.selectedShip = updatedShip;
+                        this.loadPlayerShips(); // Refresh ship list
+                        this.showToast(`Switched to ${updatedShip.currentLoadout.name}`, 'success');
+                    } catch (error) {
+                        console.error('Error switching loadout:', error);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                updatePowerAllocation(system, value) {
+                    if (!this.selectedShip) return;
+                    
+                    this.selectedShip.powerAllocation[system] = parseInt(value);
+                    
+                    // Update in ship manager
+                    const ship = this.shipManager.shipInstances.get(this.selectedShip.instanceId);
+                    if (ship) {
+                        ship.powerAllocation[system] = parseInt(value);
+                        this.shipManager.saveShipData();
+                    }
+                },
+
+                getTotalPowerAllocation() {
+                    if (!this.selectedShip?.powerAllocation) return 0;
+                    return Object.values(this.selectedShip.powerAllocation).reduce((sum, val) => sum + val, 0);
+                },
+
+                installEquipment(equipment) {
+                    try {
+                        if (this.credits < equipment.cost) {
+                            this.showToast('Insufficient credits', 'error');
+                            return;
+                        }
+
+                        // Determine appropriate slot for equipment
+                        const slot = this.getEquipmentSlot(equipment.type);
+                        
+                        const updatedShip = this.shipManager.installEquipment(
+                            this.selectedShip.instanceId, 
+                            equipment.id, 
+                            slot
+                        );
+                        
+                        // Deduct credits
+                        this.credits -= equipment.cost;
+                        this.updatePlayerCredits(this.credits);
+                        
+                        this.selectedShip = updatedShip;
+                        this.loadPlayerShips();
+                        this.showToast(`${equipment.name} installed successfully!`, 'success');
+                    } catch (error) {
+                        console.error('Error installing equipment:', error);
+                        this.showToast(error.message, 'error');
+                    }
+                },
+
+                getEquipmentSlot(equipmentType) {
+                    const slotMap = {
+                        'mining_laser': 'mining_laser',
+                        'scanner': 'scanner',
+                        'surface_scanner': 'scanner',
+                        'cargo': 'cargo',
+                        'power': 'power',
+                        'shields': 'shields',
+                        'refinery': 'refinery',
+                        'stealth': 'stealth',
+                        'repair': 'repair',
+                        'life_support': 'life_support'
+                    };
+                    return slotMap[equipmentType] || 'utility';
+                },
+
+                performMaintenance() {
+                    try {
+                        // Calculate maintenance cost
+                        const maintenanceNeeded = this.selectedShip.maintenanceNeeded.overall;
+                        const cost = Math.floor(maintenanceNeeded * 1000);
+                        
+                        if (this.credits < cost) {
+                            this.showToast('Insufficient credits for maintenance', 'error');
+                            return;
+                        }
+
+                        // Perform maintenance
+                        const ship = this.shipManager.shipInstances.get(this.selectedShip.instanceId);
+                        if (ship) {
+                            ship.currentStatus.condition = Math.min(100, ship.currentStatus.condition + 30);
+                            ship.currentStatus.hull = 100;
+                            ship.currentStatus.shields = 100;
+                            ship.lastModified = new Date().toISOString();
+                            
+                            this.shipManager.addOperationLog(ship, 'maintenance', {
+                                cost: cost,
+                                conditionImproved: 30
+                            });
+                            
+                            this.shipManager.saveShipData();
+                        }
+
+                        this.credits -= cost;
+                        this.updatePlayerCredits(this.credits);
+                        this.loadPlayerShips();
+                        this.selectShip(this.playerShips.find(s => s.instanceId === this.selectedShip.instanceId));
+                        
+                        this.showToast(`Maintenance completed for ${cost.toLocaleString()} credits`, 'success');
+                    } catch (error) {
+                        console.error('Error performing maintenance:', error);
+                        this.showToast('Maintenance failed', 'error');
+                    }
+                },
+
+                // Helper Methods
+                getEquipmentName(equipmentId) {
+                    const equipment = this.shipManager.findEquipmentById(equipmentId);
+                    return equipment ? equipment.name : equipmentId;
+                },
+
+                getEquipmentDescription(equipmentId) {
+                    const equipment = this.shipManager.findEquipmentById(equipmentId);
+                    return equipment ? equipment.description : 'No description available';
+                },
+
+                getEquipmentTier(equipmentId) {
+                    const equipment = this.shipManager.findEquipmentById(equipmentId);
+                    return equipment ? equipment.tier : 1;
+                },
+
+                getTierColor(tier) {
+                    const colors = { 1: 'gray', 2: 'blue', 3: 'purple', 4: 'yellow', 5: 'red' };
+                    return colors[tier] || 'gray';
+                },
+
+                formatTimestamp(timestamp) {
+                    return new Date(timestamp).toLocaleString();
+                },
+
+                formatLogDetails(details) {
+                    if (typeof details === 'string') return details;
+                    if (typeof details === 'object') {
+                        return Object.entries(details)
+                            .map(([key, value]) => `${key}: ${value}`)
+                            .join(', ');
+                    }
+                    return JSON.stringify(details);
+                },
+
+                updatePlayerCredits(newCredits) {
+                    try {
+                        const currentPlayer = localStorage.getItem('currentPlayer');
+                        if (currentPlayer) {
+                            const player = JSON.parse(currentPlayer);
+                            player.credits = newCredits;
+                            localStorage.setItem('currentPlayer', JSON.stringify(player));
+                        }
+                    } catch (error) {
+                        console.error('Error updating player credits:', error);
+                    }
+                },
+
+                backToGame() {
+                    window.location.href = 'game.html';
+                },
+
+                showToast(message, type = 'info') {
+                    const backgrounds = {
+                        success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                        error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                        info: 'linear-gradient(to right, #667eea, #764ba2)'
+                    };
+
+                    Toastify({
+                        text: message,
+                        duration: 3000,
+                        style: { background: backgrounds[type] || backgrounds.info }
+                    }).showToast();
+                }
+            };
+        }
+    </script>
+</body>
+</html>
