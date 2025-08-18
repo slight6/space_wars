@@ -8,6 +8,7 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="data-loader.js"></script>
+    <script src="universe-manager.js"></script>
     <script src="ship-manager.js"></script>
     <script src="advanced-ship-manager.js"></script>
     <script src="ship-mining-integration.js"></script>
@@ -37,7 +38,7 @@
     <header class="bg-gray-900 bg-opacity-80 backdrop-blur-sm border-b border-gray-700 px-6 py-4">
         <div class="flex justify-between items-center">
             <div class="flex items-center space-x-4">
-                <h1 class="text-2xl font-bold">🚀 Nexus Station - <span x-text="player.currentLocation || 'Main Deck'"></span></h1>
+                <h1 class="text-2xl font-bold">🚀 <span x-text="getStationName()"></span> - <span x-text="player.currentLocation || 'Main Deck'"></span></h1>
             </div>
             <div class="flex items-center space-x-6">
                 <button @click="logout()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-md text-sm transition-colors">
@@ -62,6 +63,7 @@
                             <div class="text-white font-semibold text-sm" x-text="statusBar.getPilotInfo()"></div>
                             <div class="text-blue-400 font-medium text-sm" x-text="statusBar.getCurrentShipLabel()"></div>
                             <div class="text-gray-400 text-xs" x-text="'Location: ' + statusBar.getCurrentLocation()"></div>
+                            <div class="text-gray-400 text-xs" x-text="'Sector: ' + getSectorDisplayName()"></div>
                         </div>
                     </div>
                     
@@ -102,101 +104,219 @@
             <div class="lg:col-span-1 space-y-4">
                 
                 <!-- Ship Information Dropdown -->
-                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700" x-show="getAvailableFeatures().shipInfo.length > 0">
                     <div class="dropdown">
                         <button @click="toggleDropdown('shipInfo')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
                             <span class="font-semibold text-blue-400">🚀 Ship Information</span>
                             <span x-text="dropdowns.shipInfo ? '▼' : '▶'" class="text-gray-400"></span>
                         </button>
                         <div x-show="dropdowns.shipInfo" class="dropdown-menu border-t border-gray-700">
-                            <a href="#" @click.prevent="showCargoManifest()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Manifest</a>
-                            <a href="#" @click.prevent="showCrewInfo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 Crew Information</a>
-                            <a href="#" @click.prevent="showUpgrades()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ List Upgrades</a>
-                            <a href="#" @click.prevent="showShipLogs()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Ship Logs</a>
-                            <a href="inventory.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Complete Ship Status</a>
+                            <template x-if="hasAccess('basic_status')">
+                                <a href="#" @click.prevent="showBasicShipStatus()" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Basic Ship Status</a>
+                            </template>
+                            <template x-if="hasAccess('cargo')">
+                                <a href="#" @click.prevent="showCargoManifest()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Manifest</a>
+                            </template>
+                            <template x-if="hasAccess('crew')">
+                                <a href="#" @click.prevent="showCrewInfo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 Crew Information</a>
+                            </template>
+                            <template x-if="hasAccess('upgrades')">
+                                <a href="#" @click.prevent="showUpgrades()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ List Upgrades</a>
+                            </template>
+                            <template x-if="hasAccess('logs')">
+                                <a href="#" @click.prevent="showShipLogs()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Ship Logs</a>
+                            </template>
+                            <template x-if="hasAccess('status')">
+                                <a href="inventory.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">ℹ️ Complete Ship Status</a>
+                            </template>
                         </div>
                     </div>
                 </div>
 
                 <!-- Ship Options Dropdown -->
-                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700" x-show="getAvailableFeatures().shipOptions.length > 0">
                     <div class="dropdown">
                         <button @click="toggleDropdown('shipOptions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
                             <span class="font-semibold text-cyan-400">⚙️ Ship Options</span>
                             <span x-text="dropdowns.shipOptions ? '▼' : '▶'" class="text-gray-400"></span>
                         </button>
                         <div x-show="dropdowns.shipOptions" class="dropdown-menu border-t border-gray-700">
-                            <a href="#" @click.prevent="configureWeapons()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Weapons Systems</a>
-                            <a href="#" @click.prevent="configureCargo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Options</a>
-                            <a href="#" @click.prevent="configureShields()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛡️ Shields & Defense</a>
-                            <a href="#" @click.prevent="configureCommunications()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Communications</a>
-                            <a href="#" @click.prevent="configureLifeSupport()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Life Support</a>
-                            <a href="#" @click.prevent="configureCloaking()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👻 Cloaking Device</a>
-                            <a href="#" @click.prevent="configureNanobots()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔧 Auto-Repair Nanobots</a>
-                            <a href="#" @click.prevent="configureGravity()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌍 Gravity Generator</a>
-                            <a href="#" @click.prevent="configureSensors()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Sensor Range</a>
-                            <a href="#" @click.prevent="configureBlackMarket()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🕳️ Hidden Compartment</a>
-                            <div class="border-t border-gray-600 mt-2 pt-2">
-                                <a href="ship-management.html" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-blue-400">🚀 Advanced Ship Management</a>
-                                <a href="#" @click.prevent="manageLoadouts()" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-yellow-400">⚡ Manage Loadouts</a>
+                            <template x-if="hasAccess('cargo_config')">
+                                <a href="#" @click.prevent="configureCargo()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📦 Cargo Options</a>
+                            </template>
+                            <template x-if="hasAccess('weapons')">
+                                <a href="#" @click.prevent="configureWeapons()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Weapons Systems</a>
+                            </template>
+                            <template x-if="hasAccess('shields')">
+                                <a href="#" @click.prevent="configureShields()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛡️ Shields & Defense</a>
+                            </template>
+                            <template x-if="hasAccess('communications')">
+                                <a href="#" @click.prevent="configureCommunications()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Communications</a>
+                            </template>
+                            <template x-if="hasAccess('life_support')">
+                                <a href="#" @click.prevent="configureLifeSupport()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Life Support</a>
+                            </template>
+                            <template x-if="hasAccess('cloaking')">
+                                <a href="#" @click.prevent="configureCloaking()" class="block px-4 py-2 hover:bg-gray-800 text-sm">👻 Cloaking Device</a>
+                            </template>
+                            <template x-if="hasAccess('nanobots')">
+                                <a href="#" @click.prevent="configureNanobots()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔧 Auto-Repair Nanobots</a>
+                            </template>
+                            <template x-if="hasAccess('gravity')">
+                                <a href="#" @click.prevent="configureGravity()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌍 Gravity Generator</a>
+                            </template>
+                            <template x-if="hasAccess('sensors')">
+                                <a href="#" @click.prevent="configureSensors()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📡 Sensor Range</a>
+                            </template>
+                            <template x-if="hasAccess('hidden_compartment')">
+                                <a href="#" @click.prevent="configureBlackMarket()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🕳️ Hidden Compartment</a>
+                            </template>
+                            <div x-show="hasAccess('management') || hasAccess('loadouts')" class="border-t border-gray-600 mt-2 pt-2">
+                                <template x-if="hasAccess('management')">
+                                    <a href="ship-management.html" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-blue-400">🚀 Advanced Ship Management</a>
+                                </template>
+                                <template x-if="hasAccess('loadouts')">
+                                    <a href="#" @click.prevent="manageLoadouts()" class="block px-4 py-2 hover:bg-gray-800 text-sm font-semibold text-yellow-400">⚡ Manage Loadouts</a>
+                                </template>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Ship Actions Dropdown -->
-                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700" x-show="getAvailableFeatures().shipActions.length > 0">
                     <div class="dropdown">
                         <button @click="toggleDropdown('shipActions')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
                             <span class="font-semibold text-green-400">🎯 Ship Actions</span>
                             <span x-text="dropdowns.shipActions ? '▼' : '▶'" class="text-gray-400"></span>
                         </button>
                         <div x-show="dropdowns.shipActions" class="dropdown-menu border-t border-gray-700">
-                            <div class="px-4 py-2 text-xs text-gray-400 font-semibold">SCANNER OPTIONS</div>
-                            <a href="#" @click.prevent="useSpatialScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌌 Spatial Scanners</a>
-                            <a href="#" @click.prevent="useSurfaceScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏔️ Surface Scanners</a>
-                            <a href="#" @click.prevent="useProspectingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Prospecting Scanners</a>
-                            <a href="#" @click.prevent="useSkimmingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Skimming Scanners</a>
-                            <a href="#" @click.prevent="useShipScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Ship Scanners</a>
-                            <div class="border-t border-gray-600 mt-2 pt-2">
+                            <div x-show="hasAccess('basic_scanning') || hasAccess('spatial_scanner') || hasAccess('surface_scanner') || hasAccess('prospecting_scanner') || hasAccess('skimming_scanner') || hasAccess('ship_scanner')" class="px-4 py-2 text-xs text-gray-400 font-semibold">SCANNER OPTIONS</div>
+                            <template x-if="hasAccess('basic_scanning')">
+                                <a href="#" @click.prevent="useBasicScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔍 Basic Scanner</a>
+                            </template>
+                            <template x-if="hasAccess('spatial_scanner')">
+                                <a href="#" @click.prevent="useSpatialScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌌 Spatial Scanners</a>
+                            </template>
+                            <template x-if="hasAccess('surface_scanner')">
+                                <a href="#" @click.prevent="useSurfaceScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏔️ Surface Scanners</a>
+                            </template>
+                            <template x-if="hasAccess('prospecting_scanner')">
+                                <a href="#" @click.prevent="useProspectingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Prospecting Scanners</a>
+                            </template>
+                            <template x-if="hasAccess('skimming_scanner')">
+                                <a href="#" @click.prevent="useSkimmingScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">💨 Skimming Scanners</a>
+                            </template>
+                            <template x-if="hasAccess('ship_scanner')">
+                                <a href="#" @click.prevent="useShipScanner()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Ship Scanners</a>
+                            </template>
+                            <div x-show="hasAccess('basic_movement') || hasAccess('movement') || hasAccess('fuel_power') || hasAccess('mining') || hasAccess('torpedo') || hasAccess('navigation')" class="border-t border-gray-600 mt-2 pt-2">
                                 <div class="px-4 py-2 text-xs text-gray-400 font-semibold">OPERATIONS</div>
-                                <a href="#" @click.prevent="manageMovement()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Movement Options</a>
-                                <a href="#" @click.prevent="manageFuelPower()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ Fuel & Power</a>
-                                <a href="#" @click.prevent="manageMining()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Mining Operations</a>
-                                <a href="torpedo-launch.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🚀 Torpedo Launch</a>
-                                <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Space Navigation</a>
+                                <template x-if="hasAccess('basic_movement')">
+                                    <a href="#" @click.prevent="showBasicMovement()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Basic Movement</a>
+                                </template>
+                                <template x-if="hasAccess('movement')">
+                                    <a href="#" @click.prevent="manageMovement()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Movement Options</a>
+                                </template>
+                                <template x-if="hasAccess('fuel_power')">
+                                    <a href="#" @click.prevent="manageFuelPower()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚡ Fuel & Power</a>
+                                </template>
+                                <template x-if="hasAccess('mining')">
+                                    <a href="#" @click.prevent="manageMining()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛏️ Mining Operations</a>
+                                </template>
+                                <template x-if="hasAccess('torpedo')">
+                                    <a href="torpedo-launch.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🚀 Torpedo Launch</a>
+                                </template>
+                                <template x-if="hasAccess('navigation')">
+                                    <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Space Navigation</a>
+                                </template>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Station Locations Dropdown -->
-                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700">
+                <div class="bg-gray-900 bg-opacity-80 backdrop-blur-sm rounded-lg border border-gray-700" x-show="getAvailableFeatures().stationLocations.length > 0">
                     <div class="dropdown">
                         <button @click="toggleDropdown('stationLocations')" class="w-full p-4 text-left flex justify-between items-center hover:bg-gray-800 transition-colors">
                             <span class="font-semibold text-purple-400">🏢 Station Locations</span>
                             <span x-text="dropdowns.stationLocations ? '▼' : '▶'" class="text-gray-400"></span>
                         </button>
                         <div x-show="dropdowns.stationLocations" class="dropdown-menu border-t border-gray-700">
-                            <a href="shipyard.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Shipyard</a>
-                            <a href="mining-operations.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-orange-400 font-semibold">⛏️ Mining Operations</a>
-                            <a href="#" @click.prevent="visitEquipmentCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Equipment Center</a>
-                            <a href="marketplace.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Marketplace</a>
-                            <a href="trade-center.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏦 Trading Zone</a>
-                            <a href="#" @click.prevent="visitTavern()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🍺 Tavern</a>
-                            <a href="#" @click.prevent="visitGovernment()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Government Services</a>
-                            <a href="specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">👥 State Specialists</a>
-                            <a href="comprehensive-specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-yellow-400">🎓 Comprehensive Training</a>
-                            <a href="#" @click.prevent="showQuickTraining()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-green-400">⚡ Quick Training Overview</a>
-                            <a href="system-map.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🗺️ Local Maps</a>
-                            <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Navigation</a>
-                            <a href="#" @click.prevent="checkNews()" class="block px-4 py-2 hover:bg-gray-800 text-sm">📰 Local News</a>
-                            <a href="mission-log.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Mission Log</a>
-                            <a href="#" @click.prevent="visitManufacturing()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Manufacturing</a>
-                            <a href="#" @click.prevent="visitResearch()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔬 Research Lab</a>
-                            <a href="#" @click.prevent="visitAgriculture()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌱 Agricultural Center</a>
-                            <a href="#" @click.prevent="visitMuseum()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Museum</a>
-                            <a href="#" @click.prevent="visitTemple()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛪ Temple of the Dog</a>
+                            <!-- Training Phase Features -->
+                            <template x-if="hasAccess('orientation_center')">
+                                <a href="#" @click.prevent="visitOrientationCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-green-400">� Orientation Center</a>
+                            </template>
+                            <template x-if="hasAccess('docking_bay')">
+                                <a href="#" @click.prevent="visitDockingBay()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🚀 Docking Bay</a>
+                            </template>
+                            <template x-if="hasAccess('training_marketplace')">
+                                <a href="#" @click.prevent="visitTrainingMarketplace()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Training Marketplace</a>
+                            </template>
+                            
+                            <!-- Basic Features -->
+                            <template x-if="hasAccess('maps')">
+                                <a href="system-map.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🗺️ Local Maps</a>
+                            </template>
+                            <template x-if="hasAccess('missions')">
+                                <a href="mission-log.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">📋 Mission Log</a>
+                            </template>
+                            <template x-if="hasAccess('navigation')">
+                                <a href="space-navigation.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-cyan-400">🌌 3D Navigation</a>
+                            </template>
+                            
+                            <!-- Commerce Features -->
+                            <template x-if="hasAccess('marketplace')">
+                                <a href="marketplace.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🛒 Marketplace</a>
+                            </template>
+                            <template x-if="hasAccess('trading')">
+                                <a href="trade-center.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏦 Trading Zone</a>
+                            </template>
+                            
+                            <!-- Advanced Features (Admin Only) -->
+                            <template x-if="hasAccess('shipyard')">
+                                <a href="shipyard.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">� Shipyard</a>
+                            </template>
+                            <template x-if="hasAccess('mining_ops')">
+                                <a href="mining-operations.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-orange-400 font-semibold">⛏️ Mining Operations</a>
+                            </template>
+                            <template x-if="hasAccess('equipment')">
+                                <a href="#" @click.prevent="visitEquipmentCenter()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⚔️ Equipment Center</a>
+                            </template>
+                            <template x-if="hasAccess('tavern')">
+                                <a href="#" @click.prevent="visitTavern()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🍺 Tavern</a>
+                            </template>
+                            <template x-if="hasAccess('government')">
+                                <a href="#" @click.prevent="visitGovernment()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Government Services</a>
+                            </template>
+                            <template x-if="hasAccess('specialists')">
+                                <a href="specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm">� State Specialists</a>
+                            </template>
+                            <template x-if="hasAccess('training')">
+                                <a href="comprehensive-specialists.html" class="block px-4 py-2 hover:bg-gray-800 text-sm text-yellow-400">� Comprehensive Training</a>
+                            </template>
+                            <template x-if="hasAccess('quick_training')">
+                                <a href="#" @click.prevent="showQuickTraining()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-green-400">⚡ Quick Training Overview</a>
+                            </template>
+                            <template x-if="hasAccess('news')">
+                                <a href="#" @click.prevent="checkNews()" class="block px-4 py-2 hover:bg-gray-800 text-sm">� Local News</a>
+                            </template>
+                            <template x-if="hasAccess('manufacturing')">
+                                <a href="#" @click.prevent="visitManufacturing()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏭 Manufacturing</a>
+                            </template>
+                            <template x-if="hasAccess('research')">
+                                <a href="#" @click.prevent="visitResearch()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🔬 Research Lab</a>
+                            </template>
+                            <template x-if="hasAccess('agriculture')">
+                                <a href="#" @click.prevent="visitAgriculture()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🌱 Agricultural Center</a>
+                            </template>
+                            <template x-if="hasAccess('museum')">
+                                <a href="#" @click.prevent="visitMuseum()" class="block px-4 py-2 hover:bg-gray-800 text-sm">🏛️ Museum</a>
+                            </template>
+                            <template x-if="hasAccess('temple')">
+                                <a href="#" @click.prevent="visitTemple()" class="block px-4 py-2 hover:bg-gray-800 text-sm">⛪ Temple of the Dog</a>
+                            </template>
+                            <a href="#" @click.prevent="showUniverseInfo()" x-show="isAdminUser()" class="block px-4 py-2 hover:bg-gray-800 text-sm text-red-400">🌌 Universe Administration</a>
                         </div>
                     </div>
                 </div>
@@ -265,7 +385,7 @@
                     data: ''
                 },
 
-                init() {
+                async init() {
                     const currentPlayer = localStorage.getItem('currentPlayer');
                     if (!currentPlayer) {
                         window.location.href = 'index.html';
@@ -273,6 +393,22 @@
                     }
                     
                     this.player = JSON.parse(currentPlayer);
+                    
+                    // Ensure universe information is loaded
+                    if (!this.player.universeInfo) {
+                        console.log('Initializing universe info for existing player');
+                        const universeData = await window.UniverseManager.initializePlayerUniverse(this.player.username);
+                        this.player.universeInfo = universeData.universeInfo;
+                        this.player.currentLocation = universeData.currentLocation;
+                        this.player.systemData = universeData.systemData;
+                        
+                        // Save updated player data
+                        localStorage.setItem('currentPlayer', JSON.stringify(this.player));
+                    }
+                    
+                    // Update current view based on sector
+                    this.updateViewForSector();
+                    
                     this.initializePlayerDefaults();
                     this.initializeLicenses();
                     this.initializeScannersAndMining();
@@ -300,7 +436,371 @@
                     if (!this.player.shieldStrength) this.player.shieldStrength = 100;
                     if (!this.player.fuel) this.player.fuel = 67;
                     if (!this.player.powerLevel) this.player.powerLevel = 89;
-                    if (!this.player.currentLocation) this.player.currentLocation = 'Main Deck';
+                    if (!this.player.currentLocation) this.player.currentLocation = this.getDefaultLocation();
+                },
+
+                getStationName() {
+                    if (!this.player.universeInfo) return 'Station';
+                    
+                    const sectorKey = this.player.universeInfo.currentSector;
+                    if (sectorKey === 'admin_sector') {
+                        return 'Nexus Station';
+                    } else if (sectorKey === 'new_player_sector') {
+                        return 'Frontier Hub Station';
+                    }
+                    return 'Station';
+                },
+
+                getDefaultLocation() {
+                    if (!this.player.universeInfo) return 'Main Deck';
+                    
+                    const sectorKey = this.player.universeInfo.currentSector;
+                    if (sectorKey === 'admin_sector') {
+                        return 'Main Deck';
+                    } else if (sectorKey === 'new_player_sector') {
+                        return 'Orientation Center';
+                    }
+                    return 'Main Deck';
+                },
+
+                isAdminUser() {
+                    return this.player.username === 'slight';
+                },
+
+                showUniverseInfo() {
+                    if (!this.isAdminUser()) return;
+                    
+                    const universeConfig = window.UniverseManager.universeConfig;
+                    const distance = window.UniverseManager.calculateSectorDistance('admin_sector', 'new_player_sector');
+                    
+                    this.currentView = {
+                        title: '🌌 Universe Administration',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-red-900 border border-red-500 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-red-400 mb-2">⚠️ Administrator Access</h4>
+                                    <p class="text-sm text-gray-300">You have access to universe-wide administrative functions.</p>
+                                </div>
+                                
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-blue-400 mb-2">🏛️ Admin Sector (Keldar)</h4>
+                                        <p class="text-sm text-gray-300">Location: Galaxy [0,0,0] System [8,8,8]</p>
+                                        <p class="text-sm text-gray-300">Users: slight (admin access)</p>
+                                        <p class="text-sm text-gray-300">Features: Full system access, Nexus Station</p>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 p-4 rounded-lg">
+                                        <h4 class="font-semibold text-green-400 mb-2">🎓 Training Sector (Frontier)</h4>
+                                        <p class="text-sm text-gray-300">Location: Galaxy [15,15,15] System [2,3,7]</p>
+                                        <p class="text-sm text-gray-300">Users: New players (training access)</p>
+                                        <p class="text-sm text-gray-300">Features: Safe zone, Frontier Hub Station</p>
+                                    </div>
+                                    
+                                    <div class="bg-gray-800 p-4 rounded-lg col-span-2">
+                                        <h4 class="font-semibold text-purple-400 mb-2">📊 Universe Statistics</h4>
+                                        <p class="text-sm text-gray-300">Distance between sectors: ${distance.toLocaleString()} light-years</p>
+                                        <p class="text-sm text-gray-300">Universe size: 16³ galaxies × 16³ systems = ${(16*16*16 * 16*16*16).toLocaleString()} total locations</p>
+                                        <p class="text-sm text-gray-300">Active sectors: 2 out of ${(16*16*16 * 16*16*16).toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-yellow-900 border border-yellow-500 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-yellow-400 mb-2">🔒 Access Control Status</h4>
+                                    <p class="text-sm text-gray-300">✓ Admin sector restricted to 'slight' user</p>
+                                    <p class="text-sm text-gray-300">✓ New players automatically assigned to Frontier sector</p>
+                                    <p class="text-sm text-gray-300">✓ Cross-sector travel currently disabled</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                getSectorDisplayName() {
+                    if (!this.player.universeInfo) return 'Unknown Sector';
+                    
+                    const sectorKey = this.player.universeInfo.currentSector;
+                    const sector = window.UniverseManager.getSectorInfo(sectorKey);
+                    return sector ? sector.name : sectorKey;
+                },
+
+                getPlayerProgression() {
+                    // Get player's training progress from localStorage or player data
+                    const progressData = JSON.parse(localStorage.getItem('playerProgression') || '{}');
+                    const playerProgress = progressData[this.player.username] || {
+                        completedModules: [],
+                        unlockedFeatures: ['orientation'], // Start with just orientation
+                        currentPhase: 'orientation'
+                    };
+                    
+                    // Save default progress if new
+                    if (!progressData[this.player.username]) {
+                        progressData[this.player.username] = playerProgress;
+                        localStorage.setItem('playerProgression', JSON.stringify(progressData));
+                    }
+                    
+                    return playerProgress;
+                },
+
+                hasAccess(featureId) {
+                    // Admin users have access to everything
+                    if (this.isAdminUser()) return true;
+                    
+                    // New players: check progression-based access
+                    if (this.isNewPlayerSector()) {
+                        const progression = this.getPlayerProgression();
+                        return progression.unlockedFeatures.includes(featureId);
+                    }
+                    
+                    // Default: allow access (for future sectors)
+                    return true;
+                },
+
+                getAvailableFeatures() {
+                    if (this.isAdminUser()) {
+                        return {
+                            shipInfo: ['cargo', 'crew', 'upgrades', 'logs', 'status'],
+                            shipOptions: ['weapons', 'cargo_config', 'shields', 'communications', 'life_support', 'cloaking', 'nanobots', 'gravity', 'sensors', 'hidden_compartment', 'management', 'loadouts'],
+                            shipActions: ['spatial_scanner', 'surface_scanner', 'prospecting_scanner', 'skimming_scanner', 'ship_scanner', 'movement', 'fuel_power', 'mining', 'torpedo', 'navigation'],
+                            stationLocations: ['shipyard', 'mining_ops', 'equipment', 'marketplace', 'trading', 'tavern', 'government', 'specialists', 'training', 'quick_training', 'maps', 'navigation', 'news', 'missions', 'manufacturing', 'research', 'agriculture', 'museum']
+                        };
+                    }
+                    
+                    // New player progression-based features
+                    const progression = this.getPlayerProgression();
+                    const baseFeatures = {
+                        shipInfo: [],
+                        shipOptions: [],
+                        shipActions: [],
+                        stationLocations: []
+                    };
+                    
+                    // Progressive feature unlocking based on training modules completed
+                    if (progression.unlockedFeatures.includes('orientation')) {
+                        baseFeatures.stationLocations.push('orientation_center');
+                        baseFeatures.shipInfo.push('basic_status');
+                    }
+                    
+                    if (progression.unlockedFeatures.includes('ship_operations')) {
+                        baseFeatures.shipInfo.push('cargo', 'status');
+                        baseFeatures.shipActions.push('basic_movement');
+                        baseFeatures.stationLocations.push('docking_bay');
+                    }
+                    
+                    if (progression.unlockedFeatures.includes('resource_gathering')) {
+                        baseFeatures.shipActions.push('basic_scanning', 'mining');
+                        baseFeatures.stationLocations.push('training_marketplace');
+                    }
+                    
+                    if (progression.unlockedFeatures.includes('safe_exploration')) {
+                        baseFeatures.shipActions.push('navigation', 'surface_scanner');
+                        baseFeatures.stationLocations.push('maps', 'missions');
+                    }
+                    
+                    if (progression.unlockedFeatures.includes('trade_fundamentals')) {
+                        baseFeatures.stationLocations.push('marketplace', 'trading');
+                        baseFeatures.shipOptions.push('cargo_config');
+                    }
+                    
+                    return baseFeatures;
+                },
+
+                isNewPlayerSector() {
+                    return this.player.universeInfo && this.player.universeInfo.currentSector === 'new_player_sector';
+                },
+
+                showBasicShipStatus() {
+                    this.currentView = {
+                        title: '🚀 Basic Ship Status',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-blue-900 border border-blue-500 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">📚 Training Module: Ship Operations 101</h4>
+                                    <p class="text-sm text-gray-300 mb-3">Learn the basics of your ship's systems and status monitoring.</p>
+                                    <div class="space-y-2">
+                                        <p class="text-sm"><span class="text-blue-400">Ship Name:</span> ${this.player.starterShip?.customName || 'Starling Explorer'}</p>
+                                        <p class="text-sm"><span class="text-blue-400">Hull Integrity:</span> 100%</p>
+                                        <p class="text-sm"><span class="text-blue-400">Power Level:</span> Online</p>
+                                        <p class="text-sm"><span class="text-blue-400">Life Support:</span> Active</p>
+                                        <p class="text-sm"><span class="text-blue-400">Training Status:</span> Beginner Level</p>
+                                    </div>
+                                    <button onclick="gameApp().completeTrainingModule('ship_operations')" class="mt-4 bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm">Complete Module</button>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                visitOrientationCenter() {
+                    this.currentView = {
+                        title: '🎓 Frontier Hub - Orientation Center',
+                        content: `
+                            <div class="space-y-4">
+                                <div class="bg-green-900 border border-green-500 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-green-400 mb-2">Welcome to the Frontier Training System!</h4>
+                                    <p class="text-sm text-gray-300 mb-4">You are now aboard Frontier Hub Station in a safe training environment far from any dangerous sectors.</p>
+                                    
+                                    <div class="space-y-3">
+                                        <h5 class="font-semibold text-green-300">Available Training Modules:</h5>
+                                        <div class="space-y-2 ml-4">
+                                            <div class="flex items-center justify-between bg-gray-800 p-3 rounded">
+                                                <div>
+                                                    <p class="text-sm font-semibold">Ship Operations 101</p>
+                                                    <p class="text-xs text-gray-400">Learn basic ship controls and status monitoring</p>
+                                                </div>
+                                                <button onclick="gameApp().showBasicShipStatus()" class="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs">Start</button>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between bg-gray-800 p-3 rounded opacity-60">
+                                                <div>
+                                                    <p class="text-sm font-semibold">Resource Gathering Basics</p>
+                                                    <p class="text-xs text-gray-400">Complete Ship Operations 101 first</p>
+                                                </div>
+                                                <span class="text-xs text-gray-500">Locked</span>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between bg-gray-800 p-3 rounded opacity-60">
+                                                <div>
+                                                    <p class="text-sm font-semibold">Safe Exploration</p>
+                                                    <p class="text-xs text-gray-400">Complete Resource Gathering first</p>
+                                                </div>
+                                                <span class="text-xs text-gray-500">Locked</span>
+                                            </div>
+                                            
+                                            <div class="flex items-center justify-between bg-gray-800 p-3 rounded opacity-60">
+                                                <div>
+                                                    <p class="text-sm font-semibold">Trade Fundamentals</p>
+                                                    <p class="text-xs text-gray-400">Complete Safe Exploration first</p>
+                                                </div>
+                                                <span class="text-xs text-gray-500">Locked</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-blue-900 border border-blue-500 p-4 rounded-lg">
+                                    <h4 class="font-semibold text-blue-400 mb-2">📍 Your Location</h4>
+                                    <p class="text-sm text-gray-300">Frontier Hub Station - Training Sector</p>
+                                    <p class="text-xs text-gray-400">Galaxy [15,15,15] • System [2,3,7] • Safe Zone</p>
+                                </div>
+                            </div>
+                        `
+                    };
+                },
+
+                completeTrainingModule(moduleId) {
+                    const progressData = JSON.parse(localStorage.getItem('playerProgression') || '{}');
+                    const playerProgress = progressData[this.player.username] || {
+                        completedModules: [],
+                        unlockedFeatures: ['orientation'],
+                        currentPhase: 'orientation'
+                    };
+                    
+                    if (!playerProgress.completedModules.includes(moduleId)) {
+                        playerProgress.completedModules.push(moduleId);
+                        
+                        // Unlock features based on completed module
+                        switch(moduleId) {
+                            case 'ship_operations':
+                                playerProgress.unlockedFeatures.push('ship_operations', 'docking_bay');
+                                playerProgress.currentPhase = 'ship_basics';
+                                break;
+                            case 'resource_gathering':
+                                playerProgress.unlockedFeatures.push('resource_gathering', 'training_marketplace');
+                                playerProgress.currentPhase = 'resource_basics';
+                                break;
+                            case 'safe_exploration':
+                                playerProgress.unlockedFeatures.push('safe_exploration', 'maps', 'missions');
+                                playerProgress.currentPhase = 'exploration_basics';
+                                break;
+                            case 'trade_fundamentals':
+                                playerProgress.unlockedFeatures.push('trade_fundamentals', 'marketplace', 'trading');
+                                playerProgress.currentPhase = 'trade_basics';
+                                break;
+                        }
+                        
+                        progressData[this.player.username] = playerProgress;
+                        localStorage.setItem('playerProgression', JSON.stringify(progressData));
+                        
+                        this.showToast(`Training module "${moduleId}" completed! New features unlocked.`, 'success');
+                        
+                        // Refresh the orientation center view to show progress
+                        setTimeout(() => this.visitOrientationCenter(), 1000);
+                    }
+                },
+
+                updateViewForSector() {
+                    if (!this.player.universeInfo) return;
+                    
+                    const sectorKey = this.player.universeInfo.currentSector;
+                    
+                    if (sectorKey === 'admin_sector') {
+                        this.currentView = {
+                            title: 'Welcome to Nexus Station',
+                            content: `
+                                <div class="space-y-4">
+                                    <p class="text-gray-300">Welcome aboard Nexus Station, the central hub of the Keldar system. Use the navigation panel on the left to access different areas of your ship and the station.</p>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-blue-400 mb-2">🚀 Ship Status</h4>
+                                            <p class="text-sm text-gray-300">Your ship is docked and ready for operations. All systems are nominal.</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-green-400 mb-2">📡 Station Services</h4>
+                                            <p class="text-sm text-gray-300">Full station services are available including trading, repairs, and research.</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-purple-400 mb-2">🌍 Local Area</h4>
+                                            <p class="text-sm text-gray-300">Keldar system - Prime star system with multiple explorable locations.</p>
+                                        </div>
+                                        <div class="bg-gray-800 p-4 rounded-lg">
+                                            <h4 class="font-semibold text-yellow-400 mb-2">⚡ Quick Actions</h4>
+                                            <p class="text-sm text-gray-300">Access scanners, configure ship systems, or visit station locations.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        };
+                    } else if (sectorKey === 'new_player_sector') {
+                        // Check if this is their first time - if so, go directly to orientation
+                        const progression = this.getPlayerProgression();
+                        if (progression.completedModules.length === 0) {
+                            this.visitOrientationCenter();
+                        } else {
+                            this.currentView = {
+                                title: 'Welcome to Frontier Hub Station',
+                                content: `
+                                    <div class="space-y-4">
+                                        <p class="text-gray-300">Welcome back to Frontier Hub Station! Continue your training to unlock new areas and features.</p>
+                                        <div class="bg-blue-900 border border-blue-500 p-4 rounded-lg mb-4">
+                                            <h4 class="font-semibold text-blue-400 mb-2">🎓 Training Progress</h4>
+                                            <p class="text-sm text-gray-300">Completed modules: ${progression.completedModules.length}/4</p>
+                                            <p class="text-sm text-gray-300">Current phase: ${progression.currentPhase}</p>
+                                        </div>
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                                            <div class="bg-gray-800 p-4 rounded-lg">
+                                                <h4 class="font-semibold text-blue-400 mb-2">🚀 Available Features</h4>
+                                                <p class="text-sm text-gray-300">New features unlock as you complete training modules.</p>
+                                                <button onclick="gameApp().visitOrientationCenter()" class="mt-2 bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm">Continue Training</button>
+                                            </div>
+                                            <div class="bg-gray-800 p-4 rounded-lg">
+                                                <h4 class="font-semibold text-green-400 mb-2">📡 Training Services</h4>
+                                                <p class="text-sm text-gray-300">Access training simulators, basic supplies, and educational resources.</p>
+                                            </div>
+                                            <div class="bg-gray-800 p-4 rounded-lg">
+                                                <h4 class="font-semibold text-purple-400 mb-2">🌍 Safe Zone</h4>
+                                                <p class="text-sm text-gray-300">Frontier Training System - A safe environment for learning and practice.</p>
+                                            </div>
+                                            <div class="bg-gray-800 p-4 rounded-lg">
+                                                <h4 class="font-semibold text-yellow-400 mb-2">⚡ Features Unlocked</h4>
+                                                <p class="text-sm text-gray-300">Features: ${progression.unlockedFeatures.join(', ')}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `
+                            };
+                        }
+                    }
                 },
 
                 initializeLicenses() {

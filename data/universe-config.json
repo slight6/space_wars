@@ -1,0 +1,60 @@
+{
+  "universe": {
+    "dimensions": {
+      "galaxies": {
+        "x": 16,
+        "y": 16,
+        "z": 16
+      },
+      "solarSystems": {
+        "x": 16,
+        "y": 16,
+        "z": 16
+      }
+    },
+    "sectors": {
+      "admin_sector": {
+        "name": "Keldar Administrative Sector",
+        "code": "KLD-ADMIN",
+        "coordinates": {
+          "galaxy": { "x": 0, "y": 0, "z": 0 },
+          "solarSystem": { "x": 8, "y": 8, "z": 8 }
+        },
+        "accessLevel": "admin",
+        "allowedUsers": ["slight"],
+        "systemData": "keldar-system.json",
+        "description": "Administrative sector containing the original Keldar System",
+        "securityLevel": "maximum",
+        "features": ["nexus_station", "full_system_access", "admin_tools"]
+      },
+      "new_player_sector": {
+        "name": "Frontier Training Sector",
+        "code": "FTS-001",
+        "coordinates": {
+          "galaxy": { "x": 15, "y": 15, "z": 15 },
+          "solarSystem": { "x": 2, "y": 3, "z": 7 }
+        },
+        "accessLevel": "new_player",
+        "allowedUsers": ["*"],
+        "excludedUsers": ["slight"],
+        "systemData": "frontier-system.json",
+        "description": "Training sector for new players to learn the basics",
+        "securityLevel": "safe_zone",
+        "features": ["training_missions", "safe_exploration", "guided_learning"]
+      }
+    },
+    "distanceCalculation": {
+      "galaxyUnit": 1000000,
+      "solarSystemUnit": 1000,
+      "description": "Distance units in light-years"
+    }
+  },
+  "playerAccess": {
+    "defaultSector": "new_player_sector",
+    "adminUsers": ["slight"],
+    "accessRules": {
+      "admin": "Can access any sector",
+      "new_player": "Limited to assigned sector until progression requirements met"
+    }
+  }
+}

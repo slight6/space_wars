@@ -1,0 +1,341 @@
+{
+  "systemInfo": {
+    "name": "Frontier Training System",
+    "designation": "FTS-001",
+    "currentYear": 5150,
+    "star": {
+      "name": "Beacon",
+      "type": "K-class main sequence",
+      "classification": "K5V",
+      "mass": 0.8,
+      "luminosity": 0.4,
+      "temperature": 4200,
+      "age": 6.2
+    },
+    "coordinates": {
+      "galactic": {
+        "x": 15,
+        "y": 15,
+        "z": 15
+      },
+      "solarSystem": {
+        "x": 2,
+        "y": 3,
+        "z": 7
+      },
+      "sector": "FTS-001"
+    },
+    "establishedYear": 5140,
+    "currentPopulation": 85000,
+    "governingBody": "Frontier Training Authority",
+    "economicStatus": "subsidized_training",
+    "securityLevel": "safe_zone",
+    "allowOffense": false,
+    "purpose": "new_player_training_and_orientation"
+  },
+  "celestialBodies": {
+    "haven": {
+      "name": "Haven",
+      "type": "planet",
+      "classification": "terrestrial_training",
+      "size": {
+        "radius": 48000,
+        "mass": 6.5,
+        "gravity": 0.85,
+        "surfaceArea": 28900000000
+      },
+      "atmosphere": {
+        "composition": {
+          "nitrogen": 0.75,
+          "oxygen": 0.23,
+          "argon": 0.015,
+          "carbonDioxide": 0.005
+        },
+        "pressure": 0.9,
+        "breathable": true
+      },
+      "biomes": [
+        {
+          "name": "Training Grounds",
+          "coverage": 0.30,
+          "climate": "controlled_temperate",
+          "resources": ["basic_minerals", "training_materials", "simulation_zones"]
+        },
+        {
+          "name": "Safe Forests",
+          "coverage": 0.25,
+          "climate": "temperate",
+          "resources": ["timber", "basic_organics", "survival_training"]
+        },
+        {
+          "name": "Gentle Hills",
+          "coverage": 0.20,
+          "climate": "mild",
+          "resources": ["common_metals", "basic_crystals", "navigation_practice"]
+        },
+        {
+          "name": "Clear Lakes",
+          "coverage": 0.15,
+          "climate": "temperate",
+          "resources": ["freshwater", "aquatic_training", "underwater_basics"]
+        },
+        {
+          "name": "Learning Plateaus",
+          "coverage": 0.10,
+          "climate": "variable",
+          "resources": ["diverse_materials", "skill_challenges", "advanced_training"]
+        }
+      ],
+      "population": 45000,
+      "settlements": [
+        {
+          "name": "New Hope Academy",
+          "type": "training_city",
+          "population": 25000,
+          "coordinates": { "lat": 12.5, "lon": -30.2 },
+          "specialization": "basic_training",
+          "infrastructure": 95
+        },
+        {
+          "name": "Skill Harbor",
+          "type": "learning_port",
+          "population": 12000,
+          "coordinates": { "lat": 45.8, "lon": 67.3 },
+          "specialization": "practical_skills",
+          "infrastructure": 85
+        },
+        {
+          "name": "Discovery Outpost",
+          "type": "exploration_base",
+          "population": 8000,
+          "coordinates": { "lat": -23.4, "lon": 15.7 },
+          "specialization": "exploration_training",
+          "infrastructure": 75
+        }
+      ],
+      "resources": {
+        "available_elements": [1, 6, 7, 8, 13, 14, 16, 20, 26, 29, 30],
+        "abundance_tiers": {
+          "common": [1, 6, 7, 8, 14, 16, 20, 26],
+          "uncommon": [13, 29, 30],
+          "rare": [],
+          "ultra_rare": [],
+          "exotic": []
+        },
+        "training_focused": true,
+        "difficulty_level": "beginner"
+      }
+    },
+    "moons": {
+      "learning": {
+        "name": "Learning",
+        "type": "moon",
+        "classification": "training_facility",
+        "size": {
+          "radius": 3200,
+          "mass": 0.3,
+          "gravity": 0.4
+        },
+        "orbit": {
+          "distance": 200000,
+          "period": 18.5,
+          "eccentricity": 0.02
+        },
+        "atmosphere": {
+          "artificiallyMaintained": true,
+          "breathable": true,
+          "lowGravityTraining": true
+        },
+        "population": 15000,
+        "specialization": "zero_g_and_low_gravity_training",
+        "facilities": [
+          {
+            "name": "Zero-G Training Complex",
+            "type": "training_facility",
+            "capacity": 8000,
+            "specialization": "weightless_operations"
+          },
+          {
+            "name": "Flight School Alpha",
+            "type": "pilot_training",
+            "capacity": 5000,
+            "specialization": "basic_ship_operation"
+          },
+          {
+            "name": "Space Suit Academy",
+            "type": "equipment_training",
+            "capacity": 2000,
+            "specialization": "EVA_operations"
+          }
+        ],
+        "resources": {
+          "specialties": ["training_equipment", "simulation_materials", "safety_systems"],
+          "training_output": 250,
+          "graduate_capacity": 150
+        }
+      }
+    },
+    "stations": {
+      "frontier_hub": {
+        "name": "Frontier Hub Station",
+        "type": "space_station",
+        "classification": "training_and_orientation_center",
+        "size": {
+          "length": 8000,
+          "width": 4000,
+          "height": 2000
+        },
+        "orbit": {
+          "type": "gravitational_lock",
+          "target": "haven",
+          "distance": 25000,
+          "synchronized": true
+        },
+        "population": 25000,
+        "specialization": "new_player_orientation_and_basic_services",
+        "status": "fully_operational",
+        "facilities": [
+          {
+            "name": "Orientation Center",
+            "type": "education",
+            "capacity": 10000,
+            "specialization": "new_player_introduction"
+          },
+          {
+            "name": "Basic Marketplace",
+            "type": "commerce",
+            "capacity": 5000,
+            "specialization": "essential_supplies"
+          },
+          {
+            "name": "Starter Shipyard",
+            "type": "ship_services",
+            "capacity": 3000,
+            "specialization": "basic_ship_maintenance"
+          },
+          {
+            "name": "Training Dormitories",
+            "type": "housing",
+            "capacity": 7000,
+            "specialization": "temporary_accommodation"
+          }
+        ],
+        "services": {
+          "shipyard": {
+            "available": true,
+            "capacity": "basic_service",
+            "specialization": "starter_ships_only"
+          },
+          "marketplace": {
+            "available": true,
+            "scope": "training_system",
+            "specialization": "basic_supplies"
+          },
+          "training": {
+            "available": true,
+            "level": "beginner",
+            "specialization": "core_skills"
+          }
+        }
+      }
+    }
+  },
+  "government": {
+    "primary": {
+      "name": "Frontier Training Authority",
+      "type": "educational_administration",
+      "structure": "bureaucratic",
+      "visibility": "transparent",
+      "authority": "training_focused",
+      "instructors": {
+        "count": 8,
+        "roles": "skill_instruction",
+        "purpose": "player_education_and_progression",
+        "employer": "Frontier Training Authority",
+        "access_level": "student_guidance"
+      }
+    }
+  },
+  "history": {
+    "establishment": {
+      "year": 5140,
+      "event": "training_sector_creation",
+      "purpose": "safe_learning_environment",
+      "founder": "Administrative_Oversight",
+      "development_period": "5140-5150"
+    }
+  },
+  "economy": {
+    "systemCurrency": "Training Credits (TC)",
+    "economicModel": "subsidized_learning",
+    "transparency": {
+      "enabled": true,
+      "scope": "educational_progress",
+      "visibility": "student_accessible",
+      "frequency": "real_time"
+    },
+    "resourceFlow": {
+      "imports": {
+        "source": "administrative_sector",
+        "frequency": "regular_supply_runs",
+        "contents": ["training_materials", "basic_supplies", "instructional_equipment"],
+        "purpose": "maintain_training_operations"
+      },
+      "exports": {
+        "primary": ["trained_personnel", "basic_materials", "progress_reports"],
+        "secondary": ["training_methodologies"]
+      }
+    },
+    "progression_economy": {
+      "earn_through": ["completing_missions", "skill_demonstrations", "knowledge_tests"],
+      "spend_on": ["basic_equipment", "ship_upgrades", "advanced_training"]
+    }
+  },
+  "gameplay": {
+    "startingLocation": "frontier_hub_station",
+    "initialPhase": "orientation_and_basic_training",
+    "playerProgression": [
+      "orientation_completion",
+      "basic_skill_acquisition", 
+      "simple_missions",
+      "graduation_requirements"
+    ],
+    "restrictions": {
+      "sectors_accessible": ["new_player_sector"],
+      "max_risk_level": "very_low",
+      "complexity_cap": "basic",
+      "graduation_requirements": "skill_minimums_met"
+    },
+    "missions": {
+      "source": "training_instructors", 
+      "types": ["tutorials", "skill_practice", "safe_exploration", "basic_resource_gathering"],
+      "progression": "linear_skill_building"
+    },
+    "training_modules": [
+      {
+        "name": "Ship Operations 101",
+        "duration": "2_hours",
+        "requirements": [],
+        "rewards": ["basic_piloting", "navigation_fundamentals"]
+      },
+      {
+        "name": "Resource Gathering Basics",
+        "duration": "3_hours", 
+        "requirements": ["Ship Operations 101"],
+        "rewards": ["mining_basics", "scanning_skills"]
+      },
+      {
+        "name": "Safe Exploration",
+        "duration": "4_hours",
+        "requirements": ["Resource Gathering Basics"],
+        "rewards": ["exploration_skills", "safety_protocols"]
+      },
+      {
+        "name": "Trade Fundamentals",
+        "duration": "2_hours",
+        "requirements": ["Safe Exploration"],
+        "rewards": ["basic_economics", "market_understanding"]
+      }
+    ]
+  }
+}
