@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Migration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="data-manager.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">🔄 Data Migration System</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">📊 Migration Status</h2>
+                <div id="migrationStatus" class="space-y-2">
+                    <p class="text-gray-400">Click "Start Migration" to begin</p>
+                </div>
+                <button onclick="startMigration()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded">
+                    Start Migration
+                </button>
+            </div>
+            
+            <div class="bg-gray-800 p-6 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4">📁 Current Data</h2>
+                <div id="dataDisplay" class="space-y-2">
+                    <p class="text-gray-400">No data loaded</p>
+                </div>
+                <button onclick="showCurrentData()" class="mt-4 bg-green-600 hover:bg-green-700 px-4 py-2 rounded">
+                    Show Data
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-gray-800 p-6 rounded-lg mt-6">
+            <h2 class="text-xl font-semibold mb-4">🗂️ localStorage Contents</h2>
+            <div id="localStorageContents" class="space-y-2">
+                <p class="text-gray-400">Loading...</p>
+            </div>
+            <div class="mt-4 space-x-4">
+                <button onclick="clearLocalStorage()" class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded">
+                    Clear localStorage
+                </button>
+                <button onclick="exportData()" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded">
+                    Export Data
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize when page loads
+        window.addEventListener('load', () => {
+            showLocalStorageContents();
+        });
+
+        async function startMigration() {
+            const statusDiv = document.getElementById('migrationStatus');
+            statusDiv.innerHTML = '<p class="text-yellow-400">🔄 Starting migration...</p>';
+            
+            try {
+                await window.DataAPI.initialize();
+                statusDiv.innerHTML = `
+                    <p class="text-green-400">✅ Migration completed successfully!</p>
+                    <p class="text-sm text-gray-300">All localStorage data has been migrated to JSON files.</p>
+                `;
+                
+                // Show updated data
+                await showCurrentData();
+                showLocalStorageContents();
+                
+            } catch (error) {
+                statusDiv.innerHTML = `
+                    <p class="text-red-400">❌ Migration failed: ${error.message}</p>
+                `;
+                console.error('Migration error:', error);
+            }
+        }
+
+        async function showCurrentData() {
+            const dataDiv = document.getElementById('dataDisplay');
+            
+            try {
+                await window.DataAPI.initialize();
+                
+                const players = await window.DataAPI.getAllPlayers();
+                const currentPlayer = await window.DataAPI.getCurrentPlayer();
+                
+                dataDiv.innerHTML = `
+                    <div class="space-y-2">
+                        <p><span class="text-blue-400">Total Players:</span> ${players.length}</p>
+                        <p><span class="text-blue-400">Current Player:</span> ${currentPlayer ? currentPlayer.username : 'None'}</p>
+                        <div class="text-xs bg-gray-700 p-2 rounded mt-2">
+                            <pre>${JSON.stringify({players: players.map(p => p.username), currentPlayer: currentPlayer?.username}, null, 2)}</pre>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                dataDiv.innerHTML = `<p class="text-red-400">Error loading data: ${error.message}</p>`;
+            }
+        }
+
+        function showLocalStorageContents() {
+            const localStorageDiv = document.getElementById('localStorageContents');
+            const relevantKeys = ['players', 'currentPlayer', 'playerProgression', 'ship_data'];
+            
+            let content = '<div class="space-y-2">';
+            
+            relevantKeys.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        content += `
+                            <div class="bg-gray-700 p-2 rounded">
+                                <p class="text-yellow-400 font-semibold">${key}:</p>
+                                <div class="text-xs mt-1">
+                                    ${Array.isArray(parsed) ? 
+                                        `Array with ${parsed.length} items` : 
+                                        typeof parsed === 'object' ? 
+                                            `Object with ${Object.keys(parsed).length} keys` : 
+                                            `${typeof parsed}: ${parsed}`
+                                    }
+                                </div>
+                            </div>
+                        `;
+                    } catch (e) {
+                        content += `
+                            <div class="bg-gray-700 p-2 rounded">
+                                <p class="text-yellow-400 font-semibold">${key}:</p>
+                                <div class="text-xs mt-1 text-red-400">Invalid JSON</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    content += `
+                        <div class="bg-gray-700 p-2 rounded opacity-50">
+                            <p class="text-gray-400">${key}: Not found</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            content += '</div>';
+            localStorageDiv.innerHTML = content;
+        }
+
+        function clearLocalStorage() {
+            const keys = ['players', 'currentPlayer', 'playerProgression', 'ship_data'];
+            keys.forEach(key => localStorage.removeItem(key));
+            showLocalStorageContents();
+            console.log('Cleared localStorage keys:', keys);
+        }
+
+        async function exportData() {
+            try {
+                await window.DataAPI.initialize();
+                const exportedData = await window.DataAPI.exportData();
+                console.log('Data exported successfully:', exportedData);
+            } catch (error) {
+                console.error('Export failed:', error);
+                alert('Export failed: ' + error.message);
+            }
+        }
+
+        // Show toast notifications
+        window.showToast = function(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            // In a real implementation, this would show a proper toast
+        };
+    </script>
+</body>
+</html>

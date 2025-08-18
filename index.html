@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="universe-manager.js"></script>
+    <script src="data-manager.js"></script>
     <script src="universal-footer.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
@@ -256,7 +257,7 @@
                     localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
                     
                     // Initialize the starter ship in the ship management system
-                    this.initializeStarterShip(newPlayer);
+                    await this.initializeStarterShip(newPlayer);
                     
                     console.log(`New player ${this.username} registered in sector: ${universeData.playerSector}`);
                     
@@ -266,7 +267,7 @@
                     }, 1500);
                 },
                 
-                initializeStarterShip(player) {
+                async initializeStarterShip(player) {
                     // Initialize ship data storage for new player
                     const shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
                     
