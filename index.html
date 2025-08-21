@@ -8,8 +8,6 @@
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-    <script src="universe-manager.js"></script>
-    <script src="data-manager.js"></script>
     <script src="universal-footer.js"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     <style>
@@ -184,30 +182,12 @@
                     }, 1000);
                 },
                 
-                async login() {
+                login() {
                     const players = JSON.parse(localStorage.getItem('players') || '[]');
                     const player = players.find(p => p.username === this.username && p.password === this.password);
                     
                     if (player) {
-                        // Ensure universe config is loaded before login
-                        await window.UniverseManager.ensureConfigLoaded();
-                        
-                        // Initialize universe for player
-                        const universeData = await window.UniverseManager.initializePlayerUniverse(this.username);
-                        
-                        // Update player with universe information
-                        player.universeInfo = universeData.universeInfo;
-                        player.currentLocation = universeData.currentLocation;
-                        player.systemData = universeData.systemData;
-                        
-                        // Save updated player data
-                        const playerIndex = players.findIndex(p => p.username === this.username);
-                        players[playerIndex] = player;
-                        localStorage.setItem('players', JSON.stringify(players));
                         localStorage.setItem('currentPlayer', JSON.stringify(player));
-                        
-                        console.log(`Player ${this.username} logged into sector: ${universeData.playerSector}`);
-                        
                         this.showToast('Welcome back, Commander!', 'success');
                         setTimeout(() => {
                             window.location.href = 'game.html';
@@ -217,7 +197,7 @@
                     }
                 },
                 
-                async register() {
+                register() {
                     const players = JSON.parse(localStorage.getItem('players') || '[]');
                     
                     if (players.find(p => p.username === this.username)) {
@@ -225,23 +205,14 @@
                         return;
                     }
                     
-                    // Ensure universe config is loaded before registration
-                    await window.UniverseManager.ensureConfigLoaded();
-                    
-                    // Initialize universe for new player
-                    const universeData = await window.UniverseManager.initializePlayerUniverse(this.username);
-                    
                     const newPlayer = {
                         id: Date.now(),
                         username: this.username,
                         password: this.password,
                         createdAt: new Date().toISOString(),
                         level: 1,
-                        credits: 10000, // Reduced starting credits for new players
+                        credits: 1000000000,
                         experience: 0,
-                        universeInfo: universeData.universeInfo,
-                        currentLocation: universeData.currentLocation,
-                        systemData: universeData.systemData,
                         starterShip: {
                             id: "scout_explorer_01",
                             name: "Starling Explorer",
@@ -257,9 +228,7 @@
                     localStorage.setItem('currentPlayer', JSON.stringify(newPlayer));
                     
                     // Initialize the starter ship in the ship management system
-                    await this.initializeStarterShip(newPlayer);
-                    
-                    console.log(`New player ${this.username} registered in sector: ${universeData.playerSector}`);
+                    this.initializeStarterShip(newPlayer);
                     
                     this.showToast('Welcome to the fleet, Commander!', 'success');
                     setTimeout(() => {
@@ -267,7 +236,7 @@
                     }, 1500);
                 },
                 
-                async initializeStarterShip(player) {
+                initializeStarterShip(player) {
                     // Initialize ship data storage for new player
                     const shipData = JSON.parse(localStorage.getItem('ship_data') || '{"playerShips": [], "shipInstances": []}');
                     

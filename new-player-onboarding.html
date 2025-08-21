@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Player Onboarding - Mining to Market</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+    <script src="game-data-manager.js"></script>
+    <script src="mining-system.js"></script>
+    <script src="refinery-system.js"></script>
+    <script src="advanced-manufacturing-system.js"></script>
+    <script src="marketplace.js"></script>
+    <script src="universal-footer.js"></script>
+</head>
+<body class="bg-gray-900 text-white" x-data="onboardingApp()">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-gray-800 rounded-lg border border-blue-500 p-6 mb-8">
+            <h1 class="text-3xl font-bold text-blue-400 mb-2">🚀 New Player Onboarding</h1>
+            <p class="text-gray-300 mb-4">A simple, guided loop for new players: Mine → Appraise → Refine → Manufacture → Drop Off → Earn Credits</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="bg-gray-800 rounded-lg border border-green-500 p-6 flex flex-col space-y-4">
+                <h2 class="text-xl font-bold text-green-400 mb-2">Step 1: Mine Ore</h2>
+                <button @click="mineOre" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded font-semibold">⛏️ Mine Ore</button>
+                <div class="w-full h-3 bg-gray-700 rounded mt-2">
+                    <div class="h-3 bg-green-400 rounded transition-all" :style="`width: ${miningProgress}%`"></div>
+                </div>
+                <div class="text-sm text-gray-300">Adds 1 Iron Ore to your inventory.</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg border border-yellow-500 p-6 flex flex-col space-y-4">
+                <h2 class="text-xl font-bold text-yellow-400 mb-2">Step 2: Appraise Ore</h2>
+                <button @click="appraiseOre" class="bg-yellow-600 hover:bg-yellow-700 px-4 py-2 rounded font-semibold">🔍 Appraise Ore</button>
+                <div class="w-full h-3 bg-gray-700 rounded mt-2 opacity-0 pointer-events-none"></div>
+                <div class="text-sm text-gray-300">See the market value of your ore.</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg border border-blue-500 p-6 flex flex-col space-y-4">
+                <h2 class="text-xl font-bold text-blue-400 mb-2">Step 3: Refine Ore</h2>
+                <button @click="refineOre" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded font-semibold">⚒️ Refine Ore</button>
+                <div class="w-full h-3 bg-gray-700 rounded mt-2">
+                    <div class="h-3 bg-blue-400 rounded transition-all" :style="`width: ${refiningProgress}%`"></div>
+                </div>
+                <div class="text-sm text-gray-300">Convert ore to ingot (or canister/vial for gas/liquid).</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg border border-purple-500 p-6 flex flex-col space-y-4">
+                <h2 class="text-xl font-bold text-purple-400 mb-2">Step 4: Manufacture Product</h2>
+                <button @click="manufactureProduct" class="bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded font-semibold">🏭 Manufacture Product</button>
+                <div class="w-full h-3 bg-gray-700 rounded mt-2">
+                    <div class="h-3 bg-purple-400 rounded transition-all" :style="`width: ${manufacturingProgress}%`"></div>
+                </div>
+                <div class="text-sm text-gray-300">Use a basic blueprint to create a finished product.</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg border border-orange-500 p-6 flex flex-col space-y-4">
+                <h2 class="text-xl font-bold text-orange-400 mb-2">Step 5: Drop Off & Sell</h2>
+                <button @click="dropOffProduct" class="bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded font-semibold">💰 Drop Off Product</button>
+                <div class="w-full h-3 bg-gray-700 rounded mt-2">
+                    <div class="h-3 bg-orange-400 rounded transition-all" :style="`width: ${dropoffProgress}%`"></div>
+                </div>
+                <div class="text-sm text-gray-300">Drop off your product at the station and earn credits.</div>
+            </div>
+        </div>
+        <div class="mt-8 bg-gray-800 rounded-lg border border-gray-600 p-6">
+            <h2 class="text-lg font-bold text-blue-300 mb-2">Your Inventory & Credits</h2>
+            <div class="flex flex-col md:flex-row md:space-x-8">
+                <div>
+                    <div class="text-green-400 font-mono">Ore: <span x-text="oreCount"></span></div>
+                    <div class="text-blue-400 font-mono">Ingot: <span x-text="ingotCount"></span></div>
+                    <div class="text-purple-400 font-mono">Product: <span x-text="productCount"></span></div>
+                </div>
+                <div class="mt-4 md:mt-0">
+                    <div class="text-yellow-400 font-mono text-lg">Credits: <span x-text="credits"></span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        function onboardingApp() {
+                    return {
+                        oreCount: 0,
+                        ingotCount: 0,
+                        productCount: 0,
+                        credits: 0,
+                        playerId: 'player1',
+                        miningProgress: 0,
+                        refiningProgress: 0,
+                        manufacturingProgress: 0,
+                        dropoffProgress: 0,
+                        mineOre() {
+                            if (this.miningProgress > 0) return;
+                            this.miningProgress = 1;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                                progress += 10;
+                                this.miningProgress = progress;
+                                if (progress >= 100) {
+                                    clearInterval(interval);
+                                    if (window.miningSystem) {
+                                        window.miningSystem.addOreToInventory(this.playerId, [{ type: 'iron_ore', amount: 1 }]);
+                                        this.showToast('Mined 1 Iron Ore!', 'success');
+                                        this.updateInventory();
+                                    }
+                                    setTimeout(() => { this.miningProgress = 0; }, 300);
+                                }
+                            }, 80);
+                        },
+                        appraiseOre() {
+                            if (window.marketplace && window.miningSystem) {
+                                const inventory = window.miningSystem.getPlayerInventory(this.playerId);
+                                const ore = inventory.find(i => i.type === 'iron_ore' && (i.amount || 1) > 0);
+                                if (ore) {
+                                    const value = window.marketplace.getSellValue('iron_ore');
+                                    this.showToast(`Iron Ore value: ${value} credits`, 'info');
+                                } else {
+                                    this.showToast('No Iron Ore to appraise.', 'error');
+                                }
+                            }
+                        },
+                        refineOre() {
+                            if (this.refiningProgress > 0) return;
+                            this.refiningProgress = 1;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                                progress += 10;
+                                this.refiningProgress = progress;
+                                if (progress >= 100) {
+                                    clearInterval(interval);
+                                    const inventory = window.miningSystem.getPlayerInventory(this.playerId);
+                                    const oreIndex = inventory.findIndex(i => i.type === 'iron_ore' && (i.amount || 1) > 0);
+                                    if (oreIndex !== -1) {
+                                        if (inventory[oreIndex].amount && inventory[oreIndex].amount > 1) {
+                                            inventory[oreIndex].amount -= 1;
+                                        } else {
+                                            inventory.splice(oreIndex, 1);
+                                        }
+                                        window.refinerySystem.addRefinedMaterial(this.playerId, { type: 'iron_ingot', quantity: 1 });
+                                        this.showToast('Refined Iron Ore into Iron Ingot!', 'success');
+                                        this.updateInventory();
+                                    } else {
+                                        this.showToast('No Iron Ore to refine.', 'error');
+                                    }
+                                    setTimeout(() => { this.refiningProgress = 0; }, 300);
+                                }
+                            }, 80);
+                        },
+                        manufactureProduct() {
+            if (this.manufacturingProgress > 0) return;
+            this.manufacturingProgress = 1;
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                this.manufacturingProgress = progress;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    if (window.refinerySystem) {
+                        const ingots = window.refinerySystem.getPlayerInventory(this.playerId);
+                        const ingotIndex = ingots.findIndex(i => i.type === 'iron_ingot' && (i.quantity || 1) > 0);
+                        if (ingotIndex !== -1) {
+                            if (ingots[ingotIndex].quantity > 1) {
+                                ingots[ingotIndex].quantity -= 1;
+                            } else {
+                                ingots.splice(ingotIndex, 1);
+                            }
+                            window.advancedManufacturing = window.advancedManufacturing || {};
+                            window.advancedManufacturing.completedProducts = window.advancedManufacturing.completedProducts || [];
+                            window.advancedManufacturing.completedProducts.push({ type: 'iron_widget', quantity: 1 });
+                            this.showToast('Manufactured 1 Iron Widget!', 'success');
+                            this.updateInventory();
+                        } else {
+                            this.showToast('No Iron Ingot to manufacture.', 'error');
+                        }
+                    }
+                    setTimeout(() => { this.manufacturingProgress = 0; }, 300);
+                }
+            }, 80);
+                        },
+                        dropOffProduct() {
+            if (this.dropoffProgress > 0) return;
+            this.dropoffProgress = 1;
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 10;
+                this.dropoffProgress = progress;
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    if (window.advancedManufacturing && window.marketplace) {
+                        window.advancedManufacturing.completedProducts = window.advancedManufacturing.completedProducts || [];
+                        const productIndex = window.advancedManufacturing.completedProducts.findIndex(p => p.type === 'iron_widget' && p.quantity > 0);
+                        if (productIndex !== -1) {
+                            if (window.advancedManufacturing.completedProducts[productIndex].quantity > 1) {
+                                window.advancedManufacturing.completedProducts[productIndex].quantity -= 1;
+                            } else {
+                                window.advancedManufacturing.completedProducts.splice(productIndex, 1);
+                            }
+                            window.spaceGame = window.spaceGame || { player: { credits: 0 } };
+                            const value = window.marketplace.getSellValue('iron_widget');
+                            window.spaceGame.player.credits += value;
+                            this.showToast(`Dropped off Iron Widget, earned ${value} credits!`, 'success');
+                            this.updateInventory();
+                        } else {
+                            this.showToast('No Iron Widget to drop off.', 'error');
+                        }
+                    }
+                    setTimeout(() => { this.dropoffProgress = 0; }, 300);
+                }
+            }, 80);
+                        },
+                        updateInventory() {
+            if (window.miningSystem) {
+                const ores = window.miningSystem.getPlayerInventory(this.playerId).filter(i => i.type === 'iron_ore');
+                this.oreCount = ores.reduce((sum, i) => sum + (i.amount || 1), 0);
+            }
+            if (window.refinerySystem) {
+                const ingots = window.refinerySystem.getPlayerInventory(this.playerId).filter(i => i.type === 'iron_ingot');
+                this.ingotCount = ingots.reduce((sum, i) => sum + (i.quantity || 1), 0);
+            }
+            if (window.advancedManufacturing) {
+                window.advancedManufacturing.completedProducts = window.advancedManufacturing.completedProducts || [];
+                const products = window.advancedManufacturing.completedProducts.filter(p => p.type === 'iron_widget');
+                this.productCount = products.reduce((sum, p) => sum + (p.quantity || 1), 0);
+            }
+            if (window.spaceGame && window.spaceGame.player) {
+                this.credits = window.spaceGame.player.credits;
+            }
+                        },
+                        showToast(message, type = 'info') {
+                            const backgrounds = {
+                                success: 'linear-gradient(to right, #00b09b, #96c93d)',
+                                error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+                                info: 'linear-gradient(to right, #667eea, #764ba2)'
+                            };
+                            Toastify({
+                                text: message,
+                                duration: 3000,
+                                style: { background: backgrounds[type] || backgrounds.info }
+                            }).showToast();
+                        },
+                        init() {
+                            this.updateInventory();
+                        }
+                    };
+                }
+                </script>
+
+
+</body>
+</html>

@@ -29,11 +29,10 @@
       },
       "upgrade_slots": {
         "engine_slots": 1,
-        "weapon_slots": 1,
+        "weapon_slots": 2,
         "utility_slots": 1,
         "cargo_slots": 1,
-        "special_slots": 0,
-        "heavy_weapon_slots": 0
+        "special_slots": 0
       },
       "upgrade_compatibility": {
         "has_upgraded_ion_pulse_engine": false,

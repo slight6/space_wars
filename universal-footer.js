@@ -34,6 +34,7 @@ function createUniversalFooter() {
         { name: '🌌 3D Navigation', url: 'space-navigation.html', category: 'operations' },
         { name: '🔧 Mining Interface', url: 'mining-interface.html', category: 'test' },
         { name: '🧪 Integration Test', url: 'integration-complete.html', category: 'test' },
+        { name: '🆕 New Player Onboarding', url: 'new-player-onboarding.html', category: 'test' },
         { name: '🔐 Login', url: 'index.html', category: 'auth' },
         { name: '👤 Player Auth', url: 'player-auth.html', category: 'auth' }
     ];
