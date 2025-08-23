@@ -1,0 +1,139 @@
+{
+  "solarSystemId": "starter_system_001",
+  "name": "Beginner Solar System",
+  "description": "The starting point for new players, featuring a star, star port, 7 diverse planets, asteroid belt, and a central space station.",
+  "star": {
+    "name": "Solara Prime",
+    "type": "G-type Main Sequence",
+    "luminosity": 1.0,
+    "temperature": 5800,
+    "radius": 1.0,
+    "mass": 1.0
+  },
+  "starPort": {
+    "name": "Solara Star Port",
+    "location": { "x": 0, "y": 0, "z": 0 },
+    "facilities": [
+      "shipyard", "personal_hangar", "government_office", "corporate_hq", "faction_hideout", "marketplace", "trading_center", "temple_of_the_dog", "underground_tavern"
+    ],
+    "reputationGates": {
+      "full_access": "high_reputation",
+      "underground_tavern": "open_to_all"
+    },
+    "population": 12000
+  },
+  "planets": [
+    {
+      "name": "Moltenus",
+      "type": "Molten Metal World",
+      "colonized": false,
+      "outpost": false,
+      "specialization": null,
+      "mining": true,
+      "description": "A searing hot planet, rich in unknown metals. Probes cannot survive the heat."
+    },
+    {
+      "name": "Tradeon",
+      "type": "Colonized Trading World",
+      "colonized": true,
+      "outpost": true,
+      "specialization": "Trading & Training",
+      "mining": false,
+      "description": "A bustling planet with a trading outpost and specialization training area."
+    },
+    {
+      "name": "Minara",
+      "type": "Mining World",
+      "colonized": false,
+      "outpost": false,
+      "specialization": null,
+      "mining": true,
+      "description": "Strictly for mining, no colonists or outposts."
+    },
+    {
+      "name": "Skillara",
+      "type": "Colonized Training World",
+      "colonized": true,
+      "outpost": true,
+      "specialization": "Specialized Training",
+      "mining": false,
+      "description": "Colonized planet with outpost and advanced training area."
+    },
+    {
+      "name": "Oreus",
+      "type": "Mining World",
+      "colonized": false,
+      "outpost": false,
+      "specialization": null,
+      "mining": true,
+      "description": "Mining only, no colonists or outposts."
+    },
+    {
+      "name": "Trainara",
+      "type": "Colonized Training World",
+      "colonized": true,
+      "outpost": true,
+      "specialization": "Final Training Area",
+      "mining": false,
+      "description": "Colonized planet with last specialization training area and outpost."
+    },
+    {
+      "name": "Glaciera",
+      "type": "Icy Mining Hellscape",
+      "colonized": false,
+      "outpost": false,
+      "specialization": null,
+      "mining": true,
+      "government_control": "The State",
+      "restricted_zone": "dark_side",
+      "description": "Large, barren, icy planet for mining and refining. Government controls the dark side."
+    }
+  ],
+  "asteroidBelt": {
+    "name": "Belt of Fortuna",
+    "location": "between Skillara and Oreus",
+    "mining": true,
+    "risk": "fuel_supply_damage",
+    "description": "Rich in precious materials, but risky for ships' fuel supply."
+  },
+  "spaceStation": {
+    "name": "Solara Nexus Station",
+    "location": { "x": 0, "y": 0, "z": 0 },
+    "facilities": [
+      "shipyard", "hangar", "government_services", "corporate_hq", "faction_hideout", "marketplace", "trading_center", "temple_of_the_dog"
+    ],
+    "spawn_point": true,
+    "reputationGates": {
+      "full_access": "high_reputation",
+      "underground_tavern": "open_to_all"
+    },
+    "population": 8000
+  },
+  "travel": {
+    "systemTraversal": {
+      "method": "autopilot_or_manual",
+      "fuelUsage": "speed_based",
+      "fallback": "ion_pulse_engine",
+      "timeRandomization": true
+    },
+    "fogOfWar": true,
+    "mapTrading": true
+  },
+  "expansion": {
+    "xtorpPattern": [1,2,3,4,5,6,7,8,9,10],
+    "maxXTorpsPerSystem": 10,
+    "genisysTorpedo": {
+      "homeBaseLimit": 1,
+      "restrictedAccess": true,
+      "ownershipTransfer": "on_abandon_or_depletion"
+    }
+  },
+  "government": {
+    "name": "The State",
+    "control": ["Glaciera (dark side)", "space station (security)", "underground tavern (monitoring)"]
+  },
+  "factions": [
+    "Mining Corp", "Trade Guild", "Explorers League", "State Security", "Religious Order"
+  ],
+  "notes": "This universe is designed for teamwork, progression, and player-driven expansion. All environmental and elemental effects from Genisys Torpedo can be adapted for xTorp."
+}

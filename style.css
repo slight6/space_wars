@@ -1,0 +1,60 @@
+/* Basic CSS for Space Wars - replace Tailwind utility classes */
+body {
+    background: linear-gradient(to bottom, #0f0f23, #1a1a2e, #16213e);
+    color: #fff;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+}
+.header {
+    background: #1a1a2e;
+    border-bottom: 1px solid #444;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.card {
+    background: #222;
+    border-radius: 0.5rem;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #444;
+    transition: box-shadow 0.3s, transform 0.3s;
+}
+.card:hover {
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+}
+.button {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.button:hover {
+    background: #1d4ed8;
+}
+.input, select {
+    background: #18181b;
+    color: #fff;
+    border: 1px solid #444;
+    border-radius: 0.375rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    width: 100%;
+}
+.text-center { text-align: center; }
+.text-bold { font-weight: bold; }
+.text-lg { font-size: 1.25rem; }
+.text-sm { font-size: 0.875rem; }
+.rounded { border-radius: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mb-4 { margin-bottom: 1rem; }
+.p-4 { padding: 1rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }

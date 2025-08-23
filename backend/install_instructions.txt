@@ -1,0 +1,5 @@
+# Backend Install Instructions
+
+Run the following command in the backend directory to install bcrypt for password hashing:
+
+npm install bcrypt

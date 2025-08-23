@@ -1,0 +1,189 @@
+{
+    "system_name": "SYS-503",
+    "star": {
+        "name": "STAR-863",
+        "type": "Yellow Dwarf",
+        "size": "Large"
+    },
+    "planets": [
+        {
+            "name": "PLANET-197",
+            "size": "Large",
+            "orbit_distance": 45,
+            "moons": [
+                {
+                    "name": "MOON-739",
+                    "size": "Medium"
+                },
+                {
+                    "name": "MOON-846",
+                    "size": "Small"
+                },
+                {
+                    "name": "MOON-287",
+                    "size": "Medium"
+                },
+                {
+                    "name": "MOON-108",
+                    "size": "Small"
+                },
+                {
+                    "name": "MOON-581",
+                    "size": "Small"
+                },
+                {
+                    "name": "MOON-699",
+                    "size": "Medium"
+                },
+                {
+                    "name": "MOON-446",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-236",
+                    "size": "Medium"
+                }
+            ]
+        },
+        {
+            "name": "PLANET-484",
+            "size": "Medium",
+            "orbit_distance": 42,
+            "moons": [
+                {
+                    "name": "MOON-490",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-875",
+                    "size": "Medium"
+                }
+            ]
+        },
+        {
+            "name": "PLANET-707",
+            "size": "Small",
+            "orbit_distance": 66,
+            "moons": [
+                {
+                    "name": "MOON-183",
+                    "size": "Small"
+                },
+                {
+                    "name": "MOON-766",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-272",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-780",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-462",
+                    "size": "Small"
+                },
+                {
+                    "name": "MOON-723",
+                    "size": "Medium"
+                },
+                {
+                    "name": "MOON-646",
+                    "size": "Large"
+                },
+                {
+                    "name": "MOON-333",
+                    "size": "Large"
+                }
+            ]
+        }
+    ],
+    "routes": [
+        {
+            "from": "STAR-863",
+            "to": "PLANET-197"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-739"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-846"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-287"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-108"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-581"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-699"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-446"
+        },
+        {
+            "from": "PLANET-197",
+            "to": "MOON-236"
+        },
+        {
+            "from": "STAR-863",
+            "to": "PLANET-484"
+        },
+        {
+            "from": "PLANET-484",
+            "to": "MOON-490"
+        },
+        {
+            "from": "PLANET-484",
+            "to": "MOON-875"
+        },
+        {
+            "from": "STAR-863",
+            "to": "PLANET-707"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-183"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-766"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-272"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-780"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-462"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-723"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-646"
+        },
+        {
+            "from": "PLANET-707",
+            "to": "MOON-333"
+        }
+    ]
+}
