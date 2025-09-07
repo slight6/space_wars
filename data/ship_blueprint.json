@@ -1,0 +1,27 @@
+{
+    "ship_id": 0,
+    "name": "Scout Explorer",
+    "class": "scout",
+    "owner": null,
+    "location": null,
+    "max_speed": 1000,
+    "cargo_capacity": 40,
+    "cargo_inventory": [],
+    "crew_capacity": 1,
+    "fuel_capacity": 200,
+    "weaponry": null,
+    "defense": null,
+    "mining_level": 1,
+    "refining_level": 1,
+    "ion_pulse": 1,
+    "main_engine": {
+        "type": "none",
+        "level": 0,
+        "power": 0,
+        "efficiency": 0.0
+    },
+    "scanner": {
+        "type": "basic"
+    }
+
+}

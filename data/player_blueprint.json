@@ -1,0 +1,20 @@
+{
+    "player_id": null,
+    "player_name": "Player",
+    "encrypted_password": "",
+    "registration_timestamp": null,
+    "last_login_timestamp": null,
+    "player_location": null,
+    "credits": 0,
+    "ladinatum": 0,
+    "ships_owned": [],
+    "blueprints_owned": [],
+    "hangar_capacity": 0,
+    "homebase_location_id": null,
+    "active_ship_id": null,
+    "type": "normal_player",
+    "alliance_id": null,
+    "inventory": [],
+    "reputation": 0,
+    "status": "offline"
+}

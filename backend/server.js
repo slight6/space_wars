@@ -1,9 +1,18 @@
+
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcrypt');
 const path = require('path');
+
+const Player = require('./models/player');
+const Ship = require('./models/ship');
+const Inventory = require('./models/inventory');
+const Specialist = require('./models/specialist');
+const Mission = require('./models/mission');
+const Location = require('./models/location');
+const Resource = require('./models/resource');
+const Marketplace = require('./models/marketplace');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,40 +20,16 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-// SQLite DB setup
-const db = new sqlite3.Database('./spacewars.db', (err) => {
-  if (err) {
-    console.error('Could not connect to database', err);
-  } else {
-    console.log('Connected to SQLite database');
-  }
-});
+// Serve frontend
 
-// Create tables if not exist
-const setupSQL = `
-CREATE TABLE IF NOT EXISTS players (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username TEXT UNIQUE,
-  password TEXT,
-  credits INTEGER DEFAULT 100000,
-  reputation INTEGER DEFAULT 0
-);
-CREATE TABLE IF NOT EXISTS ships (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  player_id INTEGER,
-  ship_type TEXT,
-  custom_name TEXT,
-  purchase_date TEXT,
-  FOREIGN KEY(player_id) REFERENCES players(id)
-);
-`;
-db.exec(setupSQL, (err) => {
-  if (err) console.error('Error setting up tables', err);
-});
-
-// API Endpoints
+// Serve index.html
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../index.html'));
+});
+
+// Serve game.html
+app.get('/game.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../game.html'));
 });
 
 // Register
@@ -53,55 +38,178 @@ app.post('/api/register', async (req, res) => {
   try {
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    db.run('INSERT INTO players (username, password) VALUES (?, ?)', [username, hashedPassword], function(err) {
-      if (err) return res.status(400).json({ error: 'Username taken' });
-      res.json({ id: this.lastID, username, credits: 100000, reputation: 0 });
+    Player.create(username, hashedPassword, (err, player) => {
+      if (err) return res.status(400).json({ success: false, message: 'Username taken' });
+      // Generate a simple token (for demo, not secure)
+      const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
+      res.json({ success: true, token, player });
     });
   } catch (err) {
-    res.status(500).json({ error: 'Registration failed' });
+    res.status(500).json({ success: false, message: 'Registration failed' });
   }
 });
 
 // Login
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  db.get('SELECT * FROM players WHERE username = ?', [username], async (err, row) => {
-    if (err || !row) return res.status(401).json({ error: 'Invalid credentials' });
+  Player.findByUsername(username, async (err, player) => {
+    if (err || !player) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     try {
-      const match = await bcrypt.compare(password, row.password);
-      if (!match) return res.status(401).json({ error: 'Invalid credentials' });
-      // Don't send password hash back
-      const { password: _, ...userData } = row;
-      res.json(userData);
+      const match = await bcrypt.compare(password, player.password);
+      if (!match) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      const { password: _, ...userData } = player;
+      // Generate a simple token (for demo, not secure)
+      const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
+      res.json({ success: true, token, player: userData });
     } catch (e) {
-      res.status(500).json({ error: 'Login failed' });
+      res.status(500).json({ success: false, message: 'Login failed' });
     }
   });
 });
 
-// Get player ships
-app.get('/api/ships/:playerId', (req, res) => {
-  db.all('SELECT * FROM ships WHERE player_id = ?', [req.params.playerId], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'DB error' });
-    res.json(rows);
+// Player info
+app.get('/api/player/:username', (req, res) => {
+  Player.findByUsername(req.params.username, (err, player) => {
+    if (err || !player) return res.status(404).json({ error: 'Player not found' });
+    res.json(player);
   });
 });
 
-// Purchase ship
+// Ships
+app.get('/api/ships/:playerId', (req, res) => {
+  Ship.getByPlayer(req.params.playerId, (err, ships) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(ships);
+  });
+});
 app.post('/api/ships/purchase', (req, res) => {
   const { playerId, shipType, customName } = req.body;
-  const purchaseDate = new Date().toISOString();
-  db.run('INSERT INTO ships (player_id, ship_type, custom_name, purchase_date) VALUES (?, ?, ?, ?)', [playerId, shipType, customName, purchaseDate], function(err) {
+  Ship.purchase(playerId, shipType, customName, (err, ship) => {
     if (err) return res.status(500).json({ error: 'DB error' });
-    res.json({ id: this.lastID, playerId, shipType, customName, purchaseDate });
+    res.json(ship);
   });
 });
 
-// Get player info
-app.get('/api/player/:username', (req, res) => {
-  db.get('SELECT * FROM players WHERE username = ?', [req.params.username], (err, row) => {
-    if (err || !row) return res.status(404).json({ error: 'Player not found' });
-    res.json(row);
+// Inventory
+app.get('/api/inventory/:playerId', (req, res) => {
+  Inventory.getByPlayer(req.params.playerId, (err, items) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(items);
+  });
+});
+app.post('/api/inventory/add', (req, res) => {
+  const { playerId, itemId, quantity } = req.body;
+  Inventory.addItem(playerId, itemId, quantity, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/inventory/update', (req, res) => {
+  const { id, quantity } = req.body;
+  Inventory.updateItem(id, quantity, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/inventory/remove', (req, res) => {
+  const { id } = req.body;
+  Inventory.removeItem(id, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+
+// Specialists
+app.get('/api/specialists', (req, res) => {
+  Specialist.getAll((err, specialists) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(specialists);
+  });
+});
+app.get('/api/specialists/:id', (req, res) => {
+  Specialist.getById(req.params.id, (err, specialist) => {
+    if (err || !specialist) return res.status(404).json({ error: 'Not found' });
+    res.json(specialist);
+  });
+});
+
+// Missions
+app.get('/api/missions/:playerId', (req, res) => {
+  Mission.getByPlayer(req.params.playerId, (err, missions) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(missions);
+  });
+});
+app.post('/api/missions/accept', (req, res) => {
+  const { playerId, specialistId, missionType } = req.body;
+  Mission.accept(playerId, specialistId, missionType, (err, mission) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(mission);
+  });
+});
+app.post('/api/missions/complete', (req, res) => {
+  const { id } = req.body;
+  Mission.complete(id, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+
+// Locations
+app.get('/api/locations', (req, res) => {
+  Location.getAll((err, locations) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(locations);
+  });
+});
+app.get('/api/locations/:id', (req, res) => {
+  Location.getById(req.params.id, (err, location) => {
+    if (err || !location) return res.status(404).json({ error: 'Not found' });
+    res.json(location);
+  });
+});
+
+// Resources
+app.get('/api/resources/:locationId', (req, res) => {
+  Resource.getByLocation(req.params.locationId, (err, resources) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(resources);
+  });
+});
+app.post('/api/resources/add', (req, res) => {
+  const { name, type, amount, locationId } = req.body;
+  Resource.add(name, type, amount, locationId, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/resources/update', (req, res) => {
+  const { id, amount } = req.body;
+  Resource.updateAmount(id, amount, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+
+// Marketplace
+app.get('/api/marketplace', (req, res) => {
+  Marketplace.getAll((err, listings) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json(listings);
+  });
+});
+app.post('/api/marketplace/create', (req, res) => {
+  const { itemId, sellerId, price, quantity } = req.body;
+  Marketplace.create(itemId, sellerId, price, quantity, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
+  });
+});
+app.post('/api/marketplace/buy', (req, res) => {
+  const { id, buyerId } = req.body;
+  Marketplace.buy(id, buyerId, (err) => {
+    if (err) return res.status(500).json({ error: 'DB error' });
+    res.json({ success: true });
   });
 });
 
